@@ -255,7 +255,8 @@ async fn _approve(
             let execute_call_result = _execute_call(&spender_holder, call_data).await;
 
             if let Err(e) = execute_call_result {
-                return ApproveResult::Err(e);
+                // approve succeed ,bu call failed
+                return ApproveResult::Ok(e);
             };
         }
     }
@@ -284,6 +285,7 @@ async fn _transfer_from(
 
     let from_parse_result = from.parse::<TokenHolder>();
     let to_parse_result = to.parse::<TokenHolder>();
+    let fee = _calc_fee(value);
 
     match spender_parse_result {
         Ok(spender) => match from_parse_result {
@@ -291,9 +293,9 @@ async fn _transfer_from(
                 Ok(to_token_holder) => {
                     let mut from_balance = _inner_balance_of(&from_token_holder);
                     let mut from_allowance = _inner_allowance(&from_token_holder, &spender);
-                    if from_allowance < value {
+                    if from_allowance < value + fee {
                         return TransferResult::Err(types::Error::InsufficientAllowance);
-                    } else if from_balance < value {
+                    } else if from_balance < value + fee {
                         return TransferResult::Err(types::Error::InsufficientBalance);
                     }
 
@@ -317,7 +319,7 @@ async fn _transfer_from(
                         return TransferResult::Err(types::Error::InsufficientBalance);
                     }
                     let to_balance = _inner_balance_of(&to_token_holder);
-                    balances.insert(from_token_holder.clone(), from_balance - value);
+                    balances.insert(from_token_holder.clone(), from_balance - value - fee);
                     balances.insert(to_token_holder.clone(), to_balance + value);
                     let allowances_read = storage::get::<Allowances>();
                     match allowances_read.get(&from_token_holder) {
@@ -373,15 +375,16 @@ async fn _transfer(
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
+    let fee = _calc_fee(value);
     match transfer_from_parse_result {
         Ok(transfer_from) => {
-            let from_balance = _inner_balance_of(&transfer_from);
+            let mut from_balance = _inner_balance_of(&transfer_from);
             dfn_core::api::print(format!(
                 "from account balance is {}",
                 from_balance.to_string()
             ));
 
-            if from_balance < value {
+            if from_balance < value + fee {
                 return TransferResult::Err(types::Error::InsufficientBalance);
             }
 
@@ -397,11 +400,15 @@ async fn _transfer(
                     if let Err(e) = before_sending_check_result {
                         return TransferResult::Err(e);
                     }
+                    // reload balance after outside call (_on_token_sending)
+                    from_balance = _inner_balance_of(&transfer_from);
 
-                    let fee = _calc_fee(value);
+                    if from_balance < value + fee {
+                        return TransferResult::Err(types::Error::InsufficientBalance);
+                    }
 
-                    balances.insert(transfer_from.clone(), from_balance - value);
-                    balances.insert(receiver.clone(), to_balance + value - fee);
+                    balances.insert(transfer_from.clone(), from_balance - value - fee);
+                    balances.insert(receiver.clone(), to_balance + value);
 
                     unsafe {
                         TXS.push(TxRecord::Transfer(

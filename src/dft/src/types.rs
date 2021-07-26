@@ -116,7 +116,7 @@ pub enum BurnResult {
 #[derive(Deserialize, Debug, CandidType)]
 #[serde(rename_all = "camelCase")]
 pub enum ApproveResult {
-    Ok,
+    Ok(Error),
     Err(Error),
 }
 
