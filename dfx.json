@@ -1,0 +1,23 @@
+{
+  "canisters": {
+    "dft": {
+      "build": "cargo build --target wasm32-unknown-unknown --package  dft --release",
+      "candid": "src/dft/src/token.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft.wasm",
+      "type": "custom"
+    }
+  },
+  "defaults": {
+    "build": {
+      "packtool": ""
+    }
+  },
+  "dfx": "0.7.2",
+  "networks": {
+    "local": {
+      "bind": "127.0.0.1:8000",
+      "type": "ephemeral"
+    }
+  },
+  "version": 1
+}

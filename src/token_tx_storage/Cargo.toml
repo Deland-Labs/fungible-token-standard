@@ -1,0 +1,12 @@
+[package]
+name = "token_tx_storage"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+sudograph = "0.3.0"
+ic-cdk = "0.3.0"

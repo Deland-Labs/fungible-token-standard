@@ -1,0 +1,15 @@
+pub const OFFICIAL_SITE: &str = "OFFICIAL_SITE";
+pub const MEDIUM: &str = "MEDIUM";
+pub const OFFICIAL_EMAIL: &str = "OFFICIAL_EMAIL";
+pub const DESCRIPTION: &str = "DESCRIPTION";
+pub const BLOG: &str = "BLOG";
+pub const REDDIT: &str = "REDDIT";
+pub const SLACK: &str = "SLACK";
+pub const FACEBOOK: &str = "FACEBOOK";
+pub const TWITTER: &str = "TWITTER";
+pub const GITHUB: &str = "GITHUB";
+pub const TEGEGRAM: &str = "TEGEGRAM";
+pub const WECHAT: &str = "WECHAT";
+pub const LINKEDIN: &str = "LINKEDIN";
+pub const DISCORD: &str = "DISCORD";
+pub const WHITE_PAPER: &str = "WHITE_PAPER";
