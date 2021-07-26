@@ -256,11 +256,11 @@ async fn _approve(
 
             if let Err(e) = execute_call_result {
                 // approve succeed ,bu call failed
-                return ApproveResult::Ok(e);
+                return ApproveResult::Ok(Some(e));
             };
         }
     }
-    ApproveResult::Ok
+    ApproveResult::Ok(None)
 }
 
 #[export_name = "canister_update transferFrom"]
@@ -411,6 +411,7 @@ async fn _transfer(
                     balances.insert(receiver.clone(), to_balance + value);
 
                     unsafe {
+                        let next_tx_id = TXS.len();
                         TXS.push(TxRecord::Transfer(
                             from,
                             transfer_from.clone(),
@@ -420,25 +421,25 @@ async fn _transfer(
                             dfn_core::api::ic0::time(),
                         ));
                         TOTAL_FEE += fee;
+
+                        let mut errors: Vec<types::Error> = Vec::new();
+
+                        // after transfer hook
+                        let after_token_send_notify_result =
+                            _on_token_received(&transfer_from, &receiver, &value).await;
+
+                        if let Err(e) = after_token_send_notify_result {
+                            errors.push(e);
+                        };
+
+                        // execute call
+                        let execute_call_result = _execute_call(&receiver, call_data).await;
+
+                        if let Err(e) = execute_call_result {
+                            errors.push(e);
+                        };
+                        TransferResult::Ok(next_tx_id as u128, None)
                     }
-
-                    let mut errors: Vec<types::Error> = Vec::new();
-
-                    // after transfer hook
-                    let after_token_send_notify_result =
-                        _on_token_received(&transfer_from, &receiver, &value).await;
-
-                    if let Err(e) = after_token_send_notify_result {
-                        errors.push(e);
-                    };
-
-                    // execute call
-                    let execute_call_result = _execute_call(&receiver, call_data).await;
-
-                    if let Err(e) = execute_call_result {
-                        errors.push(e);
-                    };
-                    TransferResult::Ok(1u128, None)
                 }
                 Err(e) => return TransferResult::Err(e),
             }

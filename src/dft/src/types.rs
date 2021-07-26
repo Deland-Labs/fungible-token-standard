@@ -105,7 +105,7 @@ pub enum TransferResult {
     Ok(TransactionId, Option<Vec<Error>>),
     Err(Error),
 }
- 
+
 #[derive(Deserialize, Debug, CandidType)]
 #[serde(rename_all = "camelCase")]
 pub enum BurnResult {
@@ -116,7 +116,7 @@ pub enum BurnResult {
 #[derive(Deserialize, Debug, CandidType)]
 #[serde(rename_all = "camelCase")]
 pub enum ApproveResult {
-    Ok(Error),
+    Ok(Option<Error>),
     Err(Error),
 }
 
