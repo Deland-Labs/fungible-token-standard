@@ -22,12 +22,9 @@ use ledger_canister::account_identifier::AccountIdentifier;
 use std::collections::HashMap;
 use std::string::String;
 use types::{
-    ApproveResult, BurnResult, CallData, ExtendData, Fee, KeyValuePair, MetaData, TokenHolder,
-    TokenReceiver, TransferFrom, TransferResult,
+    Allowances, ApproveResult, Balances, BurnResult, CallData, ExtendData, Fee, KeyValuePair,
+    MetaData, TokenHolder, TokenPayload, TokenReceiver, TransferFrom, TransferResult,
 };
-
-type Balances = HashMap<TokenHolder, u128>;
-type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
 
 const ZERO_PRINCIPAL_ID: PrincipalId = PrincipalId::new(0, [0u8; 29]);
 const ZERO_CANISTER_ID: CanisterId = CanisterId::from_u64(0);
@@ -626,6 +623,81 @@ fn __export_did_tmp() {
 #[candid_method(query, rename = "__export_did_tmp")]
 fn __export_did_tmp_() -> String {
     __export_service()
+}
+
+#[export_name = "canister_pre_upgrade"]
+fn pre_upgrade() {
+    let initialized = unsafe { INITIALIZED };
+    let owner = unsafe { OWNER };
+    let meta = _get_meta_data();
+    let logo = unsafe { LOGO.clone() };
+    let total_fee = unsafe { TOTAL_FEE };
+    let tx_id_cursor = unsafe { TX_ID_CURSOR };
+    let storage_canister_id = unsafe { STORAGE_CANISTER_ID };
+
+    let mut extend = Vec::new();
+    let mut balances = Vec::new();
+    let mut allowances = Vec::new();
+
+    for (k, v) in storage::get_mut::<ExtendData>().iter() {
+        extend.push((k.to_string(), v.to_string()));
+    }
+    for (k, v) in storage::get_mut::<Balances>().iter() {
+        balances.push((k.clone(), *v));
+    }
+    for (th, v) in storage::get_mut::<Allowances>().iter() {
+        let mut allow_item = Vec::new();
+        for (sp, val) in v.iter() {
+            allow_item.push((sp.clone(), *val));
+        }
+        allowances.push((th.clone(), allow_item));
+    }
+    let payload = TokenPayload {
+        initialized,
+        owner,
+        meta,
+        extend,
+        logo,
+        balances,
+        allowances,
+        total_fee,
+        tx_id_cursor,
+        storage_canister_id,
+    };
+    storage::stable_save((payload,)).unwrap();
+}
+
+#[export_name = "canister_post_upgrade"]
+fn post_upgrade() {
+    // There can only be one value in stable memory, currently. otherwise, lifetime error.
+    // https://docs.rs/ic-cdk/0.3.0/ic_cdk/storage/fn.stable_restore.html
+    let (payload,): (TokenPayload,) = storage::stable_restore().unwrap();
+    unsafe {
+        INITIALIZED = payload.initialized;
+        OWNER = payload.owner;
+        NAME = Box::leak(payload.meta.name.into_boxed_str());
+        SYMBOL = Box::leak(payload.meta.symbol.into_boxed_str());
+        DECIMALS = payload.meta.decimals;
+        TOTAL_SUPPLY = payload.meta.total_supply;
+        FEE = payload.meta.fee;
+        TOTAL_FEE = payload.total_fee;
+        TX_ID_CURSOR = payload.tx_id_cursor;
+        LOGO = payload.logo;
+        STORAGE_CANISTER_ID = payload.storage_canister_id;
+    }
+    for (k, v) in payload.extend {
+        storage::get_mut::<ExtendData>().insert(k, v);
+    }
+    for (k, v) in payload.balances {
+        storage::get_mut::<Balances>().insert(k, v);
+    }
+    for (k, v) in payload.allowances {
+        let mut inner = HashMap::new();
+        for (ik, iv) in v {
+            inner.insert(ik, iv);
+        }
+        storage::get_mut::<Allowances>().insert(k, inner);
+    }
 }
 
 fn parse_to_token_holder(

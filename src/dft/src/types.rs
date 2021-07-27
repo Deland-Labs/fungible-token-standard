@@ -9,6 +9,22 @@ use std::str::FromStr;
 use std::string::String;
 
 pub type TransactionId = u128;
+pub type ExtendData = HashMap<String, String>;
+pub type Balances = HashMap<TokenHolder, u128>;
+pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
+#[derive(CandidType, Debug, Deserialize)]
+pub struct TokenPayload {
+    pub initialized: bool,
+    pub owner: PrincipalId,
+    pub meta: MetaData,
+    pub extend: Vec<(String, String)>,
+    pub logo: Vec<u8>,
+    pub balances: Vec<(TokenHolder, u128)>,
+    pub allowances: Vec<(TokenHolder, Vec<(TokenHolder, u128)>)>,
+    pub total_fee: u128,
+    pub tx_id_cursor: u128,
+    pub storage_canister_id: CanisterId,
+}
 // Rate decimals = 6
 // transferFee = amount * rate / 1000000
 #[derive(CandidType, Debug, Clone, Deserialize)]
@@ -30,7 +46,6 @@ pub struct MetaData {
     pub fee: Fee,
 }
 
-pub type ExtendData = HashMap<String, String>;
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum TokenHolder {
