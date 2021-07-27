@@ -31,7 +31,6 @@ pub struct TokenPayload {
 #[serde(rename_all = "camelCase")]
 pub enum Fee {
     Fixed(u128),
-    Rate(u8),
     RateWithLowestLimit(u128, u8),
 }
 

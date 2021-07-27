@@ -266,20 +266,20 @@ async fn _approve(
     let owner = dfn_core::api::caller();
     let owner_parse_result = parse_to_token_holder(owner, owner_sub_account);
     let spender_parse_result = spender.parse::<TokenHolder>();
-
+    let approve_fee = 0u128;
     if let Ok(owner_holder) = owner_parse_result {
         if let Ok(spender_holder) = spender_parse_result {
             let allowances_read = storage::get::<Allowances>();
             match allowances_read.get(&owner_holder) {
                 Some(inner) => {
                     let mut temp = inner.clone();
-                    temp.insert(spender_holder.clone(), value);
+                    temp.insert(spender_holder.clone(), value - approve_fee);
                     let allowances = storage::get_mut::<Allowances>();
                     allowances.insert(owner_holder.clone(), temp);
                 }
                 None => {
                     let mut inner = HashMap::new();
-                    inner.insert(spender_holder.clone(), value);
+                    inner.insert(spender_holder.clone(), value - approve_fee);
                     let allowances = storage::get_mut::<Allowances>();
                     allowances.insert(owner_holder.clone(), inner);
                 }
@@ -290,7 +290,7 @@ async fn _approve(
                     owner_holder.clone(),
                     spender_holder.clone(),
                     value,
-                    0u128,
+                    approve_fee,
                     dfn_core::api::ic0::time(),
                 ))
                 .await;
@@ -330,7 +330,7 @@ async fn _transfer_from(
 
     let from_parse_result = from.parse::<TokenHolder>();
     let to_parse_result = to.parse::<TokenHolder>();
-    let fee = _calc_fee(value);
+    let fee = _calc_transfer_fee(value);
 
     match spender_parse_result {
         Ok(spender) => {
@@ -447,7 +447,7 @@ async fn _transfer(
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
-    let fee = _calc_fee(value);
+    let fee = _calc_transfer_fee(value);
     match transfer_from_parse_result {
         Ok(transfer_from) => {
             let mut from_balance = _inner_balance_of(&transfer_from);
@@ -533,7 +533,7 @@ async fn _burn(from_sub_account: Option<String>, value: u128) -> BurnResult {
     _must_set_tx_storage();
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
-    let fee = _calc_fee(value);
+    let fee = _calc_transfer_fee(value);
 
     if fee > value {
         return BurnResult::Err(types::Error::QuantityTooSmall);
@@ -871,12 +871,11 @@ async fn _execute_call(
     Ok(true)
 }
 
-fn _calc_fee(value: u128) -> u128 {
+fn _calc_transfer_fee(value: u128) -> u128 {
     unsafe {
         let div_by = (10 as u128).pow(FEE_RATE_DECIMALS as u32);
         match FEE {
             Fee::Fixed(_fixed) => _fixed,
-            Fee::Rate(_rate) => value * (_rate as u128) / div_by,
             Fee::RateWithLowestLimit(_lowest, _rate) => {
                 std::cmp::max(_lowest, value * (_rate as u128) / div_by)
             }
