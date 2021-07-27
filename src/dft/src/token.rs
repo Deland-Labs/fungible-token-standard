@@ -2,6 +2,7 @@
 use crate::extends;
 use crate::storage;
 use crate::types;
+use crate::types::TxRecord;
 use crate::utils;
 /**
  * Module     : token.rs
@@ -32,6 +33,11 @@ const ZERO_PRINCIPAL_ID: PrincipalId = PrincipalId::new(0, [0u8; 29]);
 const ZERO_CANISTER_ID: CanisterId = CanisterId::from_u64(0);
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
 const FEE_RATE_DECIMALS: u8 = 6u8;
+const TX_TYPES_INIT: &str = "init";
+const TX_TYPES_APPROVE: &str = "approve";
+const TX_TYPES_TRANSFER: &str = "transfer";
+const TX_TYPES_BURN: &str = "burn";
+const TX_TYPES_MINT: &str = "mint";
 
 static mut INITIALIZED: bool = false;
 static mut OWNER: PrincipalId = ZERO_PRINCIPAL_ID;
@@ -46,11 +52,21 @@ static mut TX_ID_CURSOR: u128 = 0;
 static mut LOGO: Vec<u8> = Vec::new();
 static mut STORAGE_CANISTER_ID: CanisterId = ZERO_CANISTER_ID;
 
+#[export_name = "canister_init"]
+fn canister_init() {
+    unsafe {
+        OWNER = dfn_core::api::caller();
+    }
+}
+
 #[export_name = "canister_update initialize"]
 fn initialize() {
-    over(candid, |(owner, spender): (String, String)| {
-        _allowance(owner, spender)
-    })
+    over_async(
+        candid,
+        |(name, symbol, decimals, total_supply): (String, String, u8, u128)| {
+            _initialize(name, symbol, decimals, total_supply)
+        },
+    )
 }
 
 #[candid_method(update, rename = "initialize")]
@@ -73,22 +89,20 @@ async fn _initialize(
         SYMBOL = Box::leak(symbol.into_boxed_str());
         DECIMALS = decimals;
         TOTAL_SUPPLY = total_supply;
-        OWNER = dfn_core::api::caller();
         let call_from = parse_to_token_holder(OWNER, None).unwrap();
         let balances = storage::get_mut::<Balances>();
-        balances.insert(call_from, TOTAL_SUPPLY);
+        balances.insert(call_from.clone(), TOTAL_SUPPLY);
 
-        _save_tx_record(
-            OWNER.to_string(),
-            OWNER.to_string(),
-            "".to_string(),
+        _save_tx_record(TxRecord::Init(
+            OWNER,
+            call_from,
+            decimals,
             total_supply,
-            decimals.into(),
             dfn_core::api::ic0::time(),
-        )
+        ))
         .await;
-        true
     }
+    true
 }
 
 #[export_name = "canister_query meta"]
@@ -274,14 +288,14 @@ async fn _approve(
                 }
             };
             unsafe {
-                _save_tx_record(
-                    owner.to_string(),
-                    owner_holder.to_string(),
-                    spender_holder.to_string(),
+                _save_tx_record(TxRecord::Approve(
+                    owner.clone(),
+                    owner_holder.clone(),
+                    spender_holder.clone(),
                     value,
                     0u128,
                     dfn_core::api::ic0::time(),
-                )
+                ))
                 .await;
             }
             // execute call
@@ -322,78 +336,92 @@ async fn _transfer_from(
     let fee = _calc_fee(value);
 
     match spender_parse_result {
-        Ok(spender) => match from_parse_result {
-            Ok(from_token_holder) => match to_parse_result {
-                Ok(to_token_holder) => {
-                    let mut from_balance = _inner_balance_of(&from_token_holder);
-                    let mut from_allowance = _inner_allowance(&from_token_holder, &spender);
-                    if from_allowance < value + fee {
-                        return TransferResult::Err(types::Error::InsufficientAllowance);
-                    } else if from_balance < value + fee {
-                        return TransferResult::Err(types::Error::InsufficientBalance);
-                    }
-
-                    let balances = storage::get_mut::<Balances>();
-
-                    // before transfer hook
-                    let before_sending_check_result =
-                        _on_token_sending(&from_token_holder, &to_token_holder, &value).await;
-
-                    if let Err(e) = before_sending_check_result {
-                        return TransferResult::Err(e);
-                    }
-                    // reload the balance after async call (_on_token_sending)
-                    from_balance = _inner_balance_of(&from_token_holder);
-                    // reload the allowance after async call (_on_token_sending)
-                    from_allowance = _inner_allowance(&from_token_holder, &spender);
-                    // recheck balance & allowance
-                    if from_allowance < value {
-                        return TransferResult::Err(types::Error::InsufficientAllowance);
-                    } else if from_balance < value {
-                        return TransferResult::Err(types::Error::InsufficientBalance);
-                    }
-                    let to_balance = _inner_balance_of(&to_token_holder);
-                    balances.insert(from_token_holder.clone(), from_balance - value - fee);
-                    balances.insert(to_token_holder.clone(), to_balance + value);
-                    let allowances_read = storage::get::<Allowances>();
-                    match allowances_read.get(&from_token_holder) {
-                        Some(inner) => {
-                            let mut temp = inner.clone();
-                            temp.insert(spender, from_allowance - value);
-                            let allowances = storage::get_mut::<Allowances>();
-                            allowances.insert(from_token_holder.clone(), temp);
+        Ok(spender) => {
+            match from_parse_result {
+                Ok(from_token_holder) => match to_parse_result {
+                    Ok(to_token_holder) => {
+                        let mut from_balance = _inner_balance_of(&from_token_holder);
+                        let mut from_allowance = _inner_allowance(&from_token_holder, &spender);
+                        if from_allowance < value + fee {
+                            return TransferResult::Err(types::Error::InsufficientAllowance);
+                        } else if from_balance < value + fee {
+                            return TransferResult::Err(types::Error::InsufficientBalance);
                         }
-                        None => {
-                            //revert balance and allowance
-                            assert!(false);
+
+                        let balances = storage::get_mut::<Balances>();
+
+                        // before transfer hook
+                        let before_sending_check_result =
+                            _on_token_sending(&from_token_holder, &to_token_holder, &value).await;
+
+                        if let Err(e) = before_sending_check_result {
+                            return TransferResult::Err(e);
+                        }
+                        // reload the balance after async call (_on_token_sending)
+                        from_balance = _inner_balance_of(&from_token_holder);
+                        // reload the allowance after async call (_on_token_sending)
+                        from_allowance = _inner_allowance(&from_token_holder, &spender);
+                        // recheck balance & allowance
+                        if from_allowance < value + fee {
+                            dfn_core::api::print(format!("InsufficientAllowance: from_allowance  is {},amount is {},fee is {}",
+                            from_balance.to_string(),value.to_string(),fee.to_string()));
+                            return TransferResult::Err(types::Error::InsufficientAllowance);
+                        } else if from_balance < value {
+                            dfn_core::api::print(format!(
+                                "InsufficientBalance: from_allowance  is {},amount is {},fee is {}",
+                                from_balance.to_string(),
+                                value.to_string(),
+                                fee.to_string()
+                            ));
+                            return TransferResult::Err(types::Error::InsufficientBalance);
+                        }
+                        let to_balance = _inner_balance_of(&to_token_holder);
+                        balances.insert(from_token_holder.clone(), from_balance - value - fee);
+                        balances.insert(to_token_holder.clone(), to_balance + value);
+                        let allowances_read = storage::get::<Allowances>();
+                        match allowances_read.get(&from_token_holder) {
+                            Some(inner) => {
+                                let mut temp = inner.clone();
+                                temp.insert(spender, from_allowance - value);
+                                let allowances = storage::get_mut::<Allowances>();
+                                allowances.insert(from_token_holder.clone(), temp);
+                            }
+                            None => {
+                                //revert balance and allowance
+                                assert!(false);
+                            }
+                        }
+
+                        unsafe {
+                            let next_tx_id = _save_tx_record(TxRecord::Transfer(
+                                spender_principal_id.clone(),
+                                from_token_holder.clone(),
+                                to_token_holder.clone(),
+                                value,
+                                fee,
+                                dfn_core::api::ic0::time(),
+                            ))
+                            .await;
+
+                            if fee > 0 {
+                                TOTAL_FEE += fee;
+                            }
+                            // after transfer hook
+                            let after_token_send_notify_result =
+                                _on_token_received(&from_token_holder, &to_token_holder, &value)
+                                    .await;
+
+                            match after_token_send_notify_result {
+                                Err(e) => return TransferResult::Ok(next_tx_id, Some(vec![e])),
+                                Ok(_) => return TransferResult::Ok(next_tx_id, None),
+                            }
                         }
                     }
-
-                    unsafe {
-                        let next_tx_id = _save_tx_record(
-                            spender_principal_id.to_string(),
-                            from_token_holder.to_string(),
-                            to_token_holder.to_string(),
-                            value,
-                            fee,
-                            dfn_core::api::ic0::time(),
-                        )
-                        .await;
-                        TOTAL_FEE += fee;
-                        // after transfer hook
-                        let after_token_send_notify_result =
-                            _on_token_received(&from_token_holder, &to_token_holder, &value).await;
-
-                        match after_token_send_notify_result {
-                            Err(e) => return TransferResult::Ok(next_tx_id, Some(vec![e])),
-                            Ok(_) => return TransferResult::Ok(next_tx_id, None),
-                        }
-                    }
-                }
-                _ => TransferResult::Err(types::Error::InvalidReceiver),
-            },
-            _ => TransferResult::Err(types::Error::InvalidTokenHolder),
-        },
+                    _ => TransferResult::Err(types::Error::InvalidReceiver),
+                },
+                _ => TransferResult::Err(types::Error::InvalidTokenHolder),
+            }
+        }
         _ => TransferResult::Err(types::Error::InvalidSpender),
     }
 }
@@ -458,14 +486,14 @@ async fn _transfer(
                     balances.insert(receiver.clone(), to_balance + value);
 
                     unsafe {
-                        let next_tx_id: u128 = _save_tx_record(
-                            from.to_string(),
-                            transfer_from.to_string(),
-                            receiver.to_string(),
+                        let next_tx_id = _save_tx_record(TxRecord::Transfer(
+                            from.clone(),
+                            transfer_from.clone(),
+                            receiver.clone(),
                             value,
                             fee,
                             dfn_core::api::ic0::time(),
-                        )
+                        ))
                         .await;
                         TOTAL_FEE += fee;
 
@@ -525,14 +553,12 @@ async fn _burn(from_sub_account: Option<String>, value: u128) -> BurnResult {
             let balances = storage::get_mut::<Balances>();
             balances.insert(transfer_from.clone(), from_balance - value);
             unsafe {
-                _save_tx_record(
-                    from.to_string(),
-                    transfer_from.to_string(),
-                    "".to_string(),
+                _save_tx_record(TxRecord::Burn(
+                    from.clone(),
+                    transfer_from.clone(),
                     value,
-                    0,
                     dfn_core::api::ic0::time(),
-                )
+                ))
                 .await;
             }
             BurnResult::Ok
@@ -564,6 +590,42 @@ fn _supported_interface(interface: String) -> bool {
         }
         _ => false,
     }
+}
+
+#[export_name = "canister_update setStorageCanisterID"]
+fn set_storage_canister_id() {
+    over(candid_one, _set_storage_canister_id)
+}
+
+#[candid_method(update, rename = "setStorageCanisterID")]
+fn _set_storage_canister_id(storage: CanisterId) -> bool {
+    _only_owner();
+    unsafe {
+        STORAGE_CANISTER_ID = storage;
+        true
+    }
+}
+// return graphql canister id
+#[export_name = "canister_query tokenGraphql"]
+fn token_graphql() {
+    over(candid, |()| -> CanisterId { _token_graphql() })
+}
+
+#[candid_method(query, rename = "tokenGraphql")]
+fn _token_graphql() -> CanisterId {
+    unsafe { STORAGE_CANISTER_ID }
+}
+
+candid::export_service!();
+
+#[export_name = "canister_query __export_did_tmp"]
+fn __export_did_tmp() {
+    over(candid, |()| -> String { __export_did_tmp_() })
+}
+
+#[candid_method(query, rename = "__export_did_tmp")]
+fn __export_did_tmp_() -> String {
+    __export_service()
 }
 
 fn parse_to_token_holder(
@@ -750,42 +812,82 @@ fn _calc_fee(value: u128) -> u128 {
     }
 }
 
-async fn _save_tx_record(
-    caller: String,
-    from: String,
-    to: String,
-    value: u128,
-    fee: u128,
-    timestamp: u64,
-) -> u128 {
+async fn _save_tx_record(tx: TxRecord) -> u128 {
     _must_set_tx_storage();
     unsafe {
         TX_ID_CURSOR += 1;
+        let type_str: &str;
+        let call_str: String;
+        let from_str: String;
+        let to_str: String;
+        let value_str: String;
+        let fee_str: String;
+        let timestamp_str: String;
+        match tx {
+            TxRecord::Init(caller, owner, decimals, total_supply, t) => {
+                type_str = TX_TYPES_INIT;
+                call_str = caller.to_string();
+                from_str = owner.to_string();
+                to_str = "".to_string();
+                value_str = total_supply.to_string();
+                fee_str = decimals.to_string();
+                timestamp_str = t.to_string();
+            }
+            TxRecord::Approve(caller, owner, spender, value, fee, t) => {
+                type_str = TX_TYPES_APPROVE;
+                call_str = caller.to_string();
+                from_str = owner.to_string();
+                to_str = spender.to_string();
+                value_str = value.to_string();
+                fee_str = fee.to_string();
+                timestamp_str = t.to_string();
+            }
+            TxRecord::Transfer(caller, from, to, value, fee, t) => {
+                type_str = TX_TYPES_TRANSFER;
+                call_str = caller.to_string();
+                from_str = from.to_string();
+                to_str = to.to_string();
+                value_str = value.to_string();
+                fee_str = fee.to_string();
+                timestamp_str = t.to_string();
+            }
+            TxRecord::Burn(caller, from, value, t) => {
+                type_str = TX_TYPES_BURN;
+                call_str = caller.to_string();
+                from_str = from.to_string();
+                to_str = "".to_string();
+                value_str = value.to_string();
+                fee_str = "0".to_string();
+                timestamp_str = t.to_string();
+            }
+        }
 
         let vals = "{}".to_string();
         let muation = format!(
             r#"mutation {{ 
-                                  createUser(input: {{ 
-                                                      id:  {0},
-                                                      caller:{1},
-                                                      from:{2},
-                                                      to:{3},
-                                                      value:{4},
-                                                      fee:{5},
-                                                      timestamp:{6},
-                                                    }}) 
-                                  {{ id, caller,from,to,value,fee,timestamp}} 
+                            createTx(input: {{ 
+                                txid:  "{0}",txtype:"{1}",
+                                caller:"{2}",from:"{3}",
+                                to:"{4}",value:"{5}",
+                                fee:"{6}",timestamp:"{7}",
+                                }}) 
+                                {{ id }} 
                                }}"#,
-            TX_ID_CURSOR, caller, from, to, value, fee, timestamp
+            TX_ID_CURSOR, type_str, call_str, from_str, to_str, value_str, fee_str, timestamp_str
         );
         //call storage canister
-        let _support_res: Result<(bool,), _> = call_with_cleanup(
+        let _support_res: Result<(String,), _> = call_with_cleanup(
             STORAGE_CANISTER_ID,
-            "graphql_mutation_custom",
+            "graphql_mutation",
             dfn_candid::candid_multi_arity,
-            (muation, vals),
+            (muation.to_string(), vals),
         )
         .await;
+        dfn_core::api::print(format!("muation is :{}", muation.to_string()));
+        match _support_res {
+            Ok(res) => dfn_core::api::print(format!("graph write succeed :{}", res.0)),
+            Err((_, msg)) => dfn_core::api::print(format!("graph write error :{}", msg)),
+        };
         TX_ID_CURSOR
     }
 }
@@ -800,57 +902,4 @@ fn _must_set_tx_storage() {
     unsafe {
         assert!(STORAGE_CANISTER_ID != ZERO_CANISTER_ID);
     }
-}
-
-#[export_name = "canister_query setStorageCanisterID"]
-fn set_storage_canister_id() {
-    over(candid_one, _set_storage_canister_id)
-}
-
-#[candid_method(query, rename = "setStorageCanisterID")]
-fn _set_storage_canister_id(storage: CanisterId) -> bool {
-    unsafe {
-        STORAGE_CANISTER_ID = storage;
-        true
-    }
-}
-
-#[export_name = "canister_query graphqlQuery"]
-fn graphql_query() {
-    over_async(candid, |(query, variables): (String, String)| {
-        _graphql_query(query, variables)
-    })
-}
-
-#[candid_method(query, rename = "graphqlQuery")]
-async fn _graphql_query(query: String, variables: String) -> String {
-    unsafe {
-        let support_res: Result<(String,), _> = call_with_cleanup(
-            STORAGE_CANISTER_ID,
-            "graphql_query_custom",
-            dfn_candid::candid_multi_arity,
-            (query, variables),
-        )
-        .await;
-
-        match support_res {
-            Ok(res) => res.0,
-            Err((_, msg)) => {
-                dfn_core::api::print(format!("graph query error{}", msg));
-                "".to_string()
-            }
-        }
-    }
-}
-
-candid::export_service!();
-
-#[export_name = "canister_query __export_did_tmp"]
-fn __export_did_tmp() {
-    over(candid, |()| -> String { __export_did_tmp_() })
-}
-
-#[candid_method(query, rename = "__export_did_tmp")]
-fn __export_did_tmp_() -> String {
-    __export_service()
 }

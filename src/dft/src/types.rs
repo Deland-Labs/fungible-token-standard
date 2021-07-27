@@ -4,9 +4,9 @@ use ic_types::{CanisterId, PrincipalId};
 use ledger_canister::account_identifier::AccountIdentifier;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use std::str::FromStr;
 use std::string::String;
-use std::{  fmt};
 
 pub type TransactionId = u128;
 // Rate decimals = 6
@@ -31,7 +31,7 @@ pub struct MetaData {
 }
 
 pub type ExtendData = HashMap<String, String>;
-#[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq)]
+#[derive(CandidType, Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum TokenHolder {
     Account(AccountIdentifier),
@@ -73,9 +73,9 @@ impl FromStr for TokenHolder {
 }
 impl fmt::Display for TokenHolder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-      let s=   match &self {
+        let s = match &self {
             TokenHolder::Account(_ai) => _ai.to_string(),
-            TokenHolder::Principal(_pid) =>_pid.to_string(),
+            TokenHolder::Principal(_pid) => _pid.to_string(),
             TokenHolder::Canister(_cid) => _cid.to_string(),
         };
         write!(f, "{}", s)
@@ -92,7 +92,7 @@ pub struct CallData {
     pub args: Vec<u8>,
 }
 
-#[derive(Deserialize, Debug, Clone, CandidType)]
+#[derive(Deserialize, Serialize, Debug, Clone, CandidType)]
 #[serde(rename_all = "camelCase")]
 pub enum Error {
     InvalidSubaccount,
@@ -109,7 +109,7 @@ pub enum Error {
     Unknown,
 }
 
-#[derive(Deserialize, Debug, Clone, CandidType)]
+#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum TransferResult {
     //transfer succeed, but call failed & notify failed
@@ -117,28 +117,29 @@ pub enum TransferResult {
     Err(Error),
 }
 
-#[derive(Deserialize, Debug, CandidType)]
+#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum BurnResult {
     Ok,
     Err(Error),
 }
 
-#[derive(Deserialize, Debug, CandidType)]
+#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ApproveResult {
     Ok(Option<Error>),
     Err(Error),
 }
 
-#[derive(Deserialize, Debug, Clone, CandidType)]
+#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct  TxRecord { 
-    id: TransactionId,
-    caller: String,
-    from: String,
-    to: String,
-    value: u128,
-    fee: u128,
-    timestamp: u64
+pub enum TxRecord {
+    // caller, owner, decimals, total_supply, timestamp
+    Init(PrincipalId, TokenHolder, u8, u128, u64),
+    // caller, owner, spender, value, fee, timestamp
+    Approve(PrincipalId, TokenHolder, TokenReceiver, u128, u128, u64),
+    // caller, from, to, value, fee, timestamp
+    Transfer(PrincipalId, TokenHolder, TokenReceiver, u128, u128, u64),
+    // caller, from, value, timestamp
+    Burn(PrincipalId, TokenHolder, u128, u64),
 }

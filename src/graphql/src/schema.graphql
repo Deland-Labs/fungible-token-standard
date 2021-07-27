@@ -1,16 +1,17 @@
 type SudographSettings {
   exportGeneratedInitFunction: false
-  exportGeneratedQueryFunction: false
   exportGeneratedMutationFunction: false
   exportGeneratedPostUpgradeFunction: false
 }
 
 type Tx {
   id: ID!
+  txid:String!
+  txtype:String!
   caller: String!
   from: String!
   to: String!
-  value: Int!
-  fee: Int!
-  timestamp: Int!
+  value: String!
+  fee: String!
+  timestamp: String!
 }
