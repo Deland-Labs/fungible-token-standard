@@ -22,57 +22,74 @@ use std::collections::HashMap;
 use std::string::String;
 use types::{
     ApproveResult, BurnResult, CallData, ExtendData, Fee, KeyValuePair, MetaData, TokenHolder,
-    TokenReceiver, TransactionId, TransferFrom, TransferResult, TxRecord,
+    TokenReceiver, TransferFrom, TransferResult,
 };
 
 type Balances = HashMap<TokenHolder, u128>;
 type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
 
-static mut OWNER: PrincipalId = PrincipalId::new(0, [0u8; 29]);
+const ZERO_PRINCIPAL_ID: PrincipalId = PrincipalId::new(0, [0u8; 29]);
+const ZERO_CANISTER_ID: CanisterId = CanisterId::from_u64(0);
+// transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
+const FEE_RATE_DECIMALS: u8 = 6u8;
+
+static mut INITIALIZED: bool = false;
+static mut OWNER: PrincipalId = ZERO_PRINCIPAL_ID;
 static mut NAME: &str = "";
 static mut SYMBOL: &str = "";
 static mut DECIMALS: u8 = 0;
 static mut TOTAL_SUPPLY: u128 = 0;
 static mut FEE: types::Fee = types::Fee::Fixed(0);
 static mut TOTAL_FEE: u128 = 0;
+static mut TX_ID_CURSOR: u128 = 0;
 // 256 * 256
 static mut LOGO: Vec<u8> = Vec::new();
-// 256 * 256
-static mut TXS: Vec<TxRecord> = Vec::new();
+static mut STORAGE_CANISTER_ID: CanisterId = ZERO_CANISTER_ID;
 
-// transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
-const FEE_RATE_DECIMALS: u8 = 6u8;
+#[export_name = "canister_update initialize"]
+fn initialize() {
+    over(candid, |(owner, spender): (String, String)| {
+        _allowance(owner, spender)
+    })
+}
 
-// #[export_name = "canister_init"]
-// #[candid_method(init)]
-// fn init(
-//     subaccount: Option<String>,
-//     logo: Vec<u8>,
-//     name: String,
-//     symbol: String,
-//     decimals: u8,
-//     total_supply: u128,
-// ) {
-//     unsafe {
-//         LOGO = logo;
-//         NAME = Box::leak(name.into_boxed_str());
-//         SYMBOL = Box::leak(symbol.into_boxed_str());
-//         DECIMALS = decimals;
-//         TOTAL_SUPPLY = total_supply;
-//         OWNER = dfn_core::api::caller();
-//         let call_from = parse_to_token_holder(OWNER, subaccount).unwrap();
-//         let balances = storage::get_mut::<Balances>();
-//         balances.insert(call_from, TOTAL_SUPPLY);
+#[candid_method(update, rename = "initialize")]
+async fn _initialize(
+    //subaccount: Option<String>,
+    //logo: Vec<u8>,
+    name: String,
+    symbol: String,
+    decimals: u8,
+    total_supply: u128,
+) -> bool {
+    _must_set_tx_storage();
+    _only_owner();
 
-//         TXS.push(TxRecord::Init(
-//             OWNER,
-//             OWNER,
-//             decimals,
-//             total_supply,
-//             dfn_core::api::ic0::time(),
-//         ));
-//     }
-// }
+    unsafe {
+        assert!(INITIALIZED == false, "initialized");
+        INITIALIZED = true;
+        LOGO = vec![0];
+        NAME = Box::leak(name.into_boxed_str());
+        SYMBOL = Box::leak(symbol.into_boxed_str());
+        DECIMALS = decimals;
+        TOTAL_SUPPLY = total_supply;
+        OWNER = dfn_core::api::caller();
+        let call_from = parse_to_token_holder(OWNER, None).unwrap();
+        let balances = storage::get_mut::<Balances>();
+        balances.insert(call_from, TOTAL_SUPPLY);
+
+        _save_tx_record(
+            OWNER.to_string(),
+            OWNER.to_string(),
+            "".to_string(),
+            total_supply,
+            decimals.into(),
+            dfn_core::api::ic0::time(),
+        )
+        .await;
+        true
+    }
+}
 
 #[export_name = "canister_query meta"]
 fn get_meta_data() {
@@ -121,9 +138,12 @@ fn update_extend_data() {
 
 #[candid_method(update, rename = "updateExtend")]
 fn _update_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
+    _only_owner();
     let extend_data_store = storage::get_mut::<ExtendData>();
     for kv_pair in extend_data.iter() {
-        extend_data_store.insert(kv_pair.k.clone(), kv_pair.v.clone());
+        if extends::EXTEND_KEYS.contains(&kv_pair.k.as_str()) {
+            extend_data_store.insert(kv_pair.k.clone(), kv_pair.v.clone());
+        }
     }
     true
 }
@@ -144,6 +164,7 @@ fn update_logo() {
 
 #[candid_method(update, rename = "updateLogo")]
 fn _update_logo(logo: Vec<u8>) -> bool {
+    _only_owner();
     unsafe { LOGO = logo }
     true
 }
@@ -230,6 +251,7 @@ async fn _approve(
     value: u128,
     call_data: Option<CallData>,
 ) -> ApproveResult {
+    _must_set_tx_storage();
     let owner = dfn_core::api::caller();
     let owner_parse_result = parse_to_token_holder(owner, owner_sub_account);
     let spender_parse_result = spender.parse::<TokenHolder>();
@@ -251,6 +273,17 @@ async fn _approve(
                     allowances.insert(owner_holder.clone(), inner);
                 }
             };
+            unsafe {
+                _save_tx_record(
+                    owner.to_string(),
+                    owner_holder.to_string(),
+                    spender_holder.to_string(),
+                    value,
+                    0u128,
+                    dfn_core::api::ic0::time(),
+                )
+                .await;
+            }
             // execute call
             let execute_call_result = _execute_call(&spender_holder, call_data).await;
 
@@ -280,6 +313,7 @@ async fn _transfer_from(
     to: String,
     value: u128,
 ) -> TransferResult {
+    _must_set_tx_storage();
     let spender_principal_id = dfn_core::api::caller();
     let spender_parse_result = parse_to_token_holder(spender_principal_id, spender_sub_account);
 
@@ -334,14 +368,26 @@ async fn _transfer_from(
                             assert!(false);
                         }
                     }
-                    // after transfer hook
-                    let after_token_send_notify_result =
-                        _on_token_received(&from_token_holder, &to_token_holder, &value).await;
 
-                    if let Err(e) = after_token_send_notify_result {
-                        return TransferResult::Ok(1u128, Some(vec![e]));
-                    } else {
-                        return TransferResult::Ok(1u128, None);
+                    unsafe {
+                        let next_tx_id = _save_tx_record(
+                            spender_principal_id.to_string(),
+                            from_token_holder.to_string(),
+                            to_token_holder.to_string(),
+                            value,
+                            fee,
+                            dfn_core::api::ic0::time(),
+                        )
+                        .await;
+                        TOTAL_FEE += fee;
+                        // after transfer hook
+                        let after_token_send_notify_result =
+                            _on_token_received(&from_token_holder, &to_token_holder, &value).await;
+
+                        match after_token_send_notify_result {
+                            Err(e) => return TransferResult::Ok(next_tx_id, Some(vec![e])),
+                            Ok(_) => return TransferResult::Ok(next_tx_id, None),
+                        }
                     }
                 }
                 _ => TransferResult::Err(types::Error::InvalidReceiver),
@@ -372,6 +418,7 @@ async fn _transfer(
     value: u128,
     call_data: Option<CallData>,
 ) -> TransferResult {
+    _must_set_tx_storage();
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
@@ -411,15 +458,15 @@ async fn _transfer(
                     balances.insert(receiver.clone(), to_balance + value);
 
                     unsafe {
-                        let next_tx_id = TXS.len();
-                        TXS.push(TxRecord::Transfer(
-                            from,
-                            transfer_from.clone(),
-                            receiver.clone(),
+                        let next_tx_id: u128 = _save_tx_record(
+                            from.to_string(),
+                            transfer_from.to_string(),
+                            receiver.to_string(),
                             value,
                             fee,
                             dfn_core::api::ic0::time(),
-                        ));
+                        )
+                        .await;
                         TOTAL_FEE += fee;
 
                         let mut errors: Vec<types::Error> = Vec::new();
@@ -438,7 +485,7 @@ async fn _transfer(
                         if let Err(e) = execute_call_result {
                             errors.push(e);
                         };
-                        TransferResult::Ok(next_tx_id as u128, None)
+                        TransferResult::Ok(next_tx_id, None)
                     }
                 }
                 Err(e) => return TransferResult::Err(e),
@@ -450,14 +497,15 @@ async fn _transfer(
 
 #[export_name = "canister_update burn"]
 fn burn() {
-    over(
+    over_async(
         candid_one,
         |(from_sub_account, amount): (Option<String>, u128)| _burn(from_sub_account, amount),
     )
 }
 
 #[candid_method(update, rename = "burn")]
-fn _burn(from_sub_account: Option<String>, value: u128) -> BurnResult {
+async fn _burn(from_sub_account: Option<String>, value: u128) -> BurnResult {
+    _must_set_tx_storage();
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
     let fee = _calc_fee(value);
@@ -477,12 +525,15 @@ fn _burn(from_sub_account: Option<String>, value: u128) -> BurnResult {
             let balances = storage::get_mut::<Balances>();
             balances.insert(transfer_from.clone(), from_balance - value);
             unsafe {
-                TXS.push(TxRecord::Burn(
-                    from,
-                    transfer_from.clone(),
+                _save_tx_record(
+                    from.to_string(),
+                    transfer_from.to_string(),
+                    "".to_string(),
                     value,
+                    0,
                     dfn_core::api::ic0::time(),
-                ));
+                )
+                .await;
             }
             BurnResult::Ok
         }
@@ -694,6 +745,99 @@ fn _calc_fee(value: u128) -> u128 {
             Fee::Rate(_rate) => value * (_rate as u128) / div_by,
             Fee::RateWithLowestLimit(_lowest, _rate) => {
                 std::cmp::max(_lowest, value * (_rate as u128) / div_by)
+            }
+        }
+    }
+}
+
+async fn _save_tx_record(
+    caller: String,
+    from: String,
+    to: String,
+    value: u128,
+    fee: u128,
+    timestamp: u64,
+) -> u128 {
+    _must_set_tx_storage();
+    unsafe {
+        TX_ID_CURSOR += 1;
+
+        let vals = "{}".to_string();
+        let muation = format!(
+            r#"mutation {{ 
+                                  createUser(input: {{ 
+                                                      id:  {0},
+                                                      caller:{1},
+                                                      from:{2},
+                                                      to:{3},
+                                                      value:{4},
+                                                      fee:{5},
+                                                      timestamp:{6},
+                                                    }}) 
+                                  {{ id, caller,from,to,value,fee,timestamp}} 
+                               }}"#,
+            TX_ID_CURSOR, caller, from, to, value, fee, timestamp
+        );
+        //call storage canister
+        let _support_res: Result<(bool,), _> = call_with_cleanup(
+            STORAGE_CANISTER_ID,
+            "graphql_mutation_custom",
+            dfn_candid::candid_multi_arity,
+            (muation, vals),
+        )
+        .await;
+        TX_ID_CURSOR
+    }
+}
+
+fn _only_owner() {
+    unsafe {
+        assert!(OWNER == dfn_core::api::caller(), "not owner");
+    }
+}
+
+fn _must_set_tx_storage() {
+    unsafe {
+        assert!(STORAGE_CANISTER_ID != ZERO_CANISTER_ID);
+    }
+}
+
+#[export_name = "canister_query setStorageCanisterID"]
+fn set_storage_canister_id() {
+    over(candid_one, _set_storage_canister_id)
+}
+
+#[candid_method(query, rename = "setStorageCanisterID")]
+fn _set_storage_canister_id(storage: CanisterId) -> bool {
+    unsafe {
+        STORAGE_CANISTER_ID = storage;
+        true
+    }
+}
+
+#[export_name = "canister_query graphqlQuery"]
+fn graphql_query() {
+    over_async(candid, |(query, variables): (String, String)| {
+        _graphql_query(query, variables)
+    })
+}
+
+#[candid_method(query, rename = "graphqlQuery")]
+async fn _graphql_query(query: String, variables: String) -> String {
+    unsafe {
+        let support_res: Result<(String,), _> = call_with_cleanup(
+            STORAGE_CANISTER_ID,
+            "graphql_query_custom",
+            dfn_candid::candid_multi_arity,
+            (query, variables),
+        )
+        .await;
+
+        match support_res {
+            Ok(res) => res.0,
+            Err((_, msg)) => {
+                dfn_core::api::print(format!("graph query error{}", msg));
+                "".to_string()
             }
         }
     }

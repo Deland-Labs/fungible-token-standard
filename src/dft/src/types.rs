@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::string::String;
+use std::{  fmt};
 
 pub type TransactionId = u128;
 // Rate decimals = 6
@@ -70,6 +71,16 @@ impl FromStr for TokenHolder {
         }
     }
 }
+impl fmt::Display for TokenHolder {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+      let s=   match &self {
+            TokenHolder::Account(_ai) => _ai.to_string(),
+            TokenHolder::Principal(_pid) =>_pid.to_string(),
+            TokenHolder::Canister(_cid) => _cid.to_string(),
+        };
+        write!(f, "{}", s)
+    }
+}
 
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
@@ -122,13 +133,12 @@ pub enum ApproveResult {
 
 #[derive(Deserialize, Debug, Clone, CandidType)]
 #[serde(rename_all = "camelCase")]
-pub enum TxRecord {
-    // caller, owner, decimals, total_supply, timestamp
-    Init(PrincipalId, PrincipalId, u8, u128, u64),
-    // caller, from, to, value, fee, timestamp
-    Approve(PrincipalId, TokenHolder, TokenReceiver, u128, u128, u64),
-    // caller, from, to, value, fee, timestamp
-    Transfer(PrincipalId, TokenHolder, TokenReceiver, u128, u128, u64),
-    // caller, from, value, timestamp
-    Burn(PrincipalId, TokenHolder, u128, u64),
+pub struct  TxRecord { 
+    id: TransactionId,
+    caller: String,
+    from: String,
+    to: String,
+    value: u128,
+    fee: u128,
+    timestamp: u64
 }

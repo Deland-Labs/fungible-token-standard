@@ -1,10 +1,16 @@
 {
   "canisters": {
+    "graphql": {
+      "type": "custom",
+      "build": "cargo build --target wasm32-unknown-unknown --package graphql --release",
+      "candid": "src/graphql/src/graphql.did",
+      "wasm": "target/wasm32-unknown-unknown/release/graphql.wasm"
+    },
     "dft": {
+      "type": "custom",
       "build": "cargo build --target wasm32-unknown-unknown --package  dft --release",
       "candid": "src/dft/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft.wasm",
-      "type": "custom"
+      "wasm": "target/wasm32-unknown-unknown/release/dft.wasm"
     }
   },
   "defaults": {
