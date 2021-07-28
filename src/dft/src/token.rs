@@ -2,6 +2,7 @@
 use crate::extends;
 use crate::storage;
 use crate::types;
+use crate::types::Error;
 use crate::types::TxRecord;
 use crate::utils;
 /**
@@ -48,11 +49,13 @@ static mut TX_ID_CURSOR: u128 = 0;
 // 256 * 256
 static mut LOGO: Vec<u8> = Vec::new();
 static mut STORAGE_CANISTER_ID: CanisterId = ZERO_CANISTER_ID;
+static mut FEE_TO: TokenHolder = TokenHolder::Principal(ZERO_PRINCIPAL_ID);
 
 #[export_name = "canister_init"]
 fn canister_init() {
     unsafe {
         OWNER = dfn_core::api::caller();
+        FEE_TO = TokenHolder::Principal(dfn_core::api::caller());
     }
 }
 
@@ -271,14 +274,16 @@ async fn _approve(
     if let Ok(owner_holder) = owner_parse_result {
         if let Ok(spender_holder) = spender_parse_result {
             //charge approve, prevent gas ddos attacks
-            let balances = storage::get_mut::<Balances>();
-            let spender_holder_balance = _inner_balance_of(&spender_holder);
+            match _charge_approve_fee(&spender_holder, approve_fee) {
+                Ok(_) => {}
+                Err(e) => return ApproveResult::Err(e),
+            }
 
             let allowances_read = storage::get::<Allowances>();
             match allowances_read.get(&owner_holder) {
                 Some(inner) => {
                     let mut temp = inner.clone();
-                    temp.insert(spender_holder.clone(), value - approve_fee);
+                    temp.insert(spender_holder.clone(), value);
                     let allowances = storage::get_mut::<Allowances>();
                     allowances.insert(owner_holder.clone(), temp);
                 }
@@ -380,11 +385,12 @@ async fn _transfer_from(
                         let to_balance = _inner_balance_of(&to_token_holder);
                         balances.insert(from_token_holder.clone(), from_balance - value - fee);
                         balances.insert(to_token_holder.clone(), to_balance + value);
+                        _fee_settle(fee);
                         let allowances_read = storage::get::<Allowances>();
                         match allowances_read.get(&from_token_holder) {
                             Some(inner) => {
                                 let mut temp = inner.clone();
-                                temp.insert(spender, from_allowance - value);
+                                temp.insert(spender, from_allowance - value - fee);
                                 let allowances = storage::get_mut::<Allowances>();
                                 allowances.insert(from_token_holder.clone(), temp);
                             }
@@ -404,10 +410,6 @@ async fn _transfer_from(
                                 dfn_core::api::ic0::time(),
                             ))
                             .await;
-
-                            if fee > 0 {
-                                TOTAL_FEE += fee;
-                            }
                             // after transfer hook
                             let after_token_send_notify_result =
                                 _on_token_received(&from_token_holder, &to_token_holder, &value)
@@ -486,6 +488,7 @@ async fn _transfer(
 
                     balances.insert(transfer_from.clone(), from_balance - value - fee);
                     balances.insert(receiver.clone(), to_balance + value);
+                    _fee_settle(fee);
 
                     unsafe {
                         let next_tx_id = _save_tx_record(TxRecord::Transfer(
@@ -497,7 +500,6 @@ async fn _transfer(
                             dfn_core::api::ic0::time(),
                         ))
                         .await;
-                        TOTAL_FEE += fee;
 
                         let mut errors: Vec<types::Error> = Vec::new();
 
@@ -878,7 +880,6 @@ async fn _execute_call(
 
 fn _calc_approve_fee() -> u128 {
     unsafe {
-        let div_by = (10 as u128).pow(FEE_RATE_DECIMALS as u32);
         match FEE {
             Fee::Fixed(_fixed) => _fixed,
             Fee::RateWithLowestLimit(_lowest, _rate) => _lowest,
@@ -894,6 +895,32 @@ fn _calc_transfer_fee(value: u128) -> u128 {
             Fee::RateWithLowestLimit(_lowest, _rate) => {
                 std::cmp::max(_lowest, value * (_rate as u128) / div_by)
             }
+        }
+    }
+}
+
+fn _charge_approve_fee(payer: &TokenHolder, fee: u128) -> Result<bool, Error> {
+    if fee == 0 {
+        return Ok(true);
+    }
+
+    let balances = storage::get_mut::<Balances>();
+    let payer_balance = _inner_balance_of(&payer);
+    if payer_balance < fee {
+        return Err(Error::InsufficientBalance);
+    }
+    balances.insert(payer.clone(), payer_balance - fee);
+    _fee_settle(fee);
+    Ok(true)
+}
+
+fn _fee_settle(fee: u128) {
+    if fee > 0 {
+        let balances = storage::get_mut::<Balances>();
+        unsafe {
+            let fee_to_balance = _inner_balance_of(&FEE_TO);
+            balances.insert(FEE_TO.clone(), fee_to_balance + fee);
+            TOTAL_FEE += fee;
         }
     }
 }
