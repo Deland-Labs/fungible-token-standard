@@ -266,9 +266,14 @@ async fn _approve(
     let owner = dfn_core::api::caller();
     let owner_parse_result = parse_to_token_holder(owner, owner_sub_account);
     let spender_parse_result = spender.parse::<TokenHolder>();
-    let approve_fee = 0u128;
+
+    let approve_fee = _calc_approve_fee();
     if let Ok(owner_holder) = owner_parse_result {
         if let Ok(spender_holder) = spender_parse_result {
+            //charge approve, prevent gas ddos attacks
+            let balances = storage::get_mut::<Balances>();
+            let spender_holder_balance = _inner_balance_of(&spender_holder);
+
             let allowances_read = storage::get::<Allowances>();
             match allowances_read.get(&owner_holder) {
                 Some(inner) => {
@@ -869,6 +874,16 @@ async fn _execute_call(
     }
 
     Ok(true)
+}
+
+fn _calc_approve_fee() -> u128 {
+    unsafe {
+        let div_by = (10 as u128).pow(FEE_RATE_DECIMALS as u32);
+        match FEE {
+            Fee::Fixed(_fixed) => _fixed,
+            Fee::RateWithLowestLimit(_lowest, _rate) => _lowest,
+        }
+    }
 }
 
 fn _calc_transfer_fee(value: u128) -> u128 {
