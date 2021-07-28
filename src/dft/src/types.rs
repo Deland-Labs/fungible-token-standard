@@ -16,6 +16,7 @@ pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
 pub struct TokenPayload {
     pub initialized: bool,
     pub owner: PrincipalId,
+    pub fee_cashier: TokenHolder,
     pub meta: MetaData,
     pub extend: Vec<(String, String)>,
     pub logo: Vec<u8>,

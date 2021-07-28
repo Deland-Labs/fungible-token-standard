@@ -49,13 +49,13 @@ static mut TX_ID_CURSOR: u128 = 0;
 // 256 * 256
 static mut LOGO: Vec<u8> = Vec::new();
 static mut STORAGE_CANISTER_ID: CanisterId = ZERO_CANISTER_ID;
-static mut FEE_TO: TokenHolder = TokenHolder::Principal(ZERO_PRINCIPAL_ID);
+static mut FEE_CASHIER: TokenHolder = TokenHolder::Principal(ZERO_PRINCIPAL_ID);
 
 #[export_name = "canister_init"]
 fn canister_init() {
     unsafe {
         OWNER = dfn_core::api::caller();
-        FEE_TO = TokenHolder::Principal(dfn_core::api::caller());
+        FEE_CASHIER = TokenHolder::Principal(dfn_core::api::caller());
     }
 }
 
@@ -609,6 +609,21 @@ fn _set_storage_canister_id(storage: CanisterId) -> bool {
         true
     }
 }
+
+#[export_name = "canister_update setFeeCashier"]
+fn set_storage_canister_id() {
+    over(candid_one, _set_fee_cashier)
+}
+
+#[candid_method(update, rename = "setFeeCashier")]
+fn _set_fee_cashier(holder: TokenHolder) -> bool {
+    _only_owner();
+    unsafe {
+        FEE_CASHIER = holder;
+        true
+    }
+}
+
 // return graphql canister id
 #[export_name = "canister_query tokenGraphql"]
 fn token_graphql() {
@@ -636,6 +651,7 @@ fn __export_did_tmp_() -> String {
 fn pre_upgrade() {
     let initialized = unsafe { INITIALIZED };
     let owner = unsafe { OWNER };
+    let fee_cashier = unsafe { FEE_CASHIER };
     let meta = _get_meta_data();
     let logo = unsafe { LOGO.clone() };
     let total_fee = unsafe { TOTAL_FEE };
@@ -662,6 +678,7 @@ fn pre_upgrade() {
     let payload = TokenPayload {
         initialized,
         owner,
+        fee_cashier,
         meta,
         extend,
         logo,
@@ -682,6 +699,7 @@ fn post_upgrade() {
     unsafe {
         INITIALIZED = payload.initialized;
         OWNER = payload.owner;
+        FEE_CASHIER = payload.fee_cashier;
         NAME = Box::leak(payload.meta.name.into_boxed_str());
         SYMBOL = Box::leak(payload.meta.symbol.into_boxed_str());
         DECIMALS = payload.meta.decimals;
@@ -918,8 +936,8 @@ fn _fee_settle(fee: u128) {
     if fee > 0 {
         let balances = storage::get_mut::<Balances>();
         unsafe {
-            let fee_to_balance = _inner_balance_of(&FEE_TO);
-            balances.insert(FEE_TO.clone(), fee_to_balance + fee);
+            let fee_to_balance = _inner_balance_of(&FEE_CASHIER);
+            balances.insert(FEE_CASHIER.clone(), fee_to_balance + fee);
             TOTAL_FEE += fee;
         }
     }
