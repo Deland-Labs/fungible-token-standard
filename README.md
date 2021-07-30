@@ -290,8 +290,16 @@ service: {
   supportedInterface:(text) -> (bool);
 }
 ```
+## About us
 
-## refer to
+   We are from ICP Deland team. 
+
+   We are building a decentralized exchange based on Dfinity with Open Order Protocol.
+
+   Offcial Website : [https://deland.one](https://deland.one)
+
+
+## References
 
 -[1] [Dfinity Developer Center: Canister interface](https://sdk.dfinity.org/docs/interface-spec/index.html#system-api-imports)
 

@@ -19,7 +19,7 @@ use dfn_core::{
     over, over_async,
 };
 use ic_types::{CanisterId, PrincipalId};
-use ledger_canister::account_identifier::AccountIdentifier;
+use ledger_canister::account_identifier::{AccountIdentifier, Subaccount};
 use std::collections::HashMap;
 use std::string::String;
 use types::{
@@ -63,16 +63,21 @@ fn canister_init() {
 fn initialize() {
     over_async(
         candid,
-        |(name, symbol, decimals, total_supply): (String, String, u8, u128)| {
-            _initialize(name, symbol, decimals, total_supply)
-        },
+        |(subaccount, logo, name, symbol, decimals, total_supply): (
+            Option<Subaccount>,
+            Vec<u8>,
+            String,
+            String,
+            u8,
+            u128,
+        )| { _initialize(subaccount, logo, name, symbol, decimals, total_supply) },
     )
 }
 
 #[candid_method(update, rename = "initialize")]
 async fn _initialize(
-    //subaccount: Option<String>,
-    //logo: Vec<u8>,
+    subaccount: Option<Subaccount>,
+    logo: Vec<u8>,
     name: String,
     symbol: String,
     decimals: u8,
@@ -84,7 +89,7 @@ async fn _initialize(
     unsafe {
         assert!(INITIALIZED == false, "initialized");
         INITIALIZED = true;
-        LOGO = vec![0];
+        LOGO = logo;
         NAME = Box::leak(name.into_boxed_str());
         SYMBOL = Box::leak(symbol.into_boxed_str());
         DECIMALS = decimals;
@@ -250,7 +255,7 @@ fn approve() {
     over_async(
         candid,
         |(owner_sub_account, spender, value, call_data): (
-            Option<String>,
+            Option<Subaccount>,
             String,
             u128,
             Option<CallData>,
@@ -260,7 +265,7 @@ fn approve() {
 
 #[candid_method(update, rename = "approve")]
 async fn _approve(
-    owner_sub_account: Option<String>,
+    owner_sub_account: Option<Subaccount>,
     spender: String,
     value: u128,
     call_data: Option<CallData>,
@@ -321,7 +326,7 @@ async fn _approve(
 fn transfer_from() {
     over_async(
         candid,
-        |(spender_sub_account, from, to, value): (Option<String>, String, String, u128)| {
+        |(spender_sub_account, from, to, value): (Option<Subaccount>, String, String, u128)| {
             _transfer_from(spender_sub_account, from, to, value)
         },
     )
@@ -329,7 +334,7 @@ fn transfer_from() {
 
 #[candid_method(update, rename = "transferFrom")]
 async fn _transfer_from(
-    spender_sub_account: Option<String>,
+    spender_sub_account: Option<Subaccount>,
     from: String,
     to: String,
     value: u128,
@@ -435,7 +440,7 @@ fn transfer() {
     over_async(
         candid,
         |(from_sub_account, to, amount, call_data): (
-            Option<String>,
+            Option<Subaccount>,
             String,
             u128,
             Option<CallData>,
@@ -445,7 +450,7 @@ fn transfer() {
 
 #[candid_method(update, rename = "transfer")]
 async fn _transfer(
-    from_sub_account: Option<String>,
+    from_sub_account: Option<Subaccount>,
     to: String,
     value: u128,
     call_data: Option<CallData>,
@@ -531,12 +536,12 @@ async fn _transfer(
 fn burn() {
     over_async(
         candid_one,
-        |(from_sub_account, amount): (Option<String>, u128)| _burn(from_sub_account, amount),
+        |(from_sub_account, amount): (Option<Subaccount>, u128)| _burn(from_sub_account, amount),
     )
 }
 
 #[candid_method(update, rename = "burn")]
-async fn _burn(from_sub_account: Option<String>, value: u128) -> BurnResult {
+async fn _burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult {
     _must_set_tx_storage();
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
@@ -611,7 +616,7 @@ fn _set_storage_canister_id(storage: CanisterId) -> bool {
 }
 
 #[export_name = "canister_update setFeeCashier"]
-fn set_storage_canister_id() {
+fn set_fee_cashier() {
     over(candid_one, _set_fee_cashier)
 }
 
@@ -651,7 +656,7 @@ fn __export_did_tmp_() -> String {
 fn pre_upgrade() {
     let initialized = unsafe { INITIALIZED };
     let owner = unsafe { OWNER };
-    let fee_cashier = unsafe { FEE_CASHIER };
+    let fee_cashier = unsafe { FEE_CASHIER.clone() };
     let meta = _get_meta_data();
     let logo = unsafe { LOGO.clone() };
     let total_fee = unsafe { TOTAL_FEE };
@@ -727,16 +732,13 @@ fn post_upgrade() {
 
 fn parse_to_token_holder(
     from: PrincipalId,
-    from_sub_account: Option<String>,
+    from_sub_account: Option<Subaccount>,
 ) -> Result<TransferFrom, types::Error> {
     if !utils::is_canister(&from) {
         match from_sub_account {
             Some(s) => {
-                let account_identity = &s.parse::<AccountIdentifier>();
-                match account_identity {
-                    Ok(_ai) => Ok(TransferFrom::Account(*_ai)),
-                    _ => Err(types::Error::InvalidSubaccount),
-                }
+                let account_identity = AccountIdentifier::new(from, from_sub_account);
+                Ok(TransferFrom::Account(account_identity))
             }
             _ => Ok(TransferFrom::Principal(from)),
         }
