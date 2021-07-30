@@ -35,7 +35,6 @@ const TX_TYPES_INIT: &str = "init";
 const TX_TYPES_APPROVE: &str = "approve";
 const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
-#[warn(dead_code)]
 const TX_TYPES_MINT: &str = "mint";
 
 static mut INITIALIZED: bool = false;
@@ -88,7 +87,9 @@ async fn _initialize(
     _only_owner();
 
     unsafe {
-        assert!(INITIALIZED == false, "initialized");
+        if INITIALIZED {
+            dfn_core::api::trap_with(initialized);
+        }
         INITIALIZED = true;
         LOGO = logo;
         NAME = Box::leak(name.into_boxed_str());
@@ -118,6 +119,7 @@ fn get_meta_data() {
 
 #[candid_method(query, rename = "meta")]
 fn _get_meta_data() -> MetaData {
+    _must_initialized();
     unsafe {
         let meta = MetaData {
             name: NAME.to_string(),
@@ -139,6 +141,7 @@ fn get_extend_data() {
 
 #[candid_method(query, rename = "extend")]
 fn _get_extend_data() -> Vec<KeyValuePair> {
+    _must_initialized();
     let extend_data_store = storage::get::<ExtendData>();
     let mut return_vec: Vec<KeyValuePair> = Vec::new();
     for (k, v) in extend_data_store.iter() {
@@ -158,6 +161,7 @@ fn update_extend_data() {
 
 #[candid_method(update, rename = "updateExtend")]
 fn _update_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
+    _must_initialized();
     _only_owner();
     let extend_data_store = storage::get_mut::<ExtendData>();
     for kv_pair in extend_data.iter() {
@@ -184,6 +188,7 @@ fn update_logo() {
 
 #[candid_method(update, rename = "updateLogo")]
 fn _update_logo(logo: Vec<u8>) -> bool {
+    _must_initialized();
     _only_owner();
     unsafe { LOGO = logo }
     true
@@ -271,6 +276,7 @@ async fn _approve(
     value: u128,
     call_data: Option<CallData>,
 ) -> ApproveResult {
+    _must_initialized();
     _must_set_tx_storage();
     let owner = dfn_core::api::caller();
     let owner_parse_result = parse_to_token_holder(owner, owner_sub_account);
@@ -340,6 +346,7 @@ async fn _transfer_from(
     to: String,
     value: u128,
 ) -> TransferResult {
+    _must_initialized();
     _must_set_tx_storage();
     let spender_principal_id = dfn_core::api::caller();
     let spender_parse_result = parse_to_token_holder(spender_principal_id, spender_sub_account);
@@ -456,6 +463,7 @@ async fn _transfer(
     value: u128,
     call_data: Option<CallData>,
 ) -> TransferResult {
+    _must_initialized();
     _must_set_tx_storage();
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
@@ -543,6 +551,7 @@ fn burn() {
 
 #[candid_method(update, rename = "burn")]
 async fn _burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult {
+    _must_initialized();
     _must_set_tx_storage();
     let from = dfn_core::api::caller();
     let transfer_from_parse_result = parse_to_token_holder(from, from_sub_account);
@@ -1042,12 +1051,23 @@ async fn _save_tx_record(tx: TxRecord) -> u128 {
 
 fn _only_owner() {
     unsafe {
-        assert!(OWNER == dfn_core::api::caller(), "not owner");
+        if OWNER != dfn_core::api::caller() {
+            dfn_core::api::trap_with("caller is not the owner");
+        }
+    }
+}
+fn _must_initialized() {
+    unsafe {
+        if !INITIALIZED {
+            dfn_core::api::trap_with("uninitialized");
+        }
     }
 }
 
 fn _must_set_tx_storage() {
     unsafe {
-        assert!(STORAGE_CANISTER_ID != ZERO_CANISTER_ID);
+        if STORAGE_CANISTER_ID == ZERO_CANISTER_ID {
+            dfn_core::api::trap_with("no storage canister");
+        }
     }
 }
