@@ -88,7 +88,7 @@ async fn _initialize(
 
     unsafe {
         if INITIALIZED {
-            dfn_core::api::trap_with(initialized);
+            dfn_core::api::trap_with("initialized");
         }
         INITIALIZED = true;
         LOGO = logo;
@@ -100,7 +100,7 @@ async fn _initialize(
         let balances = storage::get_mut::<Balances>();
         balances.insert(call_from.clone(), TOTAL_SUPPLY);
 
-        _save_tx_record(TxRecord::Init(
+        _save_tx_record_to_graphql(TxRecord::Init(
             OWNER,
             call_from,
             decimals,
@@ -307,7 +307,7 @@ async fn _approve(
                 }
             };
             unsafe {
-                _save_tx_record(TxRecord::Approve(
+                _save_tx_record_to_graphql(TxRecord::Approve(
                     owner.clone(),
                     owner_holder.clone(),
                     spender_holder.clone(),
@@ -414,7 +414,7 @@ async fn _transfer_from(
                         }
 
                         unsafe {
-                            let next_tx_id = _save_tx_record(TxRecord::Transfer(
+                            let next_tx_id = _save_tx_record_to_graphql(TxRecord::Transfer(
                                 spender_principal_id.clone(),
                                 from_token_holder.clone(),
                                 to_token_holder.clone(),
@@ -505,7 +505,7 @@ async fn _transfer(
                     _fee_settle(fee);
 
                     unsafe {
-                        let next_tx_id = _save_tx_record(TxRecord::Transfer(
+                        let next_tx_id = _save_tx_record_to_graphql(TxRecord::Transfer(
                             from.clone(),
                             transfer_from.clone(),
                             receiver.clone(),
@@ -572,7 +572,7 @@ async fn _burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult 
             let balances = storage::get_mut::<Balances>();
             balances.insert(transfer_from.clone(), from_balance - value);
             unsafe {
-                _save_tx_record(TxRecord::Burn(
+                _save_tx_record_to_graphql(TxRecord::Burn(
                     from.clone(),
                     transfer_from.clone(),
                     value,
@@ -969,7 +969,7 @@ fn _fee_settle(fee: u128) {
     }
 }
 
-async fn _save_tx_record(tx: TxRecord) -> u128 {
+async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
     _must_set_tx_storage();
     unsafe {
         TX_ID_CURSOR += 1;
