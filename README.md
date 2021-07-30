@@ -292,7 +292,7 @@ service: {
 ```
 ## About us
 
-   We are from ICP Deland team. 
+   We are from Deland-Labs team. 
 
    We are building a decentralized exchange based on Dfinity with Open Order Protocol.
 

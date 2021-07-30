@@ -1,17 +1,17 @@
-#![allow(dead_code)]
+/**
+ * Module     : token.rs
+ * Copyright  : 2021 Deland-Labs Team
+ * License    : Apache 2.0 with LLVM Exception
+ * Maintainer : Deland Team (https://deland.one)
+ * Stability  : Experimental
+ */
 use crate::extends;
 use crate::storage;
 use crate::types;
 use crate::types::Error;
 use crate::types::TxRecord;
 use crate::utils;
-/**
- * Module     : token.rs
- * Copyright  : 2021 Deland Team
- * License    : Apache 2.0 with LLVM Exception
- * Maintainer : Deland Team (https://deland.one)
- * Stability  : Experimental
- */
+
 use candid::{candid_method, IDLProg};
 use dfn_candid::{candid, candid_one};
 use dfn_core::{
@@ -30,11 +30,12 @@ use types::{
 const ZERO_PRINCIPAL_ID: PrincipalId = PrincipalId::new(0, [0u8; 29]);
 const ZERO_CANISTER_ID: CanisterId = CanisterId::from_u64(0);
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
-const FEE_RATE_DECIMALS: u8 = 6u8;
+const FEE_RATE_DECIMALS: u8 = 8u8;
 const TX_TYPES_INIT: &str = "init";
 const TX_TYPES_APPROVE: &str = "approve";
 const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
+#[warn(dead_code)]
 const TX_TYPES_MINT: &str = "mint";
 
 static mut INITIALIZED: bool = false;
@@ -94,7 +95,7 @@ async fn _initialize(
         SYMBOL = Box::leak(symbol.into_boxed_str());
         DECIMALS = decimals;
         TOTAL_SUPPLY = total_supply;
-        let call_from = parse_to_token_holder(OWNER, None).unwrap();
+        let call_from = parse_to_token_holder(OWNER, subaccount).unwrap();
         let balances = storage::get_mut::<Balances>();
         balances.insert(call_from.clone(), TOTAL_SUPPLY);
 
@@ -615,6 +616,20 @@ fn _set_storage_canister_id(storage: CanisterId) -> bool {
     }
 }
 
+#[export_name = "canister_update setFee"]
+fn set_fee() {
+    over(candid_one, _set_storage_canister_id)
+}
+
+#[candid_method(update, rename = "setFee")]
+fn _set_fee(fee: Fee) -> bool {
+    _only_owner();
+    unsafe {
+        FEE = fee;
+        true
+    }
+}
+
 #[export_name = "canister_update setFeeCashier"]
 fn set_fee_cashier() {
     over(candid_one, _set_fee_cashier)
@@ -736,7 +751,7 @@ fn parse_to_token_holder(
 ) -> Result<TransferFrom, types::Error> {
     if !utils::is_canister(&from) {
         match from_sub_account {
-            Some(s) => {
+            Some(_) => {
                 let account_identity = AccountIdentifier::new(from, from_sub_account);
                 Ok(TransferFrom::Account(account_identity))
             }

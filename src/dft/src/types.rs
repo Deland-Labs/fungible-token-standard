@@ -26,13 +26,23 @@ pub struct TokenPayload {
     pub tx_id_cursor: u128,
     pub storage_canister_id: CanisterId,
 }
-// Rate decimals = 6
+// Rate decimals = 8
 // transferFee = amount * rate / 1000000
 #[derive(CandidType, Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Fee {
     Fixed(u128),
     RateWithLowestLimit(u128, u8),
+}
+
+impl fmt::Display for Fee {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
+        let s = match &self {
+            Fee::Fixed(_fee) => _fee.to_string(),
+            Fee::RateWithLowestLimit(_fee, rate) => format!("{{lowest:{0},rate:{1}}}", _fee, rate),
+        };
+        write!(f, "{}", s)
+    }
 }
 
 #[derive(CandidType, Debug, Deserialize)]
