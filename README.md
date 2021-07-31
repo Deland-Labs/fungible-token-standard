@@ -325,3 +325,5 @@ service : {
 -[8] [Candid](https://github.com/dfinity/candid/)
 
 -[9] [Why are ERC20 allowances necessary?](https://kalis.me/unlimited-erc20-allowances/)
+
+-[10] [sudograph](https://github.com/sudograph/sudograph)
