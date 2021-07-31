@@ -34,15 +34,15 @@ type TransferResult = variant {
 };
 service : {
   allowance : (text, text) -> (nat) query;
-  approve : (opt text, text, nat, opt CallData) -> (ApproveResult);
+  approve : (opt vec nat8, text, nat, opt CallData) -> (ApproveResult);
   balanceOf : (text) -> (nat) query;
   burn : (opt text, nat) -> (BurnResult);
   extend : () -> (vec KeyValuePair) query;
   logo : () -> (opt vec nat8) query;
   meta : () -> (MetaData) query;
   supportedInterface : (text) -> (bool) query;
-  transfer : (opt text, text, nat, opt CallData) -> (TransferResult);
-  transferFrom : (opt text, text, text, nat) -> (TransferResult);
+  transfer : (opt vec nat8, text, nat, opt CallData) -> (TransferResult);
+  transferFrom : (opt vec nat8, text, text, nat) -> (TransferResult);
   updateExtend : (vec KeyValuePair) -> (bool);
   updateLogo : (vec nat8) -> (bool);
 }

@@ -29,7 +29,6 @@ pub struct TokenPayload {
 // Rate decimals = 8
 // transferFee = amount * rate / 1000000
 #[derive(CandidType, Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub enum Fee {
     Fixed(u128),
     RateWithLowestLimit(u128, u8),
@@ -46,8 +45,6 @@ impl fmt::Display for Fee {
 }
 
 #[derive(CandidType, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(non_camel_case_types)]
 pub struct MetaData {
     pub name: String,
     pub symbol: String,
@@ -111,14 +108,12 @@ pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub struct CallData {
     pub method: String,
     pub args: Vec<u8>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone, CandidType)]
-#[serde(rename_all = "camelCase")]
 pub enum Error {
     InvalidSubaccount,
     InvalidTokenHolder,
@@ -135,7 +130,6 @@ pub enum Error {
 }
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub enum TransferResult {
     //transfer succeed, but call failed & notify failed
     Ok(TransactionId, Option<Vec<Error>>),
@@ -143,21 +137,19 @@ pub enum TransferResult {
 }
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub enum BurnResult {
     Ok,
     Err(Error),
 }
 
+// Invalid data: Invalid IDL blob by candid 0.6.21
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub enum ApproveResult {
     Ok(Option<Error>),
     Err(Error),
 }
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub enum TxRecord {
     // caller, owner, decimals, total_supply, timestamp
     Init(PrincipalId, TokenHolder, u8, u128, u64),

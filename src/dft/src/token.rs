@@ -58,26 +58,33 @@ fn canister_init() {
         FEE_CASHIER = TokenHolder::Principal(dfn_core::api::caller());
     }
 }
-
+// remove subaccount and logo for dfx test
 #[export_name = "canister_update initialize"]
 fn initialize() {
     over_async(
         candid,
-        |(subaccount, logo, name, symbol, decimals, total_supply): (
-            Option<Subaccount>,
-            Vec<u8>,
+        |(/*subaccount, logo,*/ name, symbol, decimals, total_supply): (
+            /*Option<Subaccount>,
+            Vec<u8>,*/
             String,
             String,
             u8,
             u128,
-        )| { _initialize(subaccount, logo, name, symbol, decimals, total_supply) },
+        )| {
+            _initialize(
+                /*subaccount, logo,*/ name,
+                symbol,
+                decimals,
+                total_supply,
+            )
+        },
     )
 }
 
 #[candid_method(update, rename = "initialize")]
 async fn _initialize(
-    subaccount: Option<Subaccount>,
-    logo: Vec<u8>,
+    /*subaccount: Option<Subaccount>,
+    logo: Vec<u8>,*/
     name: String,
     symbol: String,
     decimals: u8,
@@ -91,12 +98,12 @@ async fn _initialize(
             dfn_core::api::trap_with("initialized");
         }
         INITIALIZED = true;
-        LOGO = logo;
+        //LOGO = logo;
         NAME = Box::leak(name.into_boxed_str());
         SYMBOL = Box::leak(symbol.into_boxed_str());
         DECIMALS = decimals;
         TOTAL_SUPPLY = total_supply;
-        let call_from = parse_to_token_holder(OWNER, subaccount).unwrap();
+        let call_from = parse_to_token_holder(OWNER, None).unwrap();
         let balances = storage::get_mut::<Balances>();
         balances.insert(call_from.clone(), TOTAL_SUPPLY);
 
@@ -281,7 +288,6 @@ async fn _approve(
     let owner = dfn_core::api::caller();
     let owner_parse_result = parse_to_token_holder(owner, owner_sub_account);
     let spender_parse_result = spender.parse::<TokenHolder>();
-
     let approve_fee = _calc_approve_fee();
     if let Ok(owner_holder) = owner_parse_result {
         if let Ok(spender_holder) = spender_parse_result {

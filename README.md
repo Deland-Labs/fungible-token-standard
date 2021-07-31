@@ -214,7 +214,6 @@ type Error = variant {
   RejectedByReceiver;
 };
 type Fee = variant {
-  Rate : nat8;
   Fixed : nat;
   RateWithLowestLimit : record { nat; nat8 };
 };
@@ -265,12 +264,12 @@ service: {
 
   // Allows spender to withdraw from your account multiple times, up to the value amount. If this function is called again it overwrites the current allowance with value.
   // If calldata is not empty, approveAndCall will be executed.
-  approve : (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (ApproveResult);
+  approve: (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (ApproveResult);
 
   // Transfers value amount of tokens from [address from] to [address to].
   // The transferFrom method is used for a withdraw workflow, allowing canister
   // to transfer tokens on your behalf.
-  transferFrom:(spenderSubAccount: opt vec nat8, from: text, to: text,value: nat) ->(TransferResult);
+  transferFrom: (spenderSubAccount: opt vec nat8, from: text, to: text,value: nat) ->(TransferResult);
 
   // Transfers value amount of tokens to Receiver, and will call the
   // receiver's Notify hood function if exist.
@@ -285,6 +284,7 @@ service: {
   // Destroys `amount` tokens from `account`, reducing the total supply.
   burn: (fromSubAccount: opt vec nat8,amount: nat) -> (BurnResult);
   // Return if canister support interface, for example: supportedInterface("balanceOf:(text)->(nat)")
+  // Implement [Dfinity Self Describing Standard](https://github.com/Deland-Labs/dfinity-self-describing-standard)
   supportedInterface:(text) -> (bool);
 }
 ```

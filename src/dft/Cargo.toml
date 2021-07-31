@@ -16,5 +16,5 @@ dfn_candid = { git="https://github.com/dfinity/ic" }
 ic-types = { git="https://github.com/dfinity/ic" }
 
 serde = { version = "1.0.126", features = [ "derive", "rc" ] }
-candid = "0.6.9"
+candid = "0.6.21"
 lazy_static = "1.4.0"
