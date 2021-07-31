@@ -186,14 +186,13 @@ Dfinity needs to provide a common contract interface registration/query service 
 
 Dfinity currently does not have such a service, but because of <strong>[problems to be solved]</strong> economic considerations, no one wants to build such a service.
 
-Dfinity can solve the problem solved by ERC1820 through the interface self-description, and realize the self-description of the canister interface by implementing supportedInterface(text)->(bool).
-
+Dfinity can solve the problem solved by ERC1820 through [Dfinity Self Describing Standard](https://github.com/Deland-Labs/dfinity-self-describing-standard)
 
 2. Information self-describing
 
 Etherscan, MyEthereumWallet, Imtoken, TokenPocket, Dapp all have more information requirements for ERC20, such as Logo, introduction, white paper, social media, official website, contact information, etc. Each place that needs this information needs to be maintained independently, so information appears Inconsistent. It is necessary to solve this problem through the design of <strong>[Dfinity Fungible Token Standard]</strong>
 
-Based on the above problems and requirements, combined with the ERC standard formed in the previous step, and combined with the [Dfinity Self Describing Standard](https://github.com/Deland-Labs/dfinity-self-describing-standard), the following draft standards are formulated:
+Based on the above problems and requirements, combined with the ERC standard formed in the previous step, the following draft standards are formulated:
 
 ```RUST
 type ApproveResult = variant { Ok : opt Error; Err : Error };
@@ -327,3 +326,5 @@ service : {
 -[9] [Why are ERC20 allowances necessary?](https://kalis.me/unlimited-erc20-allowances/)
 
 -[10] [sudograph](https://github.com/sudograph/sudograph)
+
+-[11] [Dfinity Self Describing Standard](https://github.com/Deland-Labs/dfinity-self-describing-standard)
