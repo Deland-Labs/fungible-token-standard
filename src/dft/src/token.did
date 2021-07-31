@@ -1,4 +1,4 @@
-type ApproveResult = variant { Ok; Err : Error };
+type ApproveResult = variant { Ok : opt Error; Err : Error };
 type BurnResult = variant { Ok; Err : Error };
 type CallData = record { method : text; args : vec nat8 };
 type Error = variant {
@@ -15,11 +15,7 @@ type Error = variant {
   Unknown;
   RejectedByReceiver;
 };
-type Fee = variant {
-  Rate : nat8;
-  Fixed : nat;
-  RateWithLowestLimit : record { nat; nat8 };
-};
+type Fee = variant { Fixed : nat; RateWithLowestLimit : record { nat; nat8 } };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record {
   fee : Fee;
@@ -27,6 +23,11 @@ type MetaData = record {
   name : text;
   total_supply : nat;
   symbol : text;
+};
+type TokenHolder = variant {
+  Account : text;
+  Canister : principal;
+  Principal : principal;
 };
 type TransferResult = variant {
   Ok : record { nat; opt vec Error };
@@ -36,13 +37,12 @@ service : {
   allowance : (text, text) -> (nat) query;
   approve : (opt vec nat8, text, nat, opt CallData) -> (ApproveResult);
   balanceOf : (text) -> (nat) query;
-  burn : (opt text, nat) -> (BurnResult);
+  burn : (opt vec nat8, nat) -> (BurnResult);
   extend : () -> (vec KeyValuePair) query;
-  logo : () -> (opt vec nat8) query;
+  logo : () -> (vec nat8) query;
   meta : () -> (MetaData) query;
-  supportedInterface : (text) -> (bool) query;
+  tokenGraphql : () -> (principal) query;
   transfer : (opt vec nat8, text, nat, opt CallData) -> (TransferResult);
   transferFrom : (opt vec nat8, text, text, nat) -> (TransferResult);
-  updateExtend : (vec KeyValuePair) -> (bool);
-  updateLogo : (vec nat8) -> (bool);
+  supportedInterface : (text) -> (bool) query;
 }

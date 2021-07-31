@@ -195,8 +195,8 @@ Etherscan, MyEthereumWallet, Imtoken, TokenPocket, Dapp all have more informatio
 
 Based on the above problems and requirements, combined with the ERC standard formed in the previous step, and combined with the [Dfinity Self Describing Standard](https://github.com/Deland-Labs/dfinity-self-describing-standard), the following draft standards are formulated:
 
-```Rust
-type ApproveResult = variant { Ok; Err : Error };
+```RUST
+type ApproveResult = variant { Ok : opt Error; Err : Error };
 type BurnResult = variant { Ok; Err : Error };
 type CallData = record { method : text; args : vec nat8 };
 type Error = variant {
@@ -213,10 +213,7 @@ type Error = variant {
   Unknown;
   RejectedByReceiver;
 };
-type Fee = variant {
-  Fixed : nat;
-  RateWithLowestLimit : record { nat; nat8 };
-};
+type Fee = variant { Fixed : nat; RateWithLowestLimit : record { nat; nat8 } };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record {
   fee : Fee;
@@ -225,11 +222,16 @@ type MetaData = record {
   total_supply : nat;
   symbol : text;
 };
+type TokenHolder = variant {
+  Account : text;
+  Canister : principal;
+  Principal : principal;
+};
 type TransferResult = variant {
   Ok : record { nat; opt vec Error };
   Err : Error;
 };
-service: {
+service : {
   // Return all of the meta data of a token.
   meta: () -> (MetaData) query;
 
@@ -254,7 +256,7 @@ service: {
   extend: () -> (vec KeyValuePair) query;
 
   // Return token logo picture
-  logo : () -> (opt vec nat8) query;
+  logo : () -> (vec nat8) query;
 
   // Returns the account balance of another account with address owner.
   balanceOf: (holder: text) -> (nat) query;
@@ -265,14 +267,12 @@ service: {
   // Allows spender to withdraw from your account multiple times, up to the value amount. If this function is called again it overwrites the current allowance with value.
   // If calldata is not empty, approveAndCall will be executed.
   approve: (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (ApproveResult);
-
   // Transfers value amount of tokens from [address from] to [address to].
   // The transferFrom method is used for a withdraw workflow, allowing canister
   // to transfer tokens on your behalf.
   transferFrom: (spenderSubAccount: opt vec nat8, from: text, to: text,value: nat) ->(TransferResult);
 
-  // Transfers value amount of tokens to Receiver, and will call the
-  // receiver's Notify hood function if exist.
+    // receiver's Notify hood function if exist.
   // Transfers of 0 values ​​will be reject.
   // Generates an AccountIdentifier based on the caller's Principal and
   // the provided SubAccount*, and then attempts to transfer amount from the
@@ -280,14 +280,23 @@ service: {
   // recipient can be an AccountIdentitifer, a Principal (which then transfers to the default subaccount),
   // or a canister (where a callback is triggered).
   // calldata means transferAndCall
-  transfer: (fromSubAccount:opt vec nat8,to: text, value: nat64, calldata: opt CallData) -> (TransferResult);
+  transfer: (fromSubAccount:opt vec nat8,to: text, value: nat, calldata: opt CallData) -> (TransferResult);
+
   // Destroys `amount` tokens from `account`, reducing the total supply.
   burn: (fromSubAccount: opt vec nat8,amount: nat) -> (BurnResult);
+
+
   // Return if canister support interface, for example: supportedInterface("balanceOf:(text)->(nat)")
   // Implement [Dfinity Self Describing Standard](https://github.com/Deland-Labs/dfinity-self-describing-standard)
-  supportedInterface:(text) -> (bool);
+  supportedInterface : (text) -> (bool) query;
 }
 ```
+
+## How to test?
+```bash
+   make test
+```
+
 ## About us
 
    We are from Deland-Labs team. 
