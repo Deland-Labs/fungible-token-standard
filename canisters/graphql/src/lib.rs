@@ -1,7 +1,7 @@
 #[warn(unused_must_use)]
 use sudograph::graphql_database;
 
-graphql_database!("src/graphql/src/schema.graphql");
+graphql_database!("canisters/graphql/src/schema.graphql");
 
 static mut OWNER: sudograph::ic_cdk::export::Principal =
     sudograph::ic_cdk::export::Principal::anonymous();
