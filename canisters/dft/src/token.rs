@@ -312,13 +312,16 @@ async fn _approve(
             ))
             .await;
         }
-        // execute call
-        let execute_call_result = _execute_call(&spender_holder, call_data).await;
 
-        if let Err(emsg) = execute_call_result {
-            // approve succeed ,bu call failed
-            return ApproveResult::Ok(Some(emsg));
-        };
+        if let Some(_call_data) = call_data {
+            // execute call
+            let execute_call_result = _execute_call(&spender_holder, _call_data).await;
+
+            if let Err(emsg) = execute_call_result {
+                // approve succeed ,bu call failed
+                return ApproveResult::Ok(Some(emsg));
+            };
+        }
     }
 
     ApproveResult::Ok(None)
@@ -465,72 +468,90 @@ async fn _transfer(
     let from = dfn_core::api::caller();
     let transfer_from = parse_to_token_holder(from, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
-    let fee = _calc_transfer_fee(value);
 
-    let mut from_balance = _inner_balance_of(&transfer_from);
-    dfn_core::api::print(format!(
-        "from account balance is {}",
-        from_balance.to_string()
-    ));
+    match receiver_parse_result {
+        Ok(receiver) => {
+            let mut errors: Vec<String> = Vec::new();
+            match _inner_transfer(from, transfer_from, receiver.clone(), value).await {
+                TransferResult::Ok(txid, inner_errors_opt) => {
+                    if let Some(inner_errors) = inner_errors_opt {
+                        errors = [errors, inner_errors].concat();
+                    }
+                    if let Some(_call_data) = call_data {
+                        // execute call
+                        let execute_call_result = _execute_call(&receiver, _call_data).await;
+                        if let Err(emsg) = execute_call_result {
+                            errors.push(emsg);
+                        };
+                    }
+                    if errors.len() > 0 {
+                        TransferResult::Ok(txid, Some(errors))
+                    } else {
+                        TransferResult::Ok(txid, None)
+                    }
+                }
+                TransferResult::Err(emsg) => return TransferResult::Err(emsg),
+            }
+        }
+        _ => TransferResult::Err("DFT: invalid [to] fromat".to_string()),
+    }
+}
+
+async fn _inner_transfer(
+    caller: PrincipalId,
+    from: TokenHolder,
+    to: TokenHolder,
+    value: u128,
+) -> TransferResult {
+    let fee = _calc_transfer_fee(value);
+    let mut from_balance = _inner_balance_of(&from);
 
     if from_balance < value + fee {
         return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
     }
 
-    match receiver_parse_result {
-        Ok(receiver) => {
-            let to_balance = _inner_balance_of(&receiver);
-            let balances = storage::get_mut::<Balances>();
+    // before transfer hook
+    let before_sending_check_result = _on_token_sending(&from, &to, &value).await;
 
-            // before transfer hook
-            let before_sending_check_result =
-                _on_token_sending(&transfer_from, &receiver, &value).await;
+    if let Err(emsg) = before_sending_check_result {
+        return TransferResult::Err(emsg);
+    }
+    // reload balance after outside call (_on_token_sending)
+    from_balance = _inner_balance_of(&from);
 
-            if let Err(emsg) = before_sending_check_result {
-                return TransferResult::Err(emsg);
-            }
-            // reload balance after outside call (_on_token_sending)
-            from_balance = _inner_balance_of(&transfer_from);
+    if from_balance < value + fee {
+        return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
+    }
 
-            if from_balance < value + fee {
-                return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
-            }
+    let balances = storage::get_mut::<Balances>();
+    let to_balance = _inner_balance_of(&to);
 
-            balances.insert(transfer_from.clone(), from_balance - value - fee);
-            balances.insert(receiver.clone(), to_balance + value);
-            _fee_settle(fee);
+    balances.insert(from.clone(), from_balance - value - fee);
+    balances.insert(to.clone(), to_balance + value);
+    _fee_settle(fee);
 
-            unsafe {
-                let next_tx_id = _save_tx_record_to_graphql(TxRecord::Transfer(
-                    from.clone(),
-                    transfer_from.clone(),
-                    receiver.clone(),
-                    value,
-                    fee,
-                    dfn_core::api::ic0::time(),
-                ))
-                .await;
+    unsafe {
+        let next_tx_id = _save_tx_record_to_graphql(TxRecord::Transfer(
+            caller,
+            from.clone(),
+            to.clone(),
+            value,
+            fee,
+            dfn_core::api::ic0::time(),
+        ))
+        .await;
 
-                let mut errors: Vec<String> = Vec::new();
+        let mut errors: Vec<String> = Vec::new();
 
-                // after transfer hook
-                let after_token_send_notify_result =
-                    _on_token_received(&transfer_from, &receiver, &value).await;
+        // after transfer hook
+        let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
 
-                if let Err(emsg) = after_token_send_notify_result {
-                    errors.push(emsg);
-                };
-
-                // execute call
-                let execute_call_result = _execute_call(&receiver, call_data).await;
-
-                if let Err(emsg) = execute_call_result {
-                    errors.push(emsg);
-                };
-                TransferResult::Ok(next_tx_id, None)
-            }
+        if let Err(emsg) = after_token_send_notify_result {
+            errors.push(emsg);
+            TransferResult::Ok(next_tx_id, Some(errors))
+        } else {
+            TransferResult::Ok(next_tx_id, None)
         }
-        _ => return TransferResult::Err("DFT: invalid [to] fromat".to_string()),
     }
 }
 
@@ -879,37 +900,21 @@ async fn _on_token_received(
     Ok(true)
 }
 
-async fn _execute_call(
-    receiver: &TokenReceiver,
-    _call_data: Option<CallData>,
-) -> Result<bool, String> {
+async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result<bool, String> {
     if let TokenHolder::Canister(cid) = receiver {
-        match _call_data {
-            Some(call_data) => {
-                match call_bytes_with_cleanup(
-                    *cid,
-                    &call_data.method,
-                    &call_data.args,
-                    Funds::zero(),
-                )
-                .await
-                {
-                    Ok(_) => {
-                        return Ok(true);
-                    }
-                    Err((option_code, emsg)) => match option_code {
-                        Some(code) => {
-                            return Err(format!(
-                                "DFT: call failed,code:{0},details:{1}",
-                                code, emsg
-                            ))
-                        }
-                        None => return Err(format!("DFT: call failed,details:{}", emsg)),
-                    },
-                };
+        match call_bytes_with_cleanup(*cid, &_call_data.method, &_call_data.args, Funds::zero())
+            .await
+        {
+            Ok(_) => {
+                return Ok(true);
             }
-            _ => {}
-        }
+            Err((option_code, emsg)) => match option_code {
+                Some(code) => {
+                    return Err(format!("DFT: call failed,code:{0},details:{1}", code, emsg))
+                }
+                None => return Err(format!("DFT: call failed,details:{}", emsg)),
+            },
+        };
     }
 
     Ok(true)
