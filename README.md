@@ -195,23 +195,9 @@ Etherscan, MyEthereumWallet, Imtoken, TokenPocket, Dapp all have more informatio
 Based on the above problems and requirements, combined with the ERC standard formed in the previous step, the following draft standards are formulated:
 
 ```RUST
-type ApproveResult = variant { Ok : opt Error; Err : Error };
-type BurnResult = variant { Ok; Err : Error };
+type ApproveResult = variant { Ok : opt String; Err : String };
+type BurnResult = variant { Ok; Err : String };
 type CallData = record { method : text; args : vec nat8 };
-type Error = variant {
-  CallFailed;
-  NotifyFailed;
-  RejectedByHolder;
-  InsufficientAllowance;
-  InvalidSpender;
-  InvalidSubaccount;
-  InsufficientBalance;
-  InvalidTokenHolder;
-  InvalidReceiver;
-  QuantityTooSmall;
-  Unknown;
-  RejectedByReceiver;
-};
 type Fee = variant { Fixed : nat; RateWithLowestLimit : record { nat; nat8 } };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record {
@@ -227,8 +213,8 @@ type TokenHolder = variant {
   Principal : principal;
 };
 type TransferResult = variant {
-  Ok : record { nat; opt vec Error };
-  Err : Error;
+  Ok : record { nat; opt vec String };
+  Err : String;
 };
 service : {
   // Return all of the meta data of a token.
