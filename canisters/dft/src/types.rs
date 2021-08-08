@@ -69,7 +69,7 @@ pub struct KeyValuePair {
 }
 
 impl FromStr for TokenHolder {
-    type Err = Error;
+    type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let pid = s.parse::<PrincipalId>();
         match pid {
@@ -81,13 +81,13 @@ impl FromStr for TokenHolder {
                 _principal if utils::is_user_principal(&_principal) => {
                     Ok(TokenHolder::Principal(_principal))
                 }
-                _ => Err(Error::InvalidReceiver),
+                _ => Err("invalid token holder format".to_string()),
             },
             _ => {
                 let account_identity = s.parse::<AccountIdentifier>();
                 match account_identity {
                     Ok(_ai) => Ok(TokenHolder::Account(_ai)),
-                    _ => Err(Error::InvalidReceiver),
+                    _ => Err("invalid token holder format".to_string()),
                 }
             }
         }
@@ -113,40 +113,24 @@ pub struct CallData {
     pub args: Vec<u8>,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone, CandidType)]
-pub enum Error {
-    InvalidSubaccount,
-    InvalidTokenHolder,
-    InvalidSpender,
-    InvalidReceiver,
-    InsufficientBalance,
-    InsufficientAllowance,
-    RejectedByHolder,
-    RejectedByReceiver,
-    CallFailed,
-    NotifyFailed,
-    QuantityTooSmall,
-    Unknown,
-}
-
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 pub enum TransferResult {
     //transfer succeed, but call failed & notify failed
-    Ok(TransactionId, Option<Vec<Error>>),
-    Err(Error),
+    Ok(TransactionId, Option<Vec<String>>),
+    Err(String),
 }
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 pub enum BurnResult {
     Ok,
-    Err(Error),
+    Err(String),
 }
 
 // Invalid data: Invalid IDL blob by candid 0.6.21
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 pub enum ApproveResult {
-    Ok(Option<Error>),
-    Err(Error),
+    Ok(Option<String>),
+    Err(String),
 }
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]

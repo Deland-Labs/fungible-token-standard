@@ -28,7 +28,7 @@ test: upgrade
 	dfx canister call dft  initialize '("Deland Token","DLD",18:nat8,100000000000000000000000000:nat)'
 	dfx canister call dft  meta | grep 'Deland Token' && echo 'PASS META check'
 
-	dfx canister call dft transfer '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",1000000000000000000:nat,null)'| grep 'record { 2 : nat; null }' && echo 'PASS transfer check'
+	dfx canister call dft transfer '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",1000000000000000000:nat,null)'| grep 'record { 1 : nat; null }' && echo 'PASS transfer check'
 	dfx canister call dft balanceOf "rrkah-fqaaa-aaaaa-aaaaq-cai"| grep '1_000_000_000_000_000_000' && echo 'PASS balanceOf check'
 
 	dfx canister call dft approve '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",3000000000000000000:nat,null)'

@@ -1,5 +1,5 @@
-type ApproveResult = variant { Ok : opt Error; Err : Error };
-type BurnResult = variant { Ok; Err : Error };
+type ApproveResult = variant { Ok : opt text; Err : text };
+type BurnResult = variant { Ok; Err : text };
 type CallData = record { method : text; args : vec nat8 };
 type Error = variant {
   CallFailed;
@@ -30,8 +30,8 @@ type TokenHolder = variant {
   Principal : principal;
 };
 type TransferResult = variant {
-  Ok : record { nat; opt vec Error };
-  Err : Error;
+  Ok : record { nat; opt vec text };
+  Err : text;
 };
 service : {
   allowance : (text, text) -> (nat) query;
