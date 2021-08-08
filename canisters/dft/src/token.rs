@@ -31,7 +31,6 @@ const ZERO_PRINCIPAL_ID: PrincipalId = PrincipalId::new(0, [0u8; 29]);
 const ZERO_CANISTER_ID: CanisterId = CanisterId::from_u64(0);
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
 const FEE_RATE_DECIMALS: u8 = 8u8;
-const TX_TYPES_INIT: &str = "init";
 const TX_TYPES_APPROVE: &str = "approve";
 const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
@@ -106,15 +105,6 @@ async fn _initialize(
         let call_from = parse_to_token_holder(OWNER, None).unwrap();
         let balances = storage::get_mut::<Balances>();
         balances.insert(call_from.clone(), TOTAL_SUPPLY);
-
-        _save_tx_record_to_graphql(TxRecord::Init(
-            OWNER,
-            call_from,
-            decimals,
-            total_supply,
-            dfn_core::api::ic0::time(),
-        ))
-        .await;
     }
     true
 }
@@ -986,16 +976,7 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
         let value_str: String;
         let fee_str: String;
         let timestamp_str: String;
-        match tx {
-            TxRecord::Init(caller, owner, decimals, total_supply, t) => {
-                type_str = TX_TYPES_INIT;
-                call_str = caller.to_string();
-                from_str = owner.to_string();
-                to_str = "".to_string();
-                value_str = total_supply.to_string();
-                fee_str = decimals.to_string();
-                timestamp_str = t.to_string();
-            }
+        match tx {           
             TxRecord::Approve(caller, owner, spender, value, fee, t) => {
                 type_str = TX_TYPES_APPROVE;
                 call_str = caller.to_string();

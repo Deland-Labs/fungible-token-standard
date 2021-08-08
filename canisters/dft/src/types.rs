@@ -151,8 +151,6 @@ pub enum ApproveResult {
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 pub enum TxRecord {
-    // caller, owner, decimals, total_supply, timestamp
-    Init(PrincipalId, TokenHolder, u8, u128, u64),
     // caller, owner, spender, value, fee, timestamp
     Approve(PrincipalId, TokenHolder, TokenReceiver, u128, u128, u64),
     // caller, from, to, value, fee, timestamp
