@@ -33,7 +33,7 @@ const FEE_RATE_DECIMALS: u8 = 8u8;
 const TX_TYPES_APPROVE: &str = "approve";
 const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
-const TX_TYPES_MINT: &str = "mint";
+// const TX_TYPES_MINT: &str = "mint";
 
 static mut INITIALIZED: bool = false;
 static mut OWNER: PrincipalId = ZERO_PRINCIPAL_ID;
@@ -351,59 +351,22 @@ async fn _transfer_from(
 
     let from_parse_result = from.parse::<TokenHolder>();
     let to_parse_result = to.parse::<TokenHolder>();
-    let fee = _calc_transfer_fee(value);
 
     match from_parse_result {
         Ok(from_token_holder) => match to_parse_result {
             Ok(to_token_holder) => {
-                let mut from_balance = _inner_balance_of(&from_token_holder);
-                let mut from_allowance = _inner_allowance(&from_token_holder, &spender);
+                let from_allowance = _inner_allowance(&from_token_holder, &spender); 
+                let fee = _calc_transfer_fee(value);
+
+                // check balance & allowance
                 if from_allowance < value + fee {
                     return TransferResult::Err(
                         "DFT: transfer amount exceeds allowance".to_string(),
                     );
-                } else if from_balance < value + fee {
-                    return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
                 }
-
-                let balances = storage::get_mut::<Balances>();
-
-                // before transfer hook
-                let before_sending_check_result =
-                    _on_token_sending(&from_token_holder, &to_token_holder, &value).await;
-
-                if let Err(emsg) = before_sending_check_result {
-                    return TransferResult::Err(emsg);
-                }
-                // reload the balance after async call (_on_token_sending)
-                from_balance = _inner_balance_of(&from_token_holder);
-                // reload the allowance after async call (_on_token_sending)
-                from_allowance = _inner_allowance(&from_token_holder, &spender);
-                // recheck balance & allowance
-                if from_allowance < value + fee {
-                    dfn_core::api::print(format!(
-                        "InsufficientAllowance: from_allowance  is {},amount is {},fee is {}",
-                        from_balance.to_string(),
-                        value.to_string(),
-                        fee.to_string()
-                    ));
-                    return TransferResult::Err(
-                        "DFT: transfer amount exceeds allowance".to_string(),
-                    );
-                } else if from_balance < value {
-                    dfn_core::api::print(format!(
-                        "InsufficientBalance: from_allowance  is {},amount is {},fee is {}",
-                        from_balance.to_string(),
-                        value.to_string(),
-                        fee.to_string()
-                    ));
-                    return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
-                }
-                let to_balance = _inner_balance_of(&to_token_holder);
-                balances.insert(from_token_holder.clone(), from_balance - value - fee);
-                balances.insert(to_token_holder.clone(), to_balance + value);
-                _fee_settle(fee);
                 let allowances_read = storage::get::<Allowances>();
+
+                // update allowance
                 match allowances_read.get(&from_token_holder) {
                     Some(inner) => {
                         let mut temp = inner.clone();
@@ -415,27 +378,15 @@ async fn _transfer_from(
                         //revert balance and allowance
                         assert!(false);
                     }
-                }
-
-                unsafe {
-                    let next_tx_id = _save_tx_record_to_graphql(TxRecord::Transfer(
-                        spender_principal_id.clone(),
-                        from_token_holder.clone(),
-                        to_token_holder.clone(),
-                        value,
-                        fee,
-                        dfn_core::api::ic0::time(),
-                    ))
-                    .await;
-                    // after transfer hook
-                    let after_token_send_notify_result =
-                        _on_token_received(&from_token_holder, &to_token_holder, &value).await;
-
-                    match after_token_send_notify_result {
-                        Err(emsg) => return TransferResult::Ok(next_tx_id, Some(vec![emsg])),
-                        Ok(_) => return TransferResult::Ok(next_tx_id, None),
-                    }
-                }
+                };
+                // transfer
+                _inner_transfer(
+                    spender_principal_id,
+                    from_token_holder,
+                    to_token_holder,
+                    value,
+                )
+                .await
             }
             _ => TransferResult::Err("DFT: invalid [to] format".to_string()),
         },
@@ -504,27 +455,21 @@ async fn _inner_transfer(
     value: u128,
 ) -> TransferResult {
     let fee = _calc_transfer_fee(value);
-    let mut from_balance = _inner_balance_of(&from);
+    let from_balance = _inner_balance_of(&from);
 
     if from_balance < value + fee {
         return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
     }
 
-    // before transfer hook
-    let before_sending_check_result = _on_token_sending(&from, &to, &value).await;
+    // before transfer
+    let before_sending_check_result = _on_token_sending(&from, &to, &value);
 
     if let Err(emsg) = before_sending_check_result {
         return TransferResult::Err(emsg);
     }
-    // reload balance after outside call (_on_token_sending)
-    from_balance = _inner_balance_of(&from);
 
-    if from_balance < value + fee {
-        return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
-    }
-
-    let balances = storage::get_mut::<Balances>();
     let to_balance = _inner_balance_of(&to);
+    let balances = storage::get_mut::<Balances>();
 
     balances.insert(from.clone(), from_balance - value - fee);
     balances.insert(to.clone(), to_balance + value);
@@ -543,7 +488,7 @@ async fn _inner_transfer(
 
         let mut errors: Vec<String> = Vec::new();
 
-        // after transfer hook
+        // after transfer (notify)
         let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
 
         if let Err(emsg) = after_token_send_notify_result {
@@ -778,80 +723,13 @@ fn parse_to_token_holder(from: PrincipalId, from_sub_account: Option<Subaccount>
     }
 }
 
-async fn _on_token_sending(
-    transfer_from: &TokenHolder,
-    receiver: &TokenReceiver,
-    _value: &u128,
-) -> Result<bool, String> {
-    let supported_interface_method_name = "supportedInterface";
-    let on_token_sending_method_name = "on_token_sending";
-    let on_token_sending_method_sig =
-        "on_token_sending:(TransferFrom,TokenReceiver,nat128)->(bool)query";
-    // check transfer from
-    if let TransferFrom::Canister(tf_cid) = transfer_from {
-        let support_res: Result<(bool,), _> = call_with_cleanup(
-            *tf_cid,
-            supported_interface_method_name,
-            dfn_candid::candid_one,
-            on_token_sending_method_sig,
-        )
-        .await;
-
-        if let Ok((_support,)) = support_res {
-            if _support {
-                let _check_res: Result<(bool,), _> = call_with_cleanup(
-                    *tf_cid,
-                    on_token_sending_method_name,
-                    dfn_candid::candid_multi_arity,
-                    (transfer_from, receiver, _value),
-                )
-                .await;
-
-                match _check_res {
-                    Ok((is_sending_succeed,)) => {
-                        if !is_sending_succeed {
-                            return Err("DFT: rejected by sender".to_string());
-                        }
-                    }
-                    _ => return Err("DFT: rejected by sender".to_string()),
-                }
-            }
-        }
-    }
-
-    // check receiver
-    if let TokenReceiver::Canister(r_cid) = receiver {
-        let support_res: Result<(bool,), _> = call_with_cleanup(
-            *r_cid,
-            supported_interface_method_name,
-            dfn_candid::candid_one,
-            on_token_sending_method_sig,
-        )
-        .await;
-
-        if let Ok((_support,)) = support_res {
-            if _support {
-                let _check_res: Result<(bool,), _> = call_with_cleanup(
-                    *r_cid,
-                    on_token_sending_method_name,
-                    dfn_candid::candid_multi_arity,
-                    (transfer_from, receiver, _value),
-                )
-                .await;
-
-                match _check_res {
-                    Ok((is_sending_succeed,)) => {
-                        if !is_sending_succeed {
-                            return Err("DFT: rejected by receiver".to_string());
-                        }
-                    }
-                    _ => return Err("DFT: rejected by receiver".to_string()),
-                }
-            }
-        }
-    }
-
-    Ok(true)
+// do something becore sending
+fn _on_token_sending(
+    #[warn(unused_variables)] _transfer_from: &TokenHolder,
+    #[warn(unused_variables)] _receiver: &TokenReceiver,
+    #[warn(unused_variables)] _value: &u128,
+) -> Result<(), String> {
+    Ok(())
 }
 
 // call it after transfer, notify receiver with (from,value)
