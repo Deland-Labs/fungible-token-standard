@@ -198,7 +198,7 @@ Based on the above problems and requirements, combined with the ERC standard for
 type ApproveResult = variant { Ok : opt String; Err : String };
 type BurnResult = variant { Ok; Err : String };
 type CallData = record { method : text; args : vec nat8 };
-type Fee = variant { Fixed : nat; RateWithLowestLimit : record { nat; nat8 } };
+type Fee = record { lowest: nat; rate :nat32 };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record {
   fee : Fee;
@@ -207,11 +207,7 @@ type MetaData = record {
   total_supply : nat;
   symbol : text;
 };
-type TokenHolder = variant {
-  Account : text;
-  Canister : principal;
-  Principal : principal;
-};
+type TokenHolder = variant { Account : text; Principal : principal; };
 type TransferResult = variant {
   Ok : record { nat; opt vec String };
   Err : String;
@@ -257,7 +253,7 @@ service : {
   // to transfer tokens on your behalf.
   transferFrom: (spenderSubAccount: opt vec nat8, from: text, to: text,value: nat) ->(TransferResult);
 
-    // receiver's Notify hood function if exist.
+  // receiver's Notify hood function if exist.
   // Transfers of 0 values ​​will be reject.
   // Generates an AccountIdentifier based on the caller's Principal and
   // the provided SubAccount*, and then attempts to transfer amount from the

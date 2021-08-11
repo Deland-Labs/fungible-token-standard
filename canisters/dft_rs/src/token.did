@@ -24,11 +24,7 @@ type MetaData = record {
   total_supply : nat;
   symbol : text;
 };
-type TokenHolder = variant {
-  Account : text;
-  Canister : principal;
-  Principal : principal;
-};
+type TokenHolder = variant { Account : text; Principal : principal; };
 type TransferResult = variant {
   Ok : record { nat; opt vec text };
   Err : text;
