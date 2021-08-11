@@ -497,6 +497,24 @@ fn _token_graphql() -> Principal {
     unsafe { STORAGE_CANISTER_ID }
 }
 
+// query cycles balance
+#[query(name = "cyclesBalance")]
+#[candid_method(query, rename = "cyclesBalance")]
+fn cycles_balance() -> u64 {
+    api::canister_balance()
+}
+
+// Receive cycles.
+#[update(name = "wallet_receive")]
+#[candid_method(update, rename = "wallet_receive")]
+fn wallet_receive() {
+    let from = api::caller();
+    let amount = api::call::msg_cycles_available();
+    if amount > 0 {
+        api::call::msg_cycles_accept(amount);
+    }
+}
+
 candid::export_service!();
 
 #[query(name = "__export_did_tmp")]
