@@ -9,14 +9,14 @@
       "candid": "canisters/graphql/src/graphql.did",
       "wasm": "target/wasm32-unknown-unknown/release/graphql_opt.wasm"
     },
-    "dft": {
+    "dft_rs": {
       "type": "custom",
       "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft --release",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft.wasm -o target/wasm32-unknown-unknown/release/dft_opt.wasm"
+        "cargo build --target wasm32-unknown-unknown --package  dft_rs --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_rs.wasm -o target/wasm32-unknown-unknown/release/dft_rs_opt.wasm"
       ],
-      "candid": "canisters/dft/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_opt.wasm"
+      "candid": "canisters/dft_rs/src/token.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft_rs_opt.wasm"
     }
   },
   "defaults": {
