@@ -15,7 +15,7 @@ type Error = variant {
   Unknown;
   RejectedByReceiver;
 };
-type Fee = variant { Fixed : nat; RateWithLowestLimit : record { nat; nat8 } };
+type Fee = record { lowest: nat; rate :nat32 };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record {
   fee : Fee;

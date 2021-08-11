@@ -15,6 +15,7 @@ use crate::utils;
 use candid::{candid_method, decode_args, IDLProg};
 use ic_cdk::{api, export::Principal, storage};
 use ic_cdk_macros::*;
+use std::cmp;
 use std::collections::HashMap;
 use std::string::String;
 
@@ -31,7 +32,7 @@ static mut NAME: &str = "";
 static mut SYMBOL: &str = "";
 static mut DECIMALS: u8 = 0;
 static mut TOTAL_SUPPLY: u128 = 0;
-static mut FEE: Fee = Fee::Fixed(0);
+static mut FEE: Fee = Fee { lowest: 0, rate: 0 };
 static mut TOTAL_FEE: u128 = 0;
 static mut TX_ID_CURSOR: u128 = 0;
 // 256 * 256
@@ -666,22 +667,14 @@ async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result
 
 fn _calc_approve_fee() -> u128 {
     unsafe {
-        match FEE {
-            Fee::Fixed(_fixed) => _fixed,
-            Fee::RateWithLowestLimit(_lowest, _rate) => _lowest,
-        }
+        return FEE.lowest;
     }
 }
 
 fn _calc_transfer_fee(value: u128) -> u128 {
     unsafe {
         let div_by = (10 as u128).pow(FEE_RATE_DECIMALS as u32);
-        match FEE {
-            Fee::Fixed(_fixed) => _fixed,
-            Fee::RateWithLowestLimit(_lowest, _rate) => {
-                std::cmp::max(_lowest, value * (_rate as u128) / div_by)
-            }
-        }
+        cmp::max(FEE.lowest, value * (FEE.rate as u128) / div_by)
     }
 }
 
