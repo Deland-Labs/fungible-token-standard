@@ -8,13 +8,10 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies] 
-ic-nns-handler-root = { git="https://github.com/dfinity/ic" }
-ledger-canister = { git="https://github.com/dfinity/ic" }
-dfn_core = { git="https://github.com/dfinity/ic" }
-dfn_protobuf = { git="https://github.com/dfinity/ic" }
-dfn_candid = { git="https://github.com/dfinity/ic" }
-ic-types = { git="https://github.com/dfinity/ic" }
-
-serde = { version = "1.0.126", features = [ "derive", "rc" ] }
+ic-cdk = "0.3.0"
+ic-cdk-macros = "0.3.0"
+hex = {version = "0.4.2", features = ["serde"] }
+crc32fast = "1.2.0"
 candid = "0.6.21"
-lazy_static = "1.4.0"
+serde = "1.0.127"
+sha2 = "0.9.1"
