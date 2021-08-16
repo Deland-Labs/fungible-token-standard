@@ -26,7 +26,12 @@ test: upgrade
 	dfx canister call graphql set_token_canister_id '(principal "$(dft_id)")'
 	dfx canister call dft_rs  setStorageCanisterID '(principal "$(graphql_id)")'
 	dfx canister call dft_rs  initialize '("Deland Token","DLD",18:nat8,100000000000000000000000000:nat)'
-	dfx canister call dft_rs  meta | grep 'Deland Token' && echo 'PASS META check'
+	dfx canister call dft_rs  name | grep 'Deland Token' && echo 'PASS name check'
+	dfx canister call dft_rs  symbol | grep 'DLD' && echo 'PASS symbol check'
+	dfx canister call dft_rs  decimals | grep '(18 : nat8)' && echo 'PASS decimals check'
+	dfx canister call dft_rs  totalSupply | grep '(100_000_000_000_000_000_000_000_000 : nat)' && echo 'PASS totalSupply check'
+	dfx canister call dft_rs  fee | grep '0 : nat32' && echo 'PASS fee check'
+	dfx canister call dft_rs  meta | grep 'Deland Token' && echo 'PASS meta check'
 
 	dfx canister call dft_rs transfer '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",1000000000000000000:nat,null)'| grep 'record { 1 : nat; null }' && echo 'PASS transfer check'
 	dfx canister call dft_rs balanceOf "rrkah-fqaaa-aaaaa-aaaaq-cai"| grep '1_000_000_000_000_000_000' && echo 'PASS balanceOf check'

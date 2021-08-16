@@ -81,6 +81,51 @@ async fn initialize(
     true
 }
 
+#[query(name = "name")]
+#[candid_method(query, rename = "name")]
+fn get_name() -> String {
+    _must_initialized();
+    unsafe {
+        NAME.to_string()
+    }
+}
+
+#[query(name = "symbol")]
+#[candid_method(query, rename = "symbol")]
+fn get_symbol() -> String {
+    _must_initialized();
+    unsafe {
+        SYMBOL.to_string()
+    }
+}
+
+#[query(name = "decimals")]
+#[candid_method(query, rename = "decimals")]
+fn get_decimals() -> u8 {
+    _must_initialized();
+    unsafe {
+        DECIMALS
+    }
+}
+
+#[query(name = "totalSupply")]
+#[candid_method(query, rename = "totalSupply")]
+fn get_total_supply() -> u128 {
+    _must_initialized();
+    unsafe {
+        TOTAL_SUPPLY
+    }
+}
+
+#[query(name = "fee")]
+#[candid_method(query, rename = "fee")]
+fn get_fee_setting() -> Fee {
+    _must_initialized();
+    unsafe {
+        FEE.clone()
+    }
+}
+
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
 fn get_meta_data() -> MetaData {
