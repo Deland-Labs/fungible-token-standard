@@ -25,7 +25,6 @@ pub struct TokenPayload {
     pub logo: Vec<u8>,
     pub balances: Vec<(TokenHolder, u128)>,
     pub allowances: Vec<(TokenHolder, Vec<(TokenHolder, u128)>)>,
-    pub total_fee: u128,
     pub tx_id_cursor: u128,
     pub storage_canister_id: Principal,
 }
@@ -117,12 +116,12 @@ pub enum ApproveResult {
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 pub enum TxRecord {
-    // caller, owner, spender, value, fee, timestamp
-    Approve(Principal, TokenHolder, TokenReceiver, u128, u128, u64),
+    //  owner, spender, value, fee, timestamp
+    Approve(TokenHolder, TokenReceiver, u128, u128, u64),
     // caller, from, to, value, fee, timestamp
-    Transfer(Principal, TokenHolder, TokenReceiver, u128, u128, u64),
+    Transfer(TokenHolder, TokenReceiver, u128, u128, u64),
     // caller, from, value, timestamp
-    Burn(Principal, TokenHolder, u128, u64),
+    Burn(TokenHolder, u128, u64),
 }
 
 /// While this is backed by an array of length 28, it's canonical representation

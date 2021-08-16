@@ -26,6 +26,10 @@ const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
 // const TX_TYPES_MINT: &str = "mint";
 
+const ONLY_OWNER_MSG: &str = "DFT: caller is not the owner";
+const INVALID_SPENDER_MSG: &str = "DFT: invalid spender";
+const FAILED_TO_CHARGE_FEE: &str = "DFT: Failed to charge fee - insufficient balance";
+
 static mut INITIALIZED: bool = false;
 static mut OWNER: Principal = Principal::anonymous();
 static mut NAME: &str = "";
@@ -33,18 +37,17 @@ static mut SYMBOL: &str = "";
 static mut DECIMALS: u8 = 0;
 static mut TOTAL_SUPPLY: u128 = 0;
 static mut FEE: Fee = Fee { lowest: 0, rate: 0 };
-static mut TOTAL_FEE: u128 = 0;
 static mut TX_ID_CURSOR: u128 = 0;
 // 256 * 256
 static mut LOGO: Vec<u8> = Vec::new();
 static mut STORAGE_CANISTER_ID: Principal = Principal::anonymous();
-static mut FEE_CASHIER: TokenHolder = TokenHolder::Principal(Principal::anonymous());
+static mut FEE_TO: TokenHolder = TokenHolder::Principal(Principal::anonymous());
 
 #[init]
 fn canister_init() {
     unsafe {
         OWNER = api::caller();
-        FEE_CASHIER = TokenHolder::Principal(api::caller());
+        FEE_TO = TokenHolder::Principal(api::caller());
     }
 }
 
@@ -146,14 +149,14 @@ fn balance_of(holder: String) -> u128 {
     let token_holder_parse_result = holder.parse::<TokenHolder>();
 
     let balance = match token_holder_parse_result {
-        Ok(token_holder) => _ibalance_of(&token_holder),
+        Ok(token_holder) => _balance_of(&token_holder),
         _ => 0,
     };
     ic_cdk::print(format!("get account balance is {}", balance));
     balance
 }
 
-fn _ibalance_of(holder: &TokenHolder) -> u128 {
+fn _balance_of(holder: &TokenHolder) -> u128 {
     let balances = storage::get::<Balances>();
     match balances.get(holder) {
         Some(balance) => *balance,
@@ -170,7 +173,7 @@ fn allowance(owner: String, spender: String) -> u128 {
     let allowance: u128 = match token_holder_owner_parse_result {
         Ok(token_holder_owner) => match token_holder_spender_parse_result {
             Ok(token_holder_spender) => {
-                _inner_allowance(&token_holder_owner, &token_holder_spender)
+                _allowance(&token_holder_owner, &token_holder_spender)
             }
             _ => 0u128,
         },
@@ -181,7 +184,7 @@ fn allowance(owner: String, spender: String) -> u128 {
     allowance
 }
 
-fn _inner_allowance(owner: &TokenHolder, spender: &TokenHolder) -> u128 {
+fn _allowance(owner: &TokenHolder, spender: &TokenHolder) -> u128 {
     let allowances = storage::get::<Allowances>();
     match allowances.get(&owner) {
         Some(inner) => match inner.get(&spender) {
@@ -207,49 +210,51 @@ async fn approve(
     let spender_parse_result = spender.parse::<TokenHolder>();
     let approve_fee = _calc_approve_fee();
 
-    if let Ok(spender_holder) = spender_parse_result {
-        //charge approve, prevent gas ddos attacks
-        match _charge_approve_fee(&spender_holder, approve_fee) {
-            Ok(_) => {}
-            Err(emsg) => return ApproveResult::Err(emsg),
-        }
-
-        let allowances_read = storage::get::<Allowances>();
-        match allowances_read.get(&owner_holder) {
-            Some(inner) => {
-                let mut temp = inner.clone();
-                temp.insert(spender_holder.clone(), value);
-                let allowances = storage::get_mut::<Allowances>();
-                allowances.insert(owner_holder.clone(), temp);
+    match spender_parse_result {
+        Ok(spender_holder) => {
+            //charge approve, prevent gas ddos attacks
+            match _charge_approve_fee(&spender_holder, approve_fee) {
+                Ok(_) => {}
+                Err(emsg) => return ApproveResult::Err(emsg),
             }
-            None => {
-                let mut inner = HashMap::new();
-                inner.insert(spender_holder.clone(), value - approve_fee);
-                let allowances = storage::get_mut::<Allowances>();
-                allowances.insert(owner_holder.clone(), inner);
-            }
-        };
-        unsafe {
-            _save_tx_record_to_graphql(TxRecord::Approve(
-                owner.clone(),
-                owner_holder.clone(),
-                spender_holder.clone(),
-                value,
-                approve_fee,
-                api::time(),
-            ))
-            .await;
-        }
 
-        if let Some(_call_data) = call_data {
-            // execute call
-            let execute_call_result = _execute_call(&spender_holder, _call_data).await;
-
-            if let Err(emsg) = execute_call_result {
-                // approve succeed ,bu call failed
-                return ApproveResult::Ok(Some(emsg));
+            let allowances_read = storage::get::<Allowances>();
+            match allowances_read.get(&owner_holder) {
+                Some(inner) => {
+                    let mut temp = inner.clone();
+                    temp.insert(spender_holder.clone(), value);
+                    let allowances = storage::get_mut::<Allowances>();
+                    allowances.insert(owner_holder.clone(), temp);
+                }
+                None => {
+                    let mut inner = HashMap::new();
+                    inner.insert(spender_holder.clone(), value - approve_fee);
+                    let allowances = storage::get_mut::<Allowances>();
+                    allowances.insert(owner_holder.clone(), inner);
+                }
             };
+            unsafe {
+                _save_tx_record_to_graphql(TxRecord::Approve(
+                    owner_holder.clone(),
+                    spender_holder.clone(),
+                    value,
+                    approve_fee,
+                    api::time(),
+                ))
+                .await;
+            }
+
+            if let Some(_call_data) = call_data {
+                // execute call
+                let execute_call_result = _execute_call(&spender_holder, _call_data).await;
+
+                if let Err(emsg) = execute_call_result {
+                    // approve succeed ,bu call failed
+                    return ApproveResult::Ok(Some(emsg));
+                };
+            }
         }
+        Err(_) => return ApproveResult::Err(INVALID_SPENDER_MSG.to_string()),
     }
 
     ApproveResult::Ok(None)
@@ -274,7 +279,7 @@ async fn transfer_from(
     match from_parse_result {
         Ok(from_token_holder) => match to_parse_result {
             Ok(to_token_holder) => {
-                let from_allowance = _inner_allowance(&from_token_holder, &spender);
+                let from_allowance = _allowance(&from_token_holder, &spender);
                 let fee = _calc_transfer_fee(value);
 
                 // check allowance
@@ -299,8 +304,7 @@ async fn transfer_from(
                     }
                 };
                 // transfer
-                _inner_transfer(
-                    spender_principal_id,
+                _transfer(
                     from_token_holder,
                     to_token_holder,
                     value,
@@ -315,7 +319,7 @@ async fn transfer_from(
 
 #[update(name = "transfer")]
 #[candid_method(update, rename = "transfer")]
-async fn _transfer(
+async fn transfer(
     from_sub_account: Option<Subaccount>,
     to: String,
     value: u128,
@@ -330,7 +334,7 @@ async fn _transfer(
     match receiver_parse_result {
         Ok(receiver) => {
             let mut errors: Vec<String> = Vec::new();
-            match _inner_transfer(from, transfer_from, receiver.clone(), value).await {
+            match _transfer(transfer_from, receiver.clone(), value).await {
                 TransferResult::Ok(txid, inner_errors_opt) => {
                     if let Some(inner_errors) = inner_errors_opt {
                         errors = [errors, inner_errors].concat();
@@ -355,14 +359,13 @@ async fn _transfer(
     }
 }
 
-async fn _inner_transfer(
-    caller: Principal,
+async fn _transfer(    
     from: TokenHolder,
     to: TokenHolder,
     value: u128,
 ) -> TransferResult {
     let fee = _calc_transfer_fee(value);
-    let from_balance = _ibalance_of(&from);
+    let from_balance = _balance_of(&from);
 
     if from_balance < value + fee {
         return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
@@ -375,7 +378,7 @@ async fn _inner_transfer(
         return TransferResult::Err(emsg);
     }
 
-    let to_balance = _ibalance_of(&to);
+    let to_balance = _balance_of(&to);
     let balances = storage::get_mut::<Balances>();
 
     balances.insert(from.clone(), from_balance - value - fee);
@@ -384,7 +387,6 @@ async fn _inner_transfer(
 
     unsafe {
         let next_tx_id = _save_tx_record_to_graphql(TxRecord::Transfer(
-            caller,
             from.clone(),
             to.clone(),
             value,
@@ -420,7 +422,7 @@ async fn _burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult 
         return BurnResult::Err("DFT: burning value is too small".to_string());
     }
 
-    let from_balance = _ibalance_of(&transfer_from);
+    let from_balance = _balance_of(&transfer_from);
 
     if from_balance < value {
         return BurnResult::Err("DFT: burn amount exceeds balance".to_string());
@@ -430,7 +432,6 @@ async fn _burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult 
     balances.insert(transfer_from.clone(), from_balance - value);
     unsafe {
         _save_tx_record_to_graphql(TxRecord::Burn(
-            from.clone(),
             transfer_from.clone(),
             value,
             api::time(),
@@ -481,12 +482,12 @@ fn set_fee(fee: Fee) -> bool {
     }
 }
 
-#[query(name = "setFeeCashier")]
-#[candid_method(update, rename = "setFeeCashier")]
-fn set_fee_cashier(holder: TokenHolder) -> bool {
+#[query(name = "setFeeTo")]
+#[candid_method(update, rename = "setFeeTo")]
+fn set_fee_to(holder: TokenHolder) -> bool {
     _only_owner();
     unsafe {
-        FEE_CASHIER = holder;
+        FEE_TO = holder;
         true
     }
 }
@@ -508,7 +509,6 @@ fn cycles_balance() -> u64 {
 #[update(name = "wallet_receive")]
 #[candid_method(update, rename = "wallet_receive")]
 fn wallet_receive() {
-    let from = api::caller();
     let amount = api::call::msg_cycles_available();
     if amount > 0 {
         api::call::msg_cycles_accept(amount);
@@ -527,10 +527,9 @@ fn __export_did_tmp_() -> String {
 fn pre_upgrade() {
     let initialized = unsafe { INITIALIZED };
     let owner = unsafe { OWNER };
-    let fee_cashier = unsafe { FEE_CASHIER.clone() };
+    let fee_cashier = unsafe { FEE_TO.clone() };
     let meta = get_meta_data();
     let logo = unsafe { LOGO.clone() };
-    let total_fee = unsafe { TOTAL_FEE };
     let tx_id_cursor = unsafe { TX_ID_CURSOR };
     let storage_canister_id = unsafe { STORAGE_CANISTER_ID };
 
@@ -560,7 +559,6 @@ fn pre_upgrade() {
         logo,
         balances,
         allowances,
-        total_fee,
         tx_id_cursor,
         storage_canister_id,
     };
@@ -575,13 +573,12 @@ fn post_upgrade() {
     unsafe {
         INITIALIZED = payload.initialized;
         OWNER = payload.owner;
-        FEE_CASHIER = payload.fee_cashier;
+        FEE_TO = payload.fee_cashier;
         NAME = Box::leak(payload.meta.name.into_boxed_str());
         SYMBOL = Box::leak(payload.meta.symbol.into_boxed_str());
         DECIMALS = payload.meta.decimals;
         TOTAL_SUPPLY = payload.meta.total_supply;
         FEE = payload.meta.fee;
-        TOTAL_FEE = payload.total_fee;
         TX_ID_CURSOR = payload.tx_id_cursor;
         LOGO = payload.logo;
         STORAGE_CANISTER_ID = payload.storage_canister_id;
@@ -702,9 +699,9 @@ fn _charge_approve_fee(payer: &TokenHolder, fee: u128) -> Result<bool, String> {
     }
 
     let balances = storage::get_mut::<Balances>();
-    let payer_balance = _ibalance_of(&payer);
+    let payer_balance = _balance_of(&payer);
     if payer_balance < fee {
-        return Err("DFT: insufficient balance,failed to charge approval fee".to_string());
+        return Err(FAILED_TO_CHARGE_FEE.to_string());
     }
     balances.insert(payer.clone(), payer_balance - fee);
     _fee_settle(fee);
@@ -715,9 +712,8 @@ fn _fee_settle(fee: u128) {
     if fee > 0 {
         let balances = storage::get_mut::<Balances>();
         unsafe {
-            let fee_to_balance = _ibalance_of(&FEE_CASHIER);
-            balances.insert(FEE_CASHIER.clone(), fee_to_balance + fee);
-            TOTAL_FEE += fee;
+            let fee_to_balance = _balance_of(&FEE_TO);
+            balances.insert(FEE_TO.clone(), fee_to_balance + fee);
         }
     }
 }
@@ -727,34 +723,30 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
     unsafe {
         TX_ID_CURSOR += 1;
         let type_str: &str;
-        let call_str: String;
         let from_str: String;
         let to_str: String;
         let value_str: String;
         let fee_str: String;
         let timestamp_str: String;
         match tx {
-            TxRecord::Approve(caller, owner, spender, value, fee, t) => {
+            TxRecord::Approve(owner, spender, value, fee, t) => {
                 type_str = TX_TYPES_APPROVE;
-                call_str = caller.to_string();
                 from_str = owner.to_string();
                 to_str = spender.to_string();
                 value_str = value.to_string();
                 fee_str = fee.to_string();
                 timestamp_str = t.to_string();
             }
-            TxRecord::Transfer(caller, from, to, value, fee, t) => {
+            TxRecord::Transfer(from, to, value, fee, t) => {
                 type_str = TX_TYPES_TRANSFER;
-                call_str = caller.to_string();
                 from_str = from.to_string();
                 to_str = to.to_string();
                 value_str = value.to_string();
                 fee_str = fee.to_string();
                 timestamp_str = t.to_string();
             }
-            TxRecord::Burn(caller, from, value, t) => {
+            TxRecord::Burn(from, value, t) => {
                 type_str = TX_TYPES_BURN;
-                call_str = caller.to_string();
                 from_str = from.to_string();
                 to_str = "".to_string();
                 value_str = value.to_string();
@@ -768,13 +760,12 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
             r#"mutation {{ 
                             createTx(input: {{ 
                                 txid:  "{0}",txtype:"{1}",
-                                caller:"{2}",from:"{3}",
-                                to:"{4}",value:"{5}",
-                                fee:"{6}",timestamp:"{7}",
+                                from:"{2}",to:"{3}",value:"{4}",
+                                fee:"{5}",timestamp:"{6}",
                                 }}) 
                                 {{ id }} 
                                }}"#,
-            TX_ID_CURSOR, type_str, call_str, from_str, to_str, value_str, fee_str, timestamp_str
+            TX_ID_CURSOR, type_str, from_str, to_str, value_str, fee_str, timestamp_str
         );
         //call storage canister
         let _support_res: Result<(String,), _> = api::call::call(
@@ -784,10 +775,10 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
         )
         .await;
         ic_cdk::print(format!("muation is :{}", muation.to_string()));
-        match _support_res {
-            Ok(res) => ic_cdk::print(format!("graph write succeed :{}", res.0)),
-            Err((_, msg)) => ic_cdk::print(format!("graph write error :{}", msg)),
-        };
+        // match _support_res {
+        //     Ok(res) => ic_cdk::print(format!("graph write succeed :{}", res.0)),
+        //     Err((_, msg)) => ic_cdk::print(format!("graph write error :{}", msg)),
+        // };
         TX_ID_CURSOR
     }
 }
@@ -795,10 +786,11 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
 fn _only_owner() {
     unsafe {
         if OWNER != api::caller() {
-            api::trap("caller is not the owner");
+            api::trap(ONLY_OWNER_MSG);
         }
     }
 }
+
 fn _must_initialized() {
     unsafe {
         if !INITIALIZED {

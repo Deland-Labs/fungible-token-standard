@@ -35,7 +35,7 @@ test: upgrade
 	dfx canister call dft_rs allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
 	| grep '3_000_000_000_000_000_000' && echo 'PASS allowance check'
 
-	dfx canister call graphql  graphql_query '("query { readTx { id,txid,txtype,caller,from,to,value,fee,timestamp} }", "{}")' \
+	dfx canister call graphql  graphql_query '("query { readTx { id,txid,txtype,from,to,value,fee,timestamp} }", "{}")' \
 	|grep '"txid":"2"' && echo 'PASS graphql check'
 
 .PHONY: clean

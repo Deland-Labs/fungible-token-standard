@@ -8,7 +8,6 @@ type Tx {
   id: ID!
   txid:String!
   txtype:String!
-  caller: String!
   from: String!
   to: String!
   value: String!
