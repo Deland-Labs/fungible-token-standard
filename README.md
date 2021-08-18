@@ -213,6 +213,21 @@ type TransferResult = variant {
   Err : String;
 };
 service : {
+  // Return token's name
+  name : () -> (text) query;
+
+  // Return token's symbol
+  symbol : () -> (text) query;
+
+  // Return token's decimals
+  decimals : () -> (nat8) query;
+
+  // Return token's totalSupply
+  totalSupply : () -> (nat) query;
+
+  // Return token's fee setting
+  fee : () -> (Fee) query;
+
   // Return all of the meta data of a token.
   meta: () -> (MetaData) query;
 

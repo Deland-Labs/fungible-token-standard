@@ -1,20 +1,6 @@
 type ApproveResult = variant { Ok : opt text; Err : text };
 type BurnResult = variant { Ok; Err : text };
 type CallData = record { method : text; args : vec nat8 };
-type Error = variant {
-  CallFailed;
-  NotifyFailed;
-  RejectedByHolder;
-  InsufficientAllowance;
-  InvalidSpender;
-  InvalidSubaccount;
-  InsufficientBalance;
-  InvalidTokenHolder;
-  InvalidReceiver;
-  QuantityTooSmall;
-  Unknown;
-  RejectedByReceiver;
-};
 type Fee = record { lowest: nat; rate :nat32 };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record {
