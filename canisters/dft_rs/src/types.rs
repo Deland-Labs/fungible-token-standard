@@ -75,6 +75,7 @@ impl FromStr for TokenHolder {
         }
     }
 }
+
 impl fmt::Display for TokenHolder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
         let s = match &self {

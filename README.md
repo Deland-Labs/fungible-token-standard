@@ -170,7 +170,7 @@ Token standard should execute Notify first, and then execute call;
 
 9. approveAndCall VS transferAndCall
 
-- Problem: Some developers support approveAndCall, so we compare it with transferAndCall. Due to problem 1 (atomic problem), methodAndCall and transferAndCall are two sets of non-atomic operations, and there is no difference in essence.
+- Problem: Some developers support approveAndCall, so we compare it with transferAndCall. Due to problem 1 (atomic problem), approveAndCall and transferAndCall are two sets of non-atomic operations, and there is no difference in essence.
 
 - Consideration: In some scenarios, when multiple Tokens need to be transferred at the same time, transferAndCall can not meet such needs. After approval, execute transferFrom in the final call to pay multiple tokens at once
 
