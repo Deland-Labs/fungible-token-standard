@@ -51,16 +51,16 @@ module {
     };
 
     public func isCanister(id: Principal) : Bool {
-      let bytes = List.fromArray<Nat8>(Blob.toArray(Principal.toBlob(id)));
-      List.size(bytes) == CANISTER_ID_HASH_LEN_IN_BYTES
+      let bytes = Blob.toArray(Principal.toBlob(id));
+      bytes.size() == CANISTER_ID_HASH_LEN_IN_BYTES
     };
 
     public func isUserPrincipal(id: Principal) : Bool {
-      let bytes = List.fromArray<Nat8>(Blob.toArray(Principal.toBlob(id)));
-      if (List.size(bytes) != HASH_LEN_IN_BYTES + 1) {
+      let bytes = Blob.toArray(Principal.toBlob(id));
+      if (bytes.size() != HASH_LEN_IN_BYTES + 1) {
         return false;
       };
-      if (List.last(bytes) != ?TYPE_SELF_AUTH) {
+      if (bytes[bytes.size() - 1] != TYPE_SELF_AUTH) {
         return false;
       };
       true
