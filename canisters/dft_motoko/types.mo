@@ -103,8 +103,33 @@ module {
     let DISCORD: Text = "DISCORD";
     let WHITE_PAPER: Text = "WHITE_PAPER";
 
-    let  EXTEND_KEYS:[Text]=[OFFICIAL_SITE,MEDIUM,OFFICIAL_EMAIL,DESCRIPTION,BLOG,REDDIT,SLACK,FACEBOOK,TWITTER,GITHUB,TEGEGRAM,WECHAT,LINKEDIN,DISCORD,WHITE_PAPER];
-  
+    let DSCVR: Text = "DSCVR";
+    let OPENCHAT: Text = "OPENCHAT";
+    let DISTRIKT: Text = "DISTRIKT";
+    let WEACT: Text = "WEACT";
+
+    let  EXTEND_KEYS:[Text]=[
+      DSCVR,
+      OPENCHAT,
+      DISTRIKT,
+      WEACT,
+      OFFICIAL_SITE,
+      MEDIUM,
+      OFFICIAL_EMAIL,
+      DESCRIPTION,
+      BLOG,
+      REDDIT,
+      SLACK,
+      FACEBOOK,
+      TWITTER,
+      GITHUB,
+      TEGEGRAM,
+      WECHAT,
+      LINKEDIN,
+      DISCORD,
+      WHITE_PAPER,
+    ];
+
     public func isValidKey(key : Text) : Bool {
       let existKey =  Array.filter(EXTEND_KEYS,func (x : Text) : Bool { key == x });
       if (existKey.size() > 0) { return true; };
