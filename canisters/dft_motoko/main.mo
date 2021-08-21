@@ -18,6 +18,7 @@ import Error "mo:base/Error";
 import Text "mo:base/Text";
 import Nat8 "mo:base/Nat8";
 import Nat "mo:base/Nat";
+import Int "mo:base/Int";
 import Char "mo:base/Char";
 import List "mo:base/List";
 import Result "mo:base/Result";
@@ -25,7 +26,7 @@ import ExperimentalCycles "mo:base/ExperimentalCycles";
 import PrincipalExt "./utils/PrincipalExt";
 import AID "./utils/AccountIdentifier";
 
-shared(msg) actor class Token(name: Text, symbol: Text, decimals: Nat8, totalSupply: Nat){
+shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, totalSupply_: Nat){
     type TransactionId = Types.TransactionId;
     type TokenHolder = Types.TokenHolder;
     type MetaData = Types.MetaData;
@@ -39,18 +40,22 @@ shared(msg) actor class Token(name: Text, symbol: Text, decimals: Nat8, totalSup
         graphql_mutation: (Text, Text) -> async (Text);
     };
 
+    type TokenReceiverActor = actor {
+      supportedInterface : query(methodSig :Text) -> async Bool;
+      on_token_received: shared(transferFrom: TokenHolder, value: Nat) -> async Bool;
+    };
+
     private stable var _owner : Principal = msg.caller;
-    private stable var _name : Text = name;
-    private stable var _symbol : Text = symbol;
-    private stable var _decimals : Nat8 = decimals;
-    private stable var _totalSupply : Nat = totalSupply;
+    private stable var _name : Text = name_;
+    private stable var _symbol : Text = symbol_;
+    private stable var _decimals : Nat8 = decimals_;
+    private stable var _totalSupply : Nat = totalSupply_;
     private stable var _fee : Types.Fee = { lowest = 0 ; rate = 0 ; } ;
     private stable var _txIdCursor : Nat = 0 ;
 
     private stable var _logo: [Nat8] = [];
     private stable var _feeTo : TokenHolder = #Principal(msg.caller) ;
     private stable var _storageCanisterID : ?Principal = null;
-
 
     private stable var _extendDataEntries : [(Text, Text)] = [];
     private stable var _balanceEntries : [(TokenHolder, Nat)] = [];
@@ -62,26 +67,39 @@ shared(msg) actor class Token(name: Text, symbol: Text, decimals: Nat8, totalSup
 
     private stable var storageCanister : ?StorageActor = null;
     
-    private let MSG_ONLY_OWNER= "DFT: caller is not the owner";
+    private let MSG_ONLY_OWNER = "DFT: caller is not the owner";
     private let MSG_INVALID_SPENDER = "DFT: invalid spender";
     private let MSG_INVALID_FROM = "DFT: invalid format [from]";
-    private let MSG_INVALID_TO= "DFT: invalid format [to]";
+    private let MSG_INVALID_TO = "DFT: invalid format [to]";
     private let MSG_FAILED_TO_CHARGE_FEE = "DFT: Failed to charge fee - insufficient balance";
     private let MSG_ALLOWANCE_EXCEEDS = "DFT: transfer amount exceeds allowance";
     private let MSG_BALANCE_EXCEEDS = "DFT: transfer amount exceeds balance";
+    private let MSG_BURN_VALUE_TOO_SMALL = "DFT: burning value is too small";
+    private let MSG_BURN_VALUE_EXCEEDS = "DFT: burning value exceeds balance";
+    private let MSG_NOTIFICATION_FAILED = "DFT: notification failed";
    
     private let DECIMALS_FEE_RATE: Nat = 8;
     private let TX_TYPES_APPROVE: Text = "approve";
     private let TX_TYPES_TRANSFER: Text = "transfer";
     private let TX_TYPES_BURN: Text = "burn";
+    // private let TX_TYPES_MINT: &str = "mint";
 
 
-    _balances.put(#Principal(_owner), totalSupply);
+    _balances.put(#Principal(_owner), totalSupply_);
+
+    public query func name() : async Text { name_ };
+    public query func symbol() : async Text { _symbol };
+
+    public query func decimals() : async Nat8 { _decimals };
+
+    public query func totalSupply() : async Nat { _totalSupply };
+
+    public query func fee() : async Types.Fee { _fee };
 
     public query func meta() : async MetaData {
       return {
-        name = _name;
-        symbol = _symbol;
+        name = name_;
+        symbol = symbol_;
         decimals = _decimals;
         total_supply = _totalSupply;
         fee = _fee;
@@ -358,12 +376,77 @@ shared(msg) actor class Token(name: Text, symbol: Text, decimals: Nat8, totalSup
     };
 
     private func _saveTxRecordToGraphql(tx: TxRecord) : async TransactionId {
-      //TODO: imple save tx to graphql
-      return 0;
+      //TODO: impl save tx to graphql
+      _txIdCursor += 1;
+      if (_storageCanisterID == null){
+        return _txIdCursor;
+      };
+      var typeTxt : Text = "";
+      var fromTxt : Text = "";
+      var toTxt : Text = "";
+      var valueTxt : Text = "";
+      var feeTxt : Text = "";
+      var timestampTxt : Text = "";
+      switch (tx) {
+        case (#Approve { owner; spender; value; fee; timestamp; }) {
+          typeTxt := TX_TYPES_APPROVE ;
+          fromTxt := Types.TokenHolder.toText(owner) ;
+          toTxt := Types.TokenHolder.toText(spender) ;
+          valueTxt := Nat.toText(value) ;
+          feeTxt :=  Nat.toText(fee) ;
+          timestampTxt :=  Int.toText(timestamp) ;
+        } ;
+        case (#Transfer { from; to; value; fee; timestamp; }) {
+          typeTxt := TX_TYPES_TRANSFER ;
+          fromTxt := Types.TokenHolder.toText(from) ;
+          toTxt := Types.TokenHolder.toText(to) ;
+          valueTxt := Nat.toText(value) ;
+          feeTxt :=  Nat.toText(fee) ;
+          timestampTxt :=  Int.toText(timestamp) ;
+        } ;
+        case (#Burn { from; value; timestamp; }) {
+          typeTxt := TX_TYPES_BURN ;
+          fromTxt := Types.TokenHolder.toText(from) ;
+          toTxt := "" ;
+          valueTxt := Nat.toText(value) ;
+          feeTxt :=  "0" ;
+          timestampTxt := Int.toText(timestamp) ;
+        } ;
+      };
+      
+      var muation = "mutation {{ createTx(input: {{ " #
+        "txid: " # Nat.toText(_txIdCursor) #
+        "txtype: " # typeTxt # "from: " # fromTxt #
+        "to: " # toTxt # "value: " # valueTxt #
+        "fee: " # feeTxt #
+        "timestamp: " # timestampTxt # " }}) {{ id }} }}";
+
+      ignore Option.unwrap(storageCanister).graphql_mutation(muation, "{}");
+
+      return _txIdCursor;
     };
 
     private func _onTokenReceived(from: TokenHolder, to: TokenHolder, value: Nat) : async Result.Result<Bool, Text> {
-      return #ok(true);
+      let receiverCanisterId : ?Principal  = switch(to) {
+        case (#Account accountID) null;
+        case (#Principal principal) {
+          if (PrincipalExt.isCanister(principal)) { ?principal ; }
+          else null;
+        };
+      };
+
+      if(receiverCanisterId == null) return #ok(true);
+      let on_token_received_method_sig = "on_token_received:(TokenHolder,nat)->(bool)query";
+      let receiverCanister : TokenReceiverActor = actor(Types.TokenHolder.toText(to));
+
+      let isSupportHook : Bool = await receiverCanister.supportedInterface(on_token_received_method_sig);
+      if (isSupportHook != true) return #ok(true);
+
+      let notifyResult : Bool = await receiverCanister.on_token_received (from , value);
+
+      if (notifyResult != true) return #err(MSG_NOTIFICATION_FAILED);
+      
+      return #ok(true); 
     };
 
 

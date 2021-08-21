@@ -17,6 +17,9 @@
       ],
       "candid": "canisters/dft_rs/src/token.did",
       "wasm": "target/wasm32-unknown-unknown/release/dft_rs_opt.wasm"
+    },
+    "dft_motoko": {
+      "main": "canisters/dft_motoko/main.mo"
     }
   },
   "defaults": {

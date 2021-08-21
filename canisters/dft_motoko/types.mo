@@ -66,6 +66,13 @@ module {
       }; 
     };
 
+    public func toText(holder : TokenHolder) : Text {
+      switch(holder) {
+        case (#Account accountID) AID.toText(accountID);
+        case (#Principal principal) Principal.toText(principal);
+      }; 
+    };
+
     public func equal(x : TokenHolder, y : TokenHolder) : Bool {
       let _x = switch(x) {
         case (#Account accountID) AID.hash(accountID);
