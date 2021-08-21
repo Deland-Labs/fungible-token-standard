@@ -26,9 +26,16 @@ const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
 // const TX_TYPES_MINT: &str = "mint";
 
-const ONLY_OWNER_MSG: &str = "DFT: caller is not the owner";
-const INVALID_SPENDER_MSG: &str = "DFT: invalid spender";
-const FAILED_TO_CHARGE_FEE: &str = "DFT: Failed to charge fee - insufficient balance";
+const MSG_ONLY_OWNER: &str = "DFT: caller is not the owner";
+const MSG_INVALID_SPENDER: &str = "DFT: invalid spender";
+const MSG_INVALID_FROM: &str = "DFT: invalid format [from]";
+const MSG_INVALID_TO: &str = "DFT: invalid format [to]";
+const MSG_FAILED_TO_CHARGE_FEE: &str = "DFT: Failed to charge fee - insufficient balance";
+const MSG_ALLOWANCE_EXCEEDS: &str = "DFT: transfer amount exceeds allowance";
+const MSG_BALANCE_EXCEEDS: &str = "DFT: transfer amount exceeds balance";
+const MSG_BURN_VALUE_TOO_SMALL: &str = "DFT: burning value is too small";
+const MSG_BURN_VALUE_EXCEEDS: &str = "DFT: burning value exceeds balance";
+const MSG_NOTIFICATION_FAILED: &str = "DFT: notification failed";
 
 static mut INITIALIZED: bool = false;
 static mut OWNER: Principal = Principal::anonymous();
@@ -85,45 +92,35 @@ async fn initialize(
 #[candid_method(query, rename = "name")]
 fn get_name() -> String {
     _must_initialized();
-    unsafe {
-        NAME.to_string()
-    }
+    unsafe { NAME.to_string() }
 }
 
 #[query(name = "symbol")]
 #[candid_method(query, rename = "symbol")]
 fn get_symbol() -> String {
     _must_initialized();
-    unsafe {
-        SYMBOL.to_string()
-    }
+    unsafe { SYMBOL.to_string() }
 }
 
 #[query(name = "decimals")]
 #[candid_method(query, rename = "decimals")]
 fn get_decimals() -> u8 {
     _must_initialized();
-    unsafe {
-        DECIMALS
-    }
+    unsafe { DECIMALS }
 }
 
 #[query(name = "totalSupply")]
 #[candid_method(query, rename = "totalSupply")]
 fn get_total_supply() -> u128 {
     _must_initialized();
-    unsafe {
-        TOTAL_SUPPLY
-    }
+    unsafe { TOTAL_SUPPLY }
 }
 
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
 fn get_fee_setting() -> Fee {
     _must_initialized();
-    unsafe {
-        FEE.clone()
-    }
+    unsafe { FEE.clone() }
 }
 
 #[query(name = "meta")]
@@ -217,9 +214,7 @@ fn allowance(owner: String, spender: String) -> u128 {
 
     let allowance: u128 = match token_holder_owner_parse_result {
         Ok(token_holder_owner) => match token_holder_spender_parse_result {
-            Ok(token_holder_spender) => {
-                _allowance(&token_holder_owner, &token_holder_spender)
-            }
+            Ok(token_holder_spender) => _allowance(&token_holder_owner, &token_holder_spender),
             _ => 0u128,
         },
         _ => 0u128,
@@ -299,7 +294,7 @@ async fn approve(
                 };
             }
         }
-        Err(_) => return ApproveResult::Err(INVALID_SPENDER_MSG.to_string()),
+        Err(_) => return ApproveResult::Err(MSG_INVALID_SPENDER.to_string()),
     }
 
     ApproveResult::Ok(None)
@@ -329,9 +324,7 @@ async fn transfer_from(
 
                 // check allowance
                 if from_allowance < value + fee {
-                    return TransferResult::Err(
-                        "DFT: transfer amount exceeds allowance".to_string(),
-                    );
+                    return TransferResult::Err(MSG_ALLOWANCE_EXCEEDS.to_string());
                 }
                 let allowances_read = storage::get::<Allowances>();
 
@@ -349,16 +342,11 @@ async fn transfer_from(
                     }
                 };
                 // transfer
-                _transfer(
-                    from_token_holder,
-                    to_token_holder,
-                    value,
-                )
-                .await
+                _transfer(from_token_holder, to_token_holder, value).await
             }
-            _ => TransferResult::Err("DFT: invalid [to] format".to_string()),
+            _ => TransferResult::Err(MSG_INVALID_TO.to_string()),
         },
-        _ => TransferResult::Err("DFT: invalid [from] format".to_string()),
+        _ => TransferResult::Err(MSG_INVALID_FROM.to_string()),
     }
 }
 
@@ -400,20 +388,16 @@ async fn transfer(
                 TransferResult::Err(emsg) => return TransferResult::Err(emsg),
             }
         }
-        _ => TransferResult::Err("DFT: invalid [to] fromat".to_string()),
+        _ => TransferResult::Err(MSG_INVALID_FROM.to_string()),
     }
 }
 
-async fn _transfer(    
-    from: TokenHolder,
-    to: TokenHolder,
-    value: u128,
-) -> TransferResult {
+async fn _transfer(from: TokenHolder, to: TokenHolder, value: u128) -> TransferResult {
     let fee = _calc_transfer_fee(value);
     let from_balance = _balance_of(&from);
 
     if from_balance < value + fee {
-        return TransferResult::Err("DFT: transfer amount exceeds balance".to_string());
+        return TransferResult::Err(MSG_BALANCE_EXCEEDS.to_string());
     }
 
     // before transfer
@@ -464,24 +448,19 @@ async fn _burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult 
     let fee = _calc_transfer_fee(value);
 
     if fee > value {
-        return BurnResult::Err("DFT: burning value is too small".to_string());
+        return BurnResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
     }
 
     let from_balance = _balance_of(&transfer_from);
 
     if from_balance < value {
-        return BurnResult::Err("DFT: burn amount exceeds balance".to_string());
+        return BurnResult::Err(MSG_BURN_VALUE_EXCEEDS.to_string());
     }
 
     let balances = storage::get_mut::<Balances>();
     balances.insert(transfer_from.clone(), from_balance - value);
     unsafe {
-        _save_tx_record_to_graphql(TxRecord::Burn(
-            transfer_from.clone(),
-            value,
-            api::time(),
-        ))
-        .await;
+        _save_tx_record_to_graphql(TxRecord::Burn(transfer_from.clone(), value, api::time())).await;
     }
     BurnResult::Ok
 }
@@ -696,10 +675,10 @@ async fn _on_token_received(
                     match _check_res {
                         Ok((is_notify_succeed,)) => {
                             if !is_notify_succeed {
-                                return Err("DFT: notification failed".to_string());
+                                return Err(MSG_NOTIFICATION_FAILED.to_string());
                             }
                         }
-                        _ => return Err("DFT: notification failed".to_string()),
+                        _ => return Err(MSG_NOTIFICATION_FAILED.to_string()),
                     }
                 }
             }
@@ -746,7 +725,7 @@ fn _charge_approve_fee(payer: &TokenHolder, fee: u128) -> Result<bool, String> {
     let balances = storage::get_mut::<Balances>();
     let payer_balance = _balance_of(&payer);
     if payer_balance < fee {
-        return Err(FAILED_TO_CHARGE_FEE.to_string());
+        return Err(MSG_FAILED_TO_CHARGE_FEE.to_string());
     }
     balances.insert(payer.clone(), payer_balance - fee);
     _fee_settle(fee);
@@ -831,7 +810,7 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
 fn _only_owner() {
     unsafe {
         if OWNER != api::caller() {
-            api::trap(ONLY_OWNER_MSG);
+            api::trap(MSG_ONLY_OWNER);
         }
     }
 }
