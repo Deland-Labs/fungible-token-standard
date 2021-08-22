@@ -2,6 +2,7 @@ import Text "mo:base/Text";
 import Hash "mo:base/Hash";
 import Array "mo:base/Array";
 import Debug "mo:base/Debug";
+import HashMap "mo:base/HashMap";
 import Option "mo:base/Option";
 import Principal "mo:base/Principal";
 import Nat8 "mo:base/Nat8";
@@ -46,7 +47,7 @@ module {
       let aidParseResult = AID.fromText( text ) ;
 
       if (Option.isSome(aidParseResult)){
-          return  ?#Account(Option.unwrap(aidParseResult))
+          return ?#Account(Option.unwrap(aidParseResult))
       };
       return null;
     };
@@ -151,6 +152,18 @@ module {
   public type KeyValuePair = {
       k : Text;
       v : Text;
+  };
+
+  public module KeyValuePair{
+    public func mapToArray(map : HashMap.HashMap<Text, Text>) : [KeyValuePair] {
+      var array:[var KeyValuePair] =  Array.init<KeyValuePair>(map.size(), {k = ""; v = "";});
+      var index : Nat = 0;
+      for( (k , v) in map.entries()){
+        array[index] := { k = k; v = v; };
+        index += 1;
+      };
+      return Array.freeze(array);
+    };
   };
 
   public type CallData = {

@@ -10,38 +10,58 @@ build:
 .PHONY: install
 .SILENT: install
 install: build
-	dfx canister --no-wallet  install --all
+	dfx canister --no-wallet  install dft_rs
+	dfx canister --no-wallet  install graphql
+	dfx canister --no-wallet  install dft_motoko \
+	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)'
 
 .PHONY: upgrade
 .SILENT: upgrade
 upgrade: build
-	dfx canister --no-wallet  install --all --mode=reinstall
-
-.PHONY: test
-.SILENT: test
-test: upgrade
+	dfx canister --no-wallet  install dft_rs  --mode reinstall
+	dfx canister --no-wallet  install graphql --mode reinstall
+	dfx canister --no-wallet  install dft_motoko \
+	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)' \
+		--mode reinstall
+ 
+define test_token_impl
+	@echo "calling $(0), will test $(1)"
 	$(eval graphql_id := $(shell dfx canister id graphql))
-	$(eval dft_id := $(shell dfx canister id dft_rs))
+	$(eval dft_id := $(shell dfx canister id dft_motoko))
 	$(eval owner_id := $(shell dfx identity get-principal))
 	dfx canister call graphql set_token_canister_id '(principal "$(dft_id)")'
-	dfx canister call dft_rs  setStorageCanisterID '(principal "$(graphql_id)")'
-	dfx canister call dft_rs  initialize '("Deland Token","DLD",18:nat8,100000000000000000000000000:nat)'
-	dfx canister call dft_rs  name | grep 'Deland Token' && echo 'PASS name check'
-	dfx canister call dft_rs  symbol | grep 'DLD' && echo 'PASS symbol check'
-	dfx canister call dft_rs  decimals | grep '(18 : nat8)' && echo 'PASS decimals check'
-	dfx canister call dft_rs  totalSupply | grep '(100_000_000_000_000_000_000_000_000 : nat)' && echo 'PASS totalSupply check'
-	dfx canister call dft_rs  fee | grep '0 : nat32' && echo 'PASS fee check'
-	dfx canister call dft_rs  meta | grep 'Deland Token' && echo 'PASS meta check'
+	dfx canister call $(1)  setStorageCanisterID '(opt principal "$(graphql_id)")'
+	dfx canister call $(1)  name | grep 'Deland Token' && echo 'PASS name check'
+	dfx canister call $(1)  symbol | grep 'DLD' && echo 'PASS symbol check'
+	dfx canister call $(1)  decimals | grep '(18 : nat8)' && echo 'PASS decimals check'
+	dfx canister call $(1)  totalSupply \
+	| grep '(100_000_000_000_000_000_000_000_000 : nat)' && echo 'PASS totalSupply check'
+	dfx canister call $(1)  fee | grep '0 : nat' && echo 'PASS fee check'
+	dfx canister call $(1)  meta | grep 'Deland Token' && echo 'PASS meta check'
 
-	dfx canister call dft_rs transfer '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",1000000000000000000:nat,null)'| grep 'record { 1 : nat; null }' && echo 'PASS transfer check'
-	dfx canister call dft_rs balanceOf "rrkah-fqaaa-aaaaa-aaaaq-cai"| grep '1_000_000_000_000_000_000' && echo 'PASS balanceOf check'
+	dfx canister call $(1) transfer '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",1000000000000000000:nat,null)' \
+	| grep 'record { txid = 1 : nat; error = null }' && echo 'PASS transfer check'
+	dfx canister call $(1) balanceOf "rrkah-fqaaa-aaaaa-aaaaq-cai" \
+	| grep '1_000_000_000_000_000_000' && echo 'PASS balanceOf check'
 
-	dfx canister call dft_rs approve '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",3000000000000000000:nat,null)'
-	dfx canister call dft_rs allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
+	dfx canister call $(1) approve '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",3000000000000000000:nat,null)'
+	dfx canister call $(1) allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
 	| grep '3_000_000_000_000_000_000' && echo 'PASS allowance check'
-
-	dfx canister call graphql  graphql_query '("query { readTx { id,txid,txtype,from,to,value,fee,timestamp} }", "{}")' \
+	sleep 3
+	dfx canister call graphql  graphql_query '("query { readTx { id,txid,txtype,from,to,value,fee,timestamp } }", "{}")' \
 	|grep '"txid":"2"' && echo 'PASS graphql check'
+	
+endef
+
+.PHONY: test_rs
+.SILENT: test_rs
+test_rs: upgrade
+	$(call test_token_impl,dft_rs)
+
+.PHONY: test_motoko
+.SILENT: test_motoko
+test_motoko: upgrade
+	$(call test_token_impl,dft_motoko)
 
 .PHONY: clean
 .SILENT: clean

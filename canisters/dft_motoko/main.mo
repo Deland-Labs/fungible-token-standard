@@ -5,7 +5,7 @@
  * Maintainer : Deland Team (https://deland.one)
  * Stability  : Experimental
  */
-import Prim "mo:⛔";
+ import Prim "mo:⛔";
 import HashMap "mo:base/HashMap";
 import Principal "mo:base/Principal";
 import Debug "mo:base/Debug";
@@ -34,6 +34,7 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
     type TxRecord = Types.TxRecord;
     type ApproveResult = Types.ApproveResult;
     type TransferResult = Types.TransferResult;
+    type BurnResult = Types.BurnResult;
 
     type StorageActor = actor {
         graphql_query_custom: query (Text, Text) -> async (Text);
@@ -55,7 +56,6 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
 
     private stable var _logo: [Nat8] = [];
     private stable var _feeTo : TokenHolder = #Principal(msg.caller) ;
-    private stable var _storageCanisterID : ?Principal = null;
 
     private stable var _extendDataEntries : [(Text, Text)] = [];
     private stable var _balanceEntries : [(TokenHolder, Nat)] = [];
@@ -65,12 +65,13 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
     private var _allowances = HashMap.HashMap<TokenHolder, HashMap.HashMap<Types.TokenHolder, Nat>>(1, Types.TokenHolder.equal, Types.TokenHolder.hash);
     private var _extendDatas = HashMap.HashMap<Text, Text>(1, Text.equal, Text.hash);
 
-    private stable var storageCanister : ?StorageActor = null;
+    private stable var _storageCanister : ?StorageActor = null;
     
     private let MSG_ONLY_OWNER = "DFT: caller is not the owner";
     private let MSG_INVALID_SPENDER = "DFT: invalid spender";
     private let MSG_INVALID_FROM = "DFT: invalid format [from]";
     private let MSG_INVALID_TO = "DFT: invalid format [to]";
+    private let MSG_INVALID_FEE_TO = "DFT: invalid format [feeTo]";
     private let MSG_FAILED_TO_CHARGE_FEE = "DFT: Failed to charge fee - insufficient balance";
     private let MSG_ALLOWANCE_EXCEEDS = "DFT: transfer amount exceeds allowance";
     private let MSG_BALANCE_EXCEEDS = "DFT: transfer amount exceeds balance";
@@ -106,16 +107,16 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
       };
     };
 
-    public query func extend() : async [(Text,Text)] {
-      return Iter.toArray(_extendDatas.entries());
+    public query func extend() : async [Types.KeyValuePair] {
+      return Types.KeyValuePair.mapToArray(_extendDatas);
     };
 
-    public shared(msg) func updateExtend( extendDatas: [(Text,Text)]) : async Bool {
+    public shared(msg) func updateExtend( extendDatas: [Types.KeyValuePair]) : async Bool {
       if ( _owner != msg.caller ) { throw Error.reject(MSG_ONLY_OWNER); };
       
-      for ((k , v) in extendDatas.vals()) {
-        if (Types.ExtendData.isValidKey(k)){
-           _extendDatas.put( k , v );
+      for (v in extendDatas.vals()) {
+        if (Types.ExtendData.isValidKey(v.k)){
+           _extendDatas.put( v.k , v.v );
         }
       };
 
@@ -127,7 +128,7 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
     };
 
     public shared(msg) func updateLogo( logo: [Nat8]) : async Bool {
-      if ( _owner != msg.caller ) { throw Error.reject(MSG_ONLY_OWNER); };      
+      if ( _owner != msg.caller ) { throw Error.reject(MSG_ONLY_OWNER); };
       _logo := logo;
       return true;
     };
@@ -261,7 +262,7 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
     public shared(msg) func transfer(subAccount: ?AID.Subaccount, to: Text, value: Nat, callData: ?CallData) : async TransferResult {
       var fromHolderParseResult = ?Types.TokenHolder.fromPrincipal(msg.caller);
       if ( Option.isSome(subAccount)) {
-        let aid =AID.fromPrincipal(msg.caller, subAccount);
+        let aid = AID.fromPrincipal(msg.caller, subAccount);
         fromHolderParseResult := ?Types.TokenHolder.fromAid(aid);
       };
     
@@ -330,9 +331,124 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
       };
       return #Ok({ txid = txId; error = null; });
     };
-    
+
+    public shared(msg) func burn (subAccount: ?AID.Subaccount, value: Nat) : async BurnResult {       
+      var fromHolderParseResult = ?Types.TokenHolder.fromPrincipal(msg.caller);
+      if ( Option.isSome(subAccount)) {
+        let aid = AID.fromPrincipal(msg.caller, subAccount);
+        fromHolderParseResult := ?Types.TokenHolder.fromAid(aid);
+      };
+      
+      let fromHolder = Option.unwrap(fromHolderParseResult) ;
+
+      return await _burn (fromHolder, value);
+    };
+
+    private func _burn(from: TokenHolder, value: Nat) : async BurnResult {
+      let fee = _calcTransferFee(value); 
+      if (value < fee) { return #Err(MSG_BURN_VALUE_TOO_SMALL); };
+      let balance = _balanceOf(from);
+      if (balance < value) { return #Err(MSG_BURN_VALUE_EXCEEDS); };
+      let newBalance :Nat = balance - value;
+
+      if ( newBalance > 0 ){ _balances.put(from, newBalance); }
+      else { _balances.delete( from ); };
+
+      _totalSupply -= value;
+
+      ignore  _saveTxRecordToGraphql(#Burn{
+         from = from;        
+         value = value;
+         timestamp = Time.now();
+      });
+      return #Ok(());
+    };
+
+    public query func supportedInterface(interfaceSig: Text) : async Bool {
+       var did = _getDid();
+       did := Text.replace(did, #text " ", "");
+       let interfaceSigRep = Text.replace(interfaceSig, #text " ", "");
+       Text.contains(did,#text interfaceSigRep)
+    };
+
+    public shared(msg) func setStorageCanisterID (storageCanisterId: ?Principal) : async Bool {       
+      if ( _owner != msg.caller ) { throw Error.reject(MSG_ONLY_OWNER); };
+      if ( storageCanisterId == null ) { _storageCanister := null; }
+      else { _storageCanister := ?actor(Principal.toText(Option.unwrap(storageCanisterId))); };
+      true
+    };
+
+    public shared(msg) func setFee (fee: Types.Fee) : async Bool {       
+      if ( _owner != msg.caller ) { throw Error.reject(MSG_ONLY_OWNER); };
+      _fee := fee;
+      true
+    };
+
+    public shared(msg) func setFeeTo (feeTo: Text) : async Bool {       
+      if ( _owner != msg.caller ) { throw Error.reject(MSG_ONLY_OWNER); };
+      let feeToHolderParseResult = Types.TokenHolder.fromText(feeTo);
+      if (Option.isNull( feeToHolderParseResult )) throw Error.reject(MSG_INVALID_FEE_TO);
+      let feeToHolder = Option.unwrap(feeToHolderParseResult);
+      true
+    };
+
+    private func _setFeeTo(feeTo: TokenHolder) : Bool {
+      _feeTo := feeTo;
+      true
+    };
+
+    public query func tokenGraphql() : async ?Principal {
+      if( _storageCanister != null) return ?Principal.fromActor (Option.unwrap(_storageCanister));
+       
+      return null;
+    };
+
+    public query func cyclesBalance() : async Nat {
+      return ExperimentalCycles.balance();
+    };
+
+    public func receiveCycles() : async () {
+      let amount = ExperimentalCycles.available(); 
+      let accepted = ExperimentalCycles.accept(amount);
+      assert (accepted == amount);
+    };
+
+
+    public query func __export_did_tmp( ) : async Text {
+      // copy from .dfx/local/canisters/dft_motoko/dft_motoko.did
+      // get the $content from type Token = $content;
+      _getDid()   
+    };
+
+    private func _getDid() : Text {
+      "service { " # 
+      "allowance: (text, text) -> (nat) query;" #
+      "approve: (opt Subaccount, text, nat, opt CallData) -> (ApproveResult);" #
+      "balanceOf: (text) -> (nat) query;" #
+      "burn: (opt Subaccount, nat) -> (BurnResult);" #
+      "cyclesBalance: () -> (nat) query;" #
+      "decimals: () -> (nat8) query;" #
+      "extend: () -> (vec record {text;text;}) query;" #
+      "fee: () -> (Fee) query;" #
+      "logo: () -> (vec nat8) query;" #
+      "meta: () -> (MetaData) query;" #
+      "name: () -> (text) query;" #
+      "receiveCycles: () -> ();" #
+      "setFee: (Fee) -> (bool);" #
+      "setFeeTo: (text) -> (bool);" #
+      "setStorageCanisterID: (opt principal) -> (bool);" #
+      "supportedInterface: (text) -> (bool) query;" #
+      "symbol: () -> (text) query;" #
+      "tokenGraphql: () -> (opt principal) query;" #
+      "totalSupply: () -> (nat) query;" #
+      "transfer: (opt Subaccount, text, nat, opt CallData) -> (TransferResult);" #
+      "transferFrom: (opt Subaccount, text, text, nat) -> (TransferResult);" #
+      "updateExtend: (vec record {text;text;}) -> (bool);" #
+      "updateLogo: (vec nat8) -> (bool); };"
+    };
+
     // TODO:Can not perform call in a generic way,I am looking for a solution
-    // https://github.com/dfinity/motoko/issues/2703 when motoko support, we will imple out executeCall
+    // https://github.com/dfinity/motoko/issues/2703 waiting motoko support 
     private func _executeCall(receiver: TokenHolder, callData: CallData) : async Result.Result<Bool, Text> {
       switch(receiver) {
         case (#Account accountID) {return #ok(true); };
@@ -378,7 +494,7 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
     private func _saveTxRecordToGraphql(tx: TxRecord) : async TransactionId {
       //TODO: impl save tx to graphql
       _txIdCursor += 1;
-      if (_storageCanisterID == null){
+      if ( _storageCanister == null){
         return _txIdCursor;
       };
       var typeTxt : Text = "";
@@ -414,14 +530,16 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
         } ;
       };
       
-      var muation = "mutation {{ createTx(input: {{ " #
-        "txid: " # Nat.toText(_txIdCursor) #
-        "txtype: " # typeTxt # "from: " # fromTxt #
-        "to: " # toTxt # "value: " # valueTxt #
-        "fee: " # feeTxt #
-        "timestamp: " # timestampTxt # " }}) {{ id }} }}";
+      var muation = "mutation { createTx(input: { " #
+        "txid: \"" # Nat.toText(_txIdCursor) #  "\"," #
+        "txtype: \"" # typeTxt # "\",from: \"" # fromTxt #  "\"," #
+        "to: \"" # toTxt # "\",value: \"" # valueTxt #  "\"," #
+        "fee: \"" # feeTxt #  "\"," #
+        "timestamp: \"" # timestampTxt # "\" }) { id } }";
 
-      ignore Option.unwrap(storageCanister).graphql_mutation(muation, "{}");
+      Debug.print("muation is: " # muation);
+
+      ignore Option.unwrap(_storageCanister).graphql_mutation(muation, "{}");
 
       return _txIdCursor;
     };
@@ -449,10 +567,32 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
       return #ok(true); 
     };
 
-
-    // do something becore sending
+    // do something becore sending if you want
     private func _onTokenSending(from: TokenHolder, to: TokenHolder, value: Nat) : Result.Result<(), Text> 
     {
       #ok(());
+    };
+
+    system func preupgrade() {
+        _balanceEntries := Iter.toArray(_balances.entries());
+        let allowanceSize : Nat = _allowances.size();
+        var tmpAllowanceArr : [var (TokenHolder, [(TokenHolder, Nat)])] = Array.init<(TokenHolder, [(TokenHolder, Nat)])>(allowanceSize, (_feeTo, []));
+        
+        var index : Nat = 0;
+        for ((k, v) in _allowances.entries()) {
+            tmpAllowanceArr[index] := (k, Iter.toArray(v.entries()));
+            index += 1;
+        };
+        _allowanceEntries := Array.freeze(tmpAllowanceArr);
+    };
+
+    system func postupgrade() {
+        _balances := HashMap.fromIter<TokenHolder, Nat>(_balanceEntries.vals(), 1, Types.TokenHolder.equal, Types.TokenHolder.hash);
+        _balanceEntries := [];
+        for ((k, v) in _allowanceEntries.vals()) {
+            let allowanceTemp = HashMap.fromIter<TokenHolder, Nat>(v.vals(), 1, Types.TokenHolder.equal, Types.TokenHolder.hash);
+            _allowances.put(k, allowanceTemp);
+        };
+        _allowanceEntries := [];
     };
 };
