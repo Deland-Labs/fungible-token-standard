@@ -44,6 +44,9 @@ define test_token_impl
 	dfx canister call $(1) balanceOf "rrkah-fqaaa-aaaaa-aaaaq-cai" \
 	| grep '1_000_000_000_000_000_000' && echo 'PASS balanceOf check'
 
+	dfx canister call $(1) updateExtend '(vec {record {k = "OFFICIAL_SITE"; v = "http://test.com" }})' \
+	| grep '(true)' && echo 'PASS updateExtend test'
+
 	dfx canister call $(1) approve '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",3000000000000000000:nat,null)'
 	dfx canister call $(1) allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
 	| grep '3_000_000_000_000_000_000' && echo 'PASS allowance check'

@@ -118,6 +118,7 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
         if (Types.ExtendData.isValidKey(v.k)){
            _extendDatas.put( v.k , v.v );
         }
+        else throw Error.reject("Not support key " # v.k);
       };
 
       return true;

@@ -290,7 +290,8 @@ service : {
 
 ## How to test?
 ```bash
-   make test
+   make test_rs
+   make test_motoko
 ```
 
 ## About us
