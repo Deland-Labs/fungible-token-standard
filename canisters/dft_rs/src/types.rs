@@ -17,9 +17,8 @@ pub type Balances = HashMap<TokenHolder, u128>;
 pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
 #[derive(CandidType, Debug, Deserialize)]
 pub struct TokenPayload {
-    pub initialized: bool,
     pub owner: Principal,
-    pub fee_cashier: TokenHolder,
+    pub fee_to: TokenHolder,
     pub meta: MetaData,
     pub extend: Vec<(String, String)>,
     pub logo: Vec<u8>,
@@ -96,9 +95,15 @@ pub struct CallData {
 }
 
 #[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+pub struct TransferResponse {
+    pub txid: TransactionId,
+    pub error: Option<Vec<String>>,
+}
+
+#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
 pub enum TransferResult {
     //transfer succeed, but call failed & notify failed
-    Ok(TransactionId, Option<Vec<String>>),
+    Ok(TransferResponse),
     Err(String),
 }
 

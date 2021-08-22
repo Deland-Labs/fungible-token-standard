@@ -10,7 +10,8 @@ build:
 .PHONY: install
 .SILENT: install
 install: build
-	dfx canister --no-wallet  install dft_rs
+	dfx canister --no-wallet  install dft_rs \
+	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)'
 	dfx canister --no-wallet  install graphql
 	dfx canister --no-wallet  install dft_motoko \
 	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)'
@@ -18,7 +19,9 @@ install: build
 .PHONY: upgrade
 .SILENT: upgrade
 upgrade: build
-	dfx canister --no-wallet  install dft_rs  --mode reinstall
+	dfx canister --no-wallet  install dft_rs \
+	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)' \
+	  --mode reinstall
 	dfx canister --no-wallet  install graphql --mode reinstall
 	dfx canister --no-wallet  install dft_motoko \
 	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)' \
@@ -27,7 +30,7 @@ upgrade: build
 define test_token_impl
 	@echo "calling $(0), will test $(1)"
 	$(eval graphql_id := $(shell dfx canister id graphql))
-	$(eval dft_id := $(shell dfx canister id dft_motoko))
+	$(eval dft_id := $(shell dfx canister id $(1)))
 	$(eval owner_id := $(shell dfx identity get-principal))
 	dfx canister call graphql set_token_canister_id '(principal "$(dft_id)")'
 	dfx canister call $(1)  setStorageCanisterID '(opt principal "$(graphql_id)")'
