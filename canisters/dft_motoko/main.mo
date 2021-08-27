@@ -414,7 +414,13 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
       assert (accepted == amount);
     };
 
-
+    public query func getStatistics( ) : async Types.StatisticsInfo {
+      {
+        holders = _balances.size();
+        transfers = _txIdCursor;
+      }
+    };
+    
     public query func __export_did_tmp( ) : async Text {
       // copy from .dfx/local/canisters/dft_motoko/dft_motoko.did
       // get the $content from type Token = $content;

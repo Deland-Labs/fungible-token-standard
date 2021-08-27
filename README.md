@@ -281,10 +281,12 @@ service : {
   // Destroys `amount` tokens from `account`, reducing the total supply.
   burn: (fromSubAccount: opt vec nat8,amount: nat) -> (BurnResult);
 
-
   // Return if canister support interface, for example: supportedInterface("balanceOf:(text)->(nat)")
   // Implement [Dfinity Self Describing Standard](https://github.com/Deland-Labs/dfinity-self-describing-standard)
   supportedInterface : (text) -> (bool) query;
+
+  // get cycles balance in token canister
+  cyclesBalance : () -> (nat) query;
 }
 ```
 

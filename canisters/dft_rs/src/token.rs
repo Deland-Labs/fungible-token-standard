@@ -8,8 +8,8 @@
 use crate::extends;
 use crate::types::{
     AccountIdentifier, Allowances, ApproveResult, Balances, BurnResult, CallData, ExtendData, Fee,
-    KeyValuePair, MetaData, Subaccount, TokenHolder, TokenPayload, TokenReceiver, TransferFrom,
-    TransferResponse, TransferResult, TxRecord,
+    KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload, TokenReceiver,
+    TransferFrom, TransferResponse, TransferResult, TxRecord,
 };
 use crate::utils;
 use candid::{candid_method, decode_args, IDLProg};
@@ -547,6 +547,17 @@ fn _token_graphql() -> Option<Principal> {
     unsafe { Some(STORAGE_CANISTER_ID) }
 }
 
+#[query(name = "getStatistics")]
+#[candid_method(query, rename = "getStatistics")]
+fn get_statistics() -> StatisticsInfo {
+    unsafe {
+        StatisticsInfo {
+            holders: storage::get_mut::<Balances>().len() as u128,
+            transfers: TX_ID_CURSOR,
+        }
+    }
+}
+
 // query cycles balance
 #[query(name = "cyclesBalance")]
 #[candid_method(query, rename = "cyclesBalance")]
@@ -566,8 +577,8 @@ fn wallet_receive() {
 
 candid::export_service!();
 
-#[query(name = "__export_did_tmp")]
-#[candid_method(query, rename = "__export_did_tmp")]
+#[query(name = "__get_candid_interface_tmp_hack")]
+#[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
 fn __export_did_tmp_() -> String {
     __export_service()
 }
@@ -739,7 +750,7 @@ fn _calc_approve_fee() -> u128 {
 fn _calc_transfer_fee(value: u128) -> u128 {
     unsafe {
         let div_by = (10 as u128).pow(FEE_RATE_DECIMALS as u32);
-        cmp::max(FEE.lowest, value * (FEE.rate as u128) / div_by)
+        cmp::max(FEE.lowest, value * FEE.rate / div_by)
     }
 }
 

@@ -32,7 +32,7 @@ pub struct TokenPayload {
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct Fee {
     pub lowest: u128,
-    pub rate: u32,
+    pub rate: u128,
 }
 
 #[derive(CandidType, Debug, Deserialize)]
@@ -128,6 +128,12 @@ pub enum TxRecord {
     Transfer(TokenHolder, TokenReceiver, u128, u128, u64),
     // caller, from, value, timestamp
     Burn(TokenHolder, u128, u64),
+}
+
+#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+pub struct StatisticsInfo {
+    pub holders: u128,
+    pub transfers: u128,
 }
 
 /// While this is backed by an array of length 28, it's canonical representation

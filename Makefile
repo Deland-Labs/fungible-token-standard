@@ -49,6 +49,13 @@ define test_token_impl
 
 	dfx canister call $(1) updateExtend '(vec {record {k = "OFFICIAL_SITE"; v = "http://test.com" }})' \
 	| grep '(true)' && echo 'PASS updateExtend test'
+	dfx canister call $(1) extend  \
+	| grep 'k = "OFFICIAL_SITE"; v = "http://test.com"' && echo 'PASS extend test'
+
+	dfx canister call $(1) setFee '(record { lowest = 1 : nat; rate = 0 : nat })' \
+	| grep '(true)' && echo 'PASS set fee test'
+	dfx canister call $(1) fee  \
+	| grep '(record { rate = 0 : nat; lowest = 1 : nat })' && echo 'PASS fee check 2'
 
 	dfx canister call $(1) approve '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",3000000000000000000:nat,null)'
 	dfx canister call $(1) allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
@@ -56,7 +63,6 @@ define test_token_impl
 	sleep 3
 	dfx canister call graphql  graphql_query '("query { readTx { id,txid,txtype,from,to,value,fee,timestamp } }", "{}")' \
 	|grep '"txid":"2"' && echo 'PASS graphql check'
-	
 endef
 
 .PHONY: test_rs

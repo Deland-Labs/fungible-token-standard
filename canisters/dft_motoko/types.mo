@@ -208,4 +208,9 @@ module {
         timestamp: Time.Time;
     }
   };
+
+  public type StatisticsInfo = {
+      holders : Nat;
+      transfers : Nat;
+  };
 }
