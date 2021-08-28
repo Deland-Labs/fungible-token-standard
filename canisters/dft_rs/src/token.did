@@ -13,7 +13,7 @@ type MetaData = record {
 type TransferResponse = record { txid : nat; error : opt vec text };
 type TransferResult = variant { Ok : TransferResponse; Err : text };
 
-service : (text, text, nat8, nat) -> {
+service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {
   allowance : (text, text) -> (nat) query;
   approve : (opt vec nat8, text, nat, opt CallData) -> (ApproveResult);
   balanceOf : (text) -> (nat) query;

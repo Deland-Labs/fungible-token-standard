@@ -26,7 +26,7 @@ import ExperimentalCycles "mo:base/ExperimentalCycles";
 import PrincipalExt "./utils/PrincipalExt";
 import AID "./utils/AccountIdentifier";
 
-shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, totalSupply_: Nat){
+shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , name_ : Text, symbol_ : Text, decimals_ : Nat8, totalSupply_ : Nat, fee_ : Types.Fee, owner_ : ?Principal){
     type TransactionId = Types.TransactionId;
     type TokenHolder = Types.TokenHolder;
     type MetaData = Types.MetaData;
@@ -46,16 +46,19 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
       on_token_received: shared(transferFrom: TokenHolder, value: Nat) -> async Bool;
     };
 
-    private stable var _owner : Principal = msg.caller;
+    private var caller = msg.caller;
+    if (Option.isSome(owner_)) caller := Option.unwrap(owner_);
+
+    private stable var _owner : Principal = caller;
     private stable var _name : Text = name_;
     private stable var _symbol : Text = symbol_;
     private stable var _decimals : Nat8 = decimals_;
     private stable var _totalSupply : Nat = totalSupply_;
-    private stable var _fee : Types.Fee = { lowest = 0 ; rate = 0 ; } ;
+    private stable var _fee : Types.Fee = fee_ ;
     private stable var _txIdCursor : Nat = 0 ;
 
-    private stable var _logo: [Nat8] = [];
-    private stable var _feeTo : TokenHolder = #Principal(msg.caller) ;
+    private stable var _logo: [Nat8] = [] ;
+    private stable var _feeTo : TokenHolder = #Principal(caller) ;
 
     private stable var _extendDataEntries : [(Text, Text)] = [];
     private stable var _balanceEntries : [(TokenHolder, Nat)] = [];
@@ -85,8 +88,15 @@ shared(msg) actor class Token(name_: Text, symbol_: Text, decimals_: Nat8, total
     private let TX_TYPES_BURN: Text = "burn";
     // private let TX_TYPES_MINT: &str = "mint";
 
-
-    _balances.put(#Principal(_owner), totalSupply_);
+    if (Option.isSome(logo_)) { _logo := Option.unwrap(logo_); };   
+    if (Option.isSome(subAccount)) {
+      let initHolder = #Account(AID.fromPrincipal(caller, subAccount));
+      _balances.put(initHolder, totalSupply_);
+      _feeTo := initHolder; 
+    }
+    else{
+       _balances.put(#Principal(_owner), totalSupply_);
+    };
 
     public query func name() : async Text { name_ };
     public query func symbol() : async Text { _symbol };

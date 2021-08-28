@@ -17,6 +17,8 @@ use ic_cdk::{api, export::Principal, storage};
 use ic_cdk_macros::*;
 use std::cmp;
 use std::collections::HashMap;
+use std::convert::TryInto;
+use std::ops::Sub;
 use std::string::String;
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
@@ -51,16 +53,42 @@ static mut STORAGE_CANISTER_ID: Principal = Principal::anonymous();
 static mut FEE_TO: TokenHolder = TokenHolder::Principal(Principal::anonymous());
 
 #[init]
-fn canister_init(name: String, symbol: String, decimals: u8, total_supply: u128) {
-    let caller = api::caller();
+fn canister_init(
+    sub_account: Option<Subaccount>,
+    logo: Option<Vec<u8>>,
+    name: String,
+    symbol: String,
+    decimals: u8,
+    total_supply: u128,
+    fee: Fee,
+    owner: Option<Principal>,
+) {
+    let mut caller = api::caller();
+    // When using proxy tools to issue tokens, should use the parameter owner instead of api::caller() as the real caller
+    if let Some(realCaller) = owner {
+        caller = realCaller;
+    };
     unsafe {
         OWNER = caller;
-        FEE_TO = TokenHolder::Principal(caller);
+        LOGO = if logo.is_some() {
+            logo.unwrap()
+        } else {
+            [].to_vec()
+        };
         NAME = Box::leak(name.into_boxed_str());
         SYMBOL = Box::leak(symbol.into_boxed_str());
         DECIMALS = decimals;
         TOTAL_SUPPLY = total_supply;
-        let call_from = parse_to_token_holder(caller, None);
+        FEE = fee;
+        let call_from = parse_to_token_holder(caller, sub_account);
+        FEE_TO = call_from.clone();
+        ic_cdk::print(format!("caller is {}", caller.to_text()));
+        match call_from {
+            TokenHolder::Account(a) => ic_cdk::print(format!("init : account is {}", a.to_hex())),
+            TokenHolder::Principal(p) => {
+                ic_cdk::print(format!("init : account is {}", p.to_text()))
+            }
+        };
         let balances = storage::get_mut::<Balances>();
         balances.insert(call_from.clone(), TOTAL_SUPPLY);
     }
@@ -561,8 +589,8 @@ fn get_statistics() -> StatisticsInfo {
 // query cycles balance
 #[query(name = "cyclesBalance")]
 #[candid_method(query, rename = "cyclesBalance")]
-fn cycles_balance() -> u64 {
-    api::canister_balance()
+fn cycles_balance() -> u128 {
+    api::canister_balance().into()
 }
 
 // Receive cycles.

@@ -11,20 +11,20 @@ build:
 .SILENT: install
 install: build
 	dfx canister --no-wallet  install dft_rs \
-	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)'
-	dfx canister --no-wallet  install graphql
+	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat } , null)'
+	dfx canister --no-wallet  install graphql  --argument '(null)'
 	dfx canister --no-wallet  install dft_motoko \
-	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)'
+	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat }, null)'
 
 .PHONY: upgrade
 .SILENT: upgrade
 upgrade: build
 	dfx canister --no-wallet  install dft_rs \
-	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)' \
+	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat }, null)' \
 	  --mode reinstall
-	dfx canister --no-wallet  install graphql --mode reinstall
+	dfx canister --no-wallet  install graphql   --argument '(null)' --mode reinstall
 	dfx canister --no-wallet  install dft_motoko \
-	  --argument '("Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat)' \
+	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat }, null)' \
 		--mode reinstall
  
 define test_token_impl

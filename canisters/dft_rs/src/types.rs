@@ -150,7 +150,7 @@ pub struct AccountIdentifier {
 
 impl AccountIdentifier {}
 
-pub static SUB_ACCOUNT_ZERO: Subaccount = Subaccount([0; 32]);
+pub static SUB_ACCOUNT_ZERO: Subaccount = [0; 32];
 static ACCOUNT_DOMAIN_SEPERATOR: &[u8] = b"\x0Aaccount-id";
 
 impl AccountIdentifier {
@@ -160,7 +160,7 @@ impl AccountIdentifier {
         hash.update(account.as_slice());
 
         let sub_account = sub_account.unwrap_or(SUB_ACCOUNT_ZERO);
-        hash.update(&sub_account.0[..]);
+        hash.update(&sub_account[..]);
 
         AccountIdentifier {
             hash: hash.finalize().into(),
@@ -284,10 +284,7 @@ impl CandidType for AccountIdentifier {
     }
 }
 
-/// Subaccounts are arbitrary 32-byte values.
-#[derive(Serialize, Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq, Copy)]
-#[serde(transparent)]
-pub struct Subaccount(pub [u8; 32]);
+pub type Subaccount = [u8; 32];
 
 #[test]
 fn check_round_trip() {

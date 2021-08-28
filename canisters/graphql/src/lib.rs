@@ -9,9 +9,13 @@ static mut TOKEN_CANISTER_ID: sudograph::ic_cdk::export::Principal =
     sudograph::ic_cdk::export::Principal::anonymous();
 
 #[sudograph::ic_cdk_macros::init]
-async fn init_custom() {
+async fn init_custom(token: Option<sudograph::ic_cdk::export::Principal>) {
     unsafe {
         OWNER = sudograph::ic_cdk::caller();
+        match token {
+            Some(c) => TOKEN_CANISTER_ID = c,
+            None => {}
+        };
         init().await
     }
 }
