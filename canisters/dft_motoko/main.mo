@@ -570,12 +570,19 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
         };
       };
 
-      if(receiverCanisterId == null) return #ok(true);
+      if (receiverCanisterId == null) return #ok(true);
       let on_token_received_method_sig = "on_token_received:(TokenHolder,nat)->(bool)query";
       let receiverCanister : TokenReceiverActor = actor(Types.TokenHolder.toText(to));
-
-      let isSupportHook : Bool = await receiverCanister.supportedInterface(on_token_received_method_sig);
-      if (isSupportHook != true) return #ok(true);
+    
+      try
+      {
+        let isSupportHook : Bool = await receiverCanister.supportedInterface(on_token_received_method_sig);
+        if (isSupportHook != true) return #ok(true);
+      }
+      catch(e)
+      {
+        return #ok(true); 
+      };      
 
       let notifyResult : Bool = await receiverCanister.on_token_received (from , value);
 
