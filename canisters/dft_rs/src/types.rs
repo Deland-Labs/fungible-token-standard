@@ -1,6 +1,6 @@
 use candid::CandidType;
 use ic_cdk::export::Principal;
-use serde::{de, de::Error, Deserialize, Serialize};
+use serde::{de, de::Error, Deserialize,Serialize};
 use sha2::{Digest, Sha224};
 use std::fmt;
 use std::{
@@ -44,7 +44,7 @@ pub struct MetaData {
     pub fee: Fee,
 }
 
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq)]
+#[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum TokenHolder {
     Account(AccountIdentifier),
@@ -88,39 +88,39 @@ impl fmt::Display for TokenHolder {
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
 
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct CallData {
     pub method: String,
     pub args: Vec<u8>,
 }
 
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TransferResponse {
     pub txid: TransactionId,
     pub error: Option<Vec<String>>,
 }
 
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum TransferResult {
     //transfer succeed, but call failed & notify failed
     Ok(TransferResponse),
     Err(String),
 }
 
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum BurnResult {
     Ok,
     Err(String),
 }
 
 // Invalid data: Invalid IDL blob by candid 0.6.21
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum ApproveResult {
     Ok(Option<String>),
     Err(String),
 }
 
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum TxRecord {
     //  owner, spender, value, fee, timestamp
     Approve(TokenHolder, TokenReceiver, u128, u128, u64),
@@ -130,7 +130,7 @@ pub enum TxRecord {
     Burn(TokenHolder, u128, u64),
 }
 
-#[derive(CandidType, Debug, Clone, Deserialize, Serialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct StatisticsInfo {
     pub holders: u128,
     pub transfers: u128,
