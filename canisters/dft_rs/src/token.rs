@@ -17,8 +17,6 @@ use ic_cdk::{api, export::Principal, storage};
 use ic_cdk_macros::*;
 use std::cmp;
 use std::collections::HashMap;
-use std::convert::TryInto;
-use std::ops::Sub;
 use std::string::String;
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
@@ -65,8 +63,8 @@ fn canister_init(
 ) {
     let mut caller = api::caller();
     // When using proxy tools to issue tokens, should use the parameter owner instead of api::caller() as the real caller
-    if let Some(realCaller) = owner {
-        caller = realCaller;
+    if let Some(real_caller) = owner {
+        caller = real_caller;
     };
     unsafe {
         OWNER = caller;
@@ -507,9 +505,7 @@ async fn _burn(from: TokenHolder, value: u128) -> BurnResult {
     BurnResult::Ok
 }
 
-#[query(name = "supportedInterface")]
-#[candid_method(query, rename = "supportedInterface")]
-fn supported_interface(interface_sig: String) -> bool {
+fn supported_interface(did: String, interface_sig: String) -> bool {
     let verify_service_desc = format!("service:{{ {0};}}", interface_sig);
     let verify_ast_result = verify_service_desc.parse::<IDLProg>();
 
@@ -519,7 +515,7 @@ fn supported_interface(interface_sig: String) -> bool {
             let verify_pretty_sub: String =
                 verify_pretty.replace("service : { ", "").replace(" }", "");
 
-            let origin_did = __export_did_tmp_();
+            let origin_did = did;
             let origin_ast: IDLProg = origin_did.parse().unwrap();
             let origin_pretty: String = candid::parser::types::to_pretty(&origin_ast, 80);
             origin_pretty.contains(&verify_pretty_sub)
@@ -591,16 +587,6 @@ fn get_statistics() -> StatisticsInfo {
 #[candid_method(query, rename = "cyclesBalance")]
 fn cycles_balance() -> u128 {
     api::canister_balance().into()
-}
-
-// Receive cycles.
-#[update(name = "wallet_receive")]
-#[candid_method(update, rename = "wallet_receive")]
-fn wallet_receive() {
-    let amount = api::call::msg_cycles_available();
-    if amount > 0 {
-        api::call::msg_cycles_accept(amount);
-    }
 }
 
 candid::export_service!();
@@ -708,21 +694,18 @@ async fn _on_token_received(
     receiver: &TokenReceiver,
     _value: &u128,
 ) -> Result<bool, String> {
-    let supported_interface_method_name = "supportedInterface";
+    let get_did_method_name = "__get_candid_interface_tmp_hack";
     let on_token_received_method_name = "on_token_received";
     let on_token_received_method_sig = "on_token_received:(TransferFrom,nat)->(bool)query";
 
     // check receiver
     if let TokenHolder::Principal(cid) = receiver {
         if utils::is_canister(cid) {
-            let support_res: Result<(bool,), _> = api::call::call(
-                *cid,
-                supported_interface_method_name,
-                (on_token_received_method_sig,),
-            )
-            .await;
+            let did_res: Result<(String,), _> =
+                api::call::call(*cid, get_did_method_name, ()).await;
 
-            if let Ok((_support,)) = support_res {
+            if let Ok((did,)) = did_res {
+                let _support = supported_interface(did, on_token_received_method_sig.to_string());
                 if _support {
                     let _check_res: Result<(bool,), _> = api::call::call(
                         *cid,
@@ -737,12 +720,15 @@ async fn _on_token_received(
                         Ok((is_notify_succeed,)) => {
                             if !is_notify_succeed {
                                 return Err(MSG_NOTIFICATION_FAILED.to_string());
+                            } else {
+                                return Ok(true);
                             }
                         }
                         _ => return Err(MSG_NOTIFICATION_FAILED.to_string()),
                     }
                 }
             }
+            return Err(MSG_NOTIFICATION_FAILED.to_string());
         }
     }
     Ok(true)
