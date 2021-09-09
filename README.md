@@ -88,6 +88,24 @@ service : {
   burn: (fromSubAccount: opt vec nat8,amount: nat) -> (BurnResult);
 }
 ```
+## Compile dependencies
+### dfx
+```bash
+sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
+```
+### rust
+
+Linux & Mac
+1. Install Rust & cmake & optimizer
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+brew install cmake
+cargo install ic-cdk-optimizer
+```
+2. Add wasm32-unknown-unknown target 
+```bash
+rustup target add wasm32-unknown-unknown
+```
 
 ## How to test?
 ```bash
