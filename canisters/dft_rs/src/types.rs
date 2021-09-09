@@ -148,8 +148,6 @@ pub struct AccountIdentifier {
     pub hash: [u8; 28],
 }
 
-impl AccountIdentifier {}
-
 pub static SUB_ACCOUNT_ZERO: Subaccount = [0; 32];
 static ACCOUNT_DOMAIN_SEPERATOR: &[u8] = b"\x0Aaccount-id";
 

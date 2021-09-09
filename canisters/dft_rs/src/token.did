@@ -29,6 +29,5 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   tokenGraphql : () -> (opt principal) query;
   transfer : (opt vec nat8, text, nat, opt CallData) -> (TransferResult);
   transferFrom : (opt vec nat8, text, text, nat) -> (TransferResult);
-  supportedInterface : (text) -> (bool) query;
   cyclesBalance : () -> (nat) query;
 }

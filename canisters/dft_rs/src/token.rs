@@ -155,7 +155,7 @@ fn get_extend_data() -> Vec<KeyValuePair> {
 
 #[update(name = "updateExtend")]
 #[candid_method(update, rename = "updateExtend")]
-fn _update_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
+fn update_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
     _only_owner();
     let extend_data_store = storage::get_mut::<ExtendData>();
     for kv_pair in extend_data.iter() {
@@ -168,13 +168,13 @@ fn _update_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
 
 #[query(name = "logo")]
 #[candid_method(query, rename = "logo")]
-fn _logo() -> Vec<u8> {
+fn logo() -> Vec<u8> {
     unsafe { LOGO.clone() }
 }
 
 #[update(name = "updateLogo")]
 #[candid_method(update, rename = "updateLogo")]
-fn _update_logo(logo: Vec<u8>) -> bool {
+fn update_logo(logo: Vec<u8>) -> bool {
     _only_owner();
     unsafe { LOGO = logo }
     true
@@ -593,7 +593,7 @@ candid::export_service!();
 
 #[query(name = "__get_candid_interface_tmp_hack")]
 #[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
-fn __export_did_tmp_() -> String {
+fn __get_candid_interface_tmp_hack() -> String {
     __export_service()
 }
 
