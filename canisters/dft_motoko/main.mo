@@ -26,7 +26,7 @@ import ExperimentalCycles "mo:base/ExperimentalCycles";
 import PrincipalExt "./utils/PrincipalExt";
 import AID "./utils/AccountIdentifier";
 
-shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , name_ : Text, symbol_ : Text, decimals_ : Nat8, totalSupply_ : Nat, fee_ : Types.Fee, owner_ : ?Principal){
+shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , name_ : Text, symbol_ : Text, decimals_ : Nat8, totalSupply_ : Nat, fee_ : Types.Fee, owner_ : ?Principal) = this {
     type TransactionId = Types.TransactionId;
     type TokenHolder = Types.TokenHolder;
     type MetaData = Types.MetaData;
@@ -42,8 +42,9 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
     };
 
     type TokenReceiverActor = actor {
-      supportedInterface : query(methodSig :Text) -> async Bool;
+      supportedInterface : (did: Text, methodSig :Text) -> async Bool;
       on_token_received: shared(transferFrom: TokenHolder, value: Nat) -> async Bool;
+      selfDid : () -> async Text;
     };
 
     private var caller = msg.caller;
@@ -87,6 +88,27 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
     private let TX_TYPES_TRANSFER: Text = "transfer";
     private let TX_TYPES_BURN: Text = "burn";
     // private let TX_TYPES_MINT: &str = "mint";
+
+    /// Get this actor canister id
+    var _canisterId : ?Text = null;
+
+    func canisterId_() : Text {
+      switch (_canisterId) {
+        case (?ci) ci ;
+        case _ {
+          let ci = Principal.toText(Principal.fromActor(this));
+          _canisterId := ?ci;
+          ci
+        };
+      }
+    };
+
+    public query func canisterId() : async Text {
+      canisterId_()
+    };
+
+    /// Get this actor canister candid file
+    var __did : ? Text = null;
 
     if (Option.isSome(logo_)) { _logo := Option.unwrap(logo_); };   
     if (Option.isSome(subAccount)) {
@@ -375,11 +397,10 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
       return #Ok(());
     };
 
-    public query func supportedInterface(interfaceSig: Text) : async Bool {
-       var did = _getDid();
-       did := Text.replace(did, #text " ", "");
+    public func supportedInterface(did: Text, interfaceSig: Text) : async Bool {
+       let _did = Text.replace(did, #text " ", "");
        let interfaceSigRep = Text.replace(interfaceSig, #text " ", "");
-       Text.contains(did,#text interfaceSigRep)
+       Text.contains(_did,#text interfaceSigRep)
     };
 
     public shared(msg) func setStorageCanisterID (storageCanisterId: ?Principal) : async Bool {       
@@ -431,12 +452,42 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
       }
     };
     
-    public query func __export_did_tmp( ) : async Text {
+    /// Get this actor Candid descrption
+    /// @deprecated This method was Deprecated, please use selfDid() instead 
+    public func __export_did_tmp( ) : async Text {
       // copy from .dfx/local/canisters/dft_motoko/dft_motoko.did
       // get the $content from type Token = $content;
-      _getDid()   
+      // _getDid()   
+      await asyncDid_()
     };
 
+    /// For call the internal function: __get_candid_interface_tmp_hack
+    type Self = actor {
+        __get_candid_interface_tmp_hack : () -> async Text;
+    };
+
+    let self : Self = actor (canisterId_());
+
+    /// Helper functions: Get this actor did, as same as the .did file
+    func asyncDid_() : async Text {
+      await self.__get_candid_interface_tmp_hack()
+    };
+
+    /// Get this actor Candid descrption, as same as the .did file
+    public func selfDid() : async Text {
+      switch (__did) {
+        case (?d) { d };
+        case _ {
+          let d = await asyncDid_();
+          __did := ?d ;
+          d
+        };
+      }
+      
+    };
+
+    /// Get this actor Candid descrption
+    /// @deprecated This method was Deprecated
     private func _getDid() : Text {
       "service { " # 
       "allowance: (text, text) -> (nat) query;" #
@@ -576,7 +627,8 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
     
       try
       {
-        let isSupportHook : Bool = await receiverCanister.supportedInterface(on_token_received_method_sig);
+        let did: Text = await receiverCanister.selfDid();
+        let isSupportHook : Bool = await receiverCanister.supportedInterface(did, on_token_received_method_sig);
         if (isSupportHook != true) return #ok(true);
       }
       catch(e)
