@@ -255,7 +255,7 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
       let fee = _calcTransferFee(value);
 
       if (spenderAllowance < value + fee) return #Err(MSG_ALLOWANCE_EXCEEDS);
-     
+      
       let newAllowance : Nat = spenderAllowance - (value + fee);
       let allowanceFrom = Option.unwrap(_allowances.get(fromHolder));
       if (newAllowance != 0) {
@@ -267,7 +267,7 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
         if (allowanceFrom.size() == 0) { _allowances.delete(fromHolder); }
         else { _allowances.put(fromHolder, allowanceFrom); }; 
       };
-      return await _trasfer(fromHolder, toHolder, value);
+      return await _transfer(fromHolder, toHolder, value);
     };
     
     public shared(msg) func transfer(subAccount: ?AID.Subaccount, to: Text, value: Nat, callData: ?CallData) : async TransferResult {
@@ -283,7 +283,7 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
       let fromHolder = Option.unwrap(fromHolderParseResult) ;
       let toHolder = Option.unwrap(toHolderParseResult) ;
      
-      let transferRes = await _trasfer(fromHolder, toHolder, value);
+      let transferRes = await _transfer(fromHolder, toHolder, value);
       
       switch (transferRes) {
         case (#Ok{txid : TransactionId; error : ?[Text]; }) {
@@ -303,7 +303,7 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
       };
     };
 
-    private func _trasfer(from: TokenHolder, to: TokenHolder, value: Nat) : async TransferResult {
+    private func _transfer(from: TokenHolder, to: TokenHolder, value: Nat) : async TransferResult {
       let fee = _calcTransferFee(value);
       let fromBalance = _balanceOf(from);
       if (fromBalance < value + fee ) return #Err(MSG_BALANCE_EXCEEDS);
@@ -490,9 +490,9 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
       if (fee == 0) {
         return #ok(true);
       };
-
-      let payerBalance = _balanceOf( payer );
       
+      let payerBalance = _balanceOf( payer );
+
       if (payerBalance < fee) {
         return #err(MSG_FAILED_TO_CHARGE_FEE);
       };
@@ -504,7 +504,8 @@ shared(msg) actor class Token(subAccount : ?AID.Subaccount , logo_ : ?[Nat8] , n
 
     private func _settleFee(fee: Nat) {
       if (fee > 0) {
-        _balances.put(_feeTo, fee);
+        let feeToBalance = _balanceOf(_feeTo);
+        _balances.put(_feeTo, feeToBalance + fee);
       };
     };
 
