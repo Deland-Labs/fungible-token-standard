@@ -10,7 +10,7 @@ type MetaData = record {
   total_supply : nat;
   symbol : text;
 };
-type TransferResponse = record { txid : nat; error : opt vec text };
+type TransferResponse = record { txid : text; error : opt vec text };
 type TransferResult = variant { Ok : TransferResponse; Err : text };
 
 service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {

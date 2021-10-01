@@ -2,7 +2,7 @@
  * Module     : token.rs
  * Copyright  : 2021 Deland-Labs Team
  * License    : Apache 2.0 with LLVM Exception
- * Maintainer : Deland Team (https://deland.one)
+ * Maintainer : Deland Team (https://delandlabs.com)
  * Stability  : Experimental
  */
 use crate::extends;
@@ -11,12 +11,13 @@ use crate::types::{
     KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload, TokenReceiver,
     TransferFrom, TransferResponse, TransferResult, TxRecord,
 };
-use crate::utils;
+use crate::utils::{principal, tx_id};
 use candid::{candid_method, decode_args, IDLProg};
 use ic_cdk::{api, export::Principal, storage};
 use ic_cdk_macros::*;
 use std::cmp;
 use std::collections::HashMap;
+use std::fmt::format;
 use std::string::String;
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
@@ -437,7 +438,7 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: u128) -> TransferR
     _fee_settle(fee);
 
     unsafe {
-        let next_tx_id = _save_tx_record_to_graphql(TxRecord::Transfer(
+        let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Transfer(
             from.clone(),
             to.clone(),
             value,
@@ -451,15 +452,17 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: u128) -> TransferR
         // after transfer (notify)
         let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
 
+        let tx_id = tx_id::encode_tx_id(api::id(), crt_tx_cursor);
+        ic_cdk::print(format!("transfer tx id {}", tx_id));
         if let Err(emsg) = after_token_send_notify_result {
             errors.push(emsg);
             TransferResult::Ok(TransferResponse {
-                txid: next_tx_id,
+                txid: tx_id,
                 error: Some(errors),
             })
         } else {
             TransferResult::Ok(TransferResponse {
-                txid: next_tx_id,
+                txid: tx_id,
                 error: None,
             })
         }
@@ -700,7 +703,7 @@ async fn _on_token_received(
 
     // check receiver
     if let TokenHolder::Principal(cid) = receiver {
-        if utils::is_canister(cid) {
+        if principal::is_canister(cid) {
             let did_res: Result<(String,), _> =
                 api::call::call(*cid, get_did_method_name, ()).await;
 
@@ -736,7 +739,7 @@ async fn _on_token_received(
 
 async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result<bool, String> {
     if let TokenHolder::Principal(cid) = receiver {
-        if utils::is_canister(cid) {
+        if principal::is_canister(cid) {
             let call_result: Result<Vec<u8>, (api::call::RejectionCode, String)> =
                 api::call::call_raw(*cid, &_call_data.method, _call_data.args, 0).await;
             match call_result {

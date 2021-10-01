@@ -43,7 +43,7 @@ define test_token_impl
 	dfx canister call $(1)  meta | grep 'Deland Token' && echo 'PASS meta check'
 
 	dfx canister call $(1) transfer '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",1000000000000000000:nat,null)' \
-	| grep 'txid = 1 : nat;' && echo 'PASS transfer check'
+	| grep 'Ok' && echo 'PASS transfer check'
 	dfx canister call $(1) balanceOf "rrkah-fqaaa-aaaaa-aaaaq-cai" \
 	| grep '1_000_000_000_000_000_000' && echo 'PASS balanceOf check'
 

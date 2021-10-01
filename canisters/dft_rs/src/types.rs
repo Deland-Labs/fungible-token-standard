@@ -11,7 +11,7 @@ use std::{
     string::String,
 };
 
-pub type TransactionId = u128;
+pub type TransactionId = String;
 pub type ExtendData = HashMap<String, String>;
 pub type Balances = HashMap<TokenHolder, u128>;
 pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
