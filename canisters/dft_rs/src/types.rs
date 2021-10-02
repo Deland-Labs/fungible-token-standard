@@ -113,10 +113,16 @@ pub enum BurnResult {
     Err(String),
 }
 
+#[derive(CandidType, Debug, Clone, Deserialize)]
+pub struct ApproveResponse {
+    pub txid: TransactionId,
+    pub error: Option<String>,
+}
+
 // Invalid data: Invalid IDL blob by candid 0.6.21
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum ApproveResult {
-    Ok(Option<String>),
+    Ok(ApproveResponse),
     Err(String),
 }
 
@@ -162,7 +168,7 @@ impl AccountIdentifier {
 
         AccountIdentifier {
             hash: hash.finalize().into(),
-        }
+        }   
     }
 
     pub fn from_hex(hex_str: &str) -> Result<AccountIdentifier, String> {

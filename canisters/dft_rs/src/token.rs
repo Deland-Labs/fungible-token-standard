@@ -7,9 +7,9 @@
  */
 use crate::extends;
 use crate::types::{
-    AccountIdentifier, Allowances, ApproveResult, Balances, BurnResult, CallData, ExtendData, Fee,
-    KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload, TokenReceiver,
-    TransferFrom, TransferResponse, TransferResult, TxRecord,
+    AccountIdentifier, Allowances, ApproveResponse, ApproveResult, Balances, BurnResult, CallData,
+    ExtendData, Fee, KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload,
+    TokenReceiver, TransferFrom, TransferResponse, TransferResult, TxRecord,
 };
 use crate::utils::{principal, tx_id};
 use candid::{candid_method, decode_args, IDLProg};
@@ -17,7 +17,6 @@ use ic_cdk::{api, export::Principal, storage};
 use ic_cdk_macros::*;
 use std::cmp;
 use std::collections::HashMap;
-use std::fmt::format;
 use std::string::String;
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
@@ -244,65 +243,73 @@ async fn approve(
     let spender_parse_result = spender.parse::<TokenHolder>();
     let approve_fee = _calc_approve_fee();
 
-    match spender_parse_result {
-        Ok(spender_holder) => {
-            //charge approve, prevent gas ddos attacks
-            match _charge_approve_fee(&spender_holder, approve_fee) {
-                Ok(_) => {}
-                Err(emsg) => return ApproveResult::Err(emsg),
-            }
+    if let Ok(spender_holder) = spender_parse_result {
+        //charge approve, prevent gas ddos attacks
+        match _charge_approve_fee(&spender_holder, approve_fee) {
+            Ok(_) => {}
+            Err(emsg) => return ApproveResult::Err(emsg),
+        }
 
-            let allowances_read = storage::get::<Allowances>();
-            match allowances_read.get(&owner_holder) {
-                Some(inner) => {
-                    let mut temp = inner.clone();
-                    let allowances = storage::get_mut::<Allowances>();
-                    if value == 0 {
-                        temp.remove(&spender_holder);
-                        if temp.len() > 0 {
-                            allowances.insert(owner_holder.clone(), temp);
-                        } else {
-                            allowances.remove(&owner_holder);
-                        }
-                    } else {
-                        temp.insert(spender_holder.clone(), value);
+        let allowances_read = storage::get::<Allowances>();
+        match allowances_read.get(&owner_holder) {
+            Some(inner) => {
+                let mut temp = inner.clone();
+                let allowances = storage::get_mut::<Allowances>();
+                if value == 0 {
+                    temp.remove(&spender_holder);
+                    if temp.len() > 0 {
                         allowances.insert(owner_holder.clone(), temp);
+                    } else {
+                        allowances.remove(&owner_holder);
                     }
+                } else {
+                    temp.insert(spender_holder.clone(), value);
+                    allowances.insert(owner_holder.clone(), temp);
                 }
-                None => {
-                    if value > 0 {
-                        let mut inner = HashMap::new();
-                        inner.insert(spender_holder.clone(), value);
-                        let allowances = storage::get_mut::<Allowances>();
-                        allowances.insert(owner_holder.clone(), inner);
-                    }
-                }
-            };
-            unsafe {
-                _save_tx_record_to_graphql(TxRecord::Approve(
-                    owner_holder.clone(),
-                    spender_holder.clone(),
-                    value,
-                    approve_fee,
-                    api::time(),
-                ))
-                .await;
             }
+            None => {
+                if value > 0 {
+                    let mut inner = HashMap::new();
+                    inner.insert(spender_holder.clone(), value);
+                    let allowances = storage::get_mut::<Allowances>();
+                    allowances.insert(owner_holder.clone(), inner);
+                }
+            }
+        };
+        unsafe {
+            let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Approve(
+                owner_holder.clone(),
+                spender_holder.clone(),
+                value,
+                approve_fee,
+                api::time(),
+            ))
+            .await;
+            let tx_id = tx_id::encode_tx_id(api::id(), crt_tx_cursor);
+            let mut res = ApproveResponse {
+                txid: tx_id,
+                error: None,
+            };
+            match call_data {
+                Some(data) => {
+                    // execute call
+                    let execute_call_result = _execute_call(&spender_holder, data).await;
 
-            if let Some(_call_data) = call_data {
-                // execute call
-                let execute_call_result = _execute_call(&spender_holder, _call_data).await;
-
-                if let Err(emsg) = execute_call_result {
-                    // approve succeed ,bu call failed
-                    return ApproveResult::Ok(Some(emsg));
-                };
+                    match execute_call_result {
+                        Err(emsg) => {
+                            res.error = Some(emsg);
+                            // approve succeed ,bu call failed
+                            return ApproveResult::Ok(res);
+                        }
+                        Ok(_) => return ApproveResult::Ok(res),
+                    }
+                }
+                None => return ApproveResult::Ok(res),
             }
         }
-        Err(_) => return ApproveResult::Err(MSG_INVALID_SPENDER.to_string()),
+    } else {
+        return ApproveResult::Err(MSG_INVALID_SPENDER.to_string());
     }
-
-    ApproveResult::Ok(None)
 }
 
 #[update(name = "transferFrom")]
