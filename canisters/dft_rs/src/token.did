@@ -1,5 +1,6 @@
-type ApproveResult = variant { Ok : opt text; Err : text };
-type BurnResult = variant { Ok; Err : text };
+type ApproveResponse = record { txid : text; error : opt text };
+type ApproveResult = variant { Ok : ApproveResponse; Err : text };
+type BurnResult = variant { Ok : text; Err : text };
 type CallData = record { method : text; args : vec nat8 };
 type Fee = record { rate : nat; lowest : nat };
 type KeyValuePair = record { k : text; v : text };

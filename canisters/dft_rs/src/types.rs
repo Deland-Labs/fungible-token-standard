@@ -1,6 +1,6 @@
 use candid::CandidType;
 use ic_cdk::export::Principal;
-use serde::{de, de::Error, Deserialize,Serialize};
+use serde::{de, de::Error, Deserialize, Serialize};
 use sha2::{Digest, Sha224};
 use std::fmt;
 use std::{
@@ -109,7 +109,7 @@ pub enum TransferResult {
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum BurnResult {
-    Ok,
+    Ok(TransactionId),
     Err(String),
 }
 
@@ -168,7 +168,7 @@ impl AccountIdentifier {
 
         AccountIdentifier {
             hash: hash.finalize().into(),
-        }   
+        }
     }
 
     pub fn from_hex(hex_str: &str) -> Result<AccountIdentifier, String> {

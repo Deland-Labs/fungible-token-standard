@@ -510,9 +510,11 @@ async fn _burn(from: TokenHolder, value: u128) -> BurnResult {
     }
     unsafe {
         TOTAL_SUPPLY -= value;
-        _save_tx_record_to_graphql(TxRecord::Burn(from.clone(), value, api::time())).await;
+        let crt_tx_cursor =
+            _save_tx_record_to_graphql(TxRecord::Burn(from.clone(), value, api::time())).await;
+        let tx_id = tx_id::encode_tx_id(api::id(), crt_tx_cursor);
+        BurnResult::Ok(tx_id)
     }
-    BurnResult::Ok
 }
 
 fn supported_interface(did: String, interface_sig: String) -> bool {
