@@ -78,7 +78,7 @@ fn canister_init(
         DECIMALS = decimals;
         TOTAL_SUPPLY = total_supply;
         FEE = fee;
-        let call_from = parse_to_token_holder(caller, sub_account);
+        let call_from = TokenHolder::new(caller, sub_account);
         FEE_TO = call_from.clone();
         ic_cdk::print(format!("caller is {}", caller.to_text()));
         match call_from {
@@ -239,7 +239,7 @@ async fn approve(
     call_data: Option<CallData>,
 ) -> ApproveResult {
     let owner = api::caller();
-    let owner_holder = parse_to_token_holder(owner, owner_sub_account);
+    let owner_holder = TokenHolder::new(owner, owner_sub_account);
     let spender_parse_result = spender.parse::<TokenHolder>();
     let approve_fee = _calc_approve_fee();
 
@@ -321,7 +321,7 @@ async fn transfer_from(
     value: u128,
 ) -> TransferResult {
     let spender_principal_id = api::caller();
-    let spender = parse_to_token_holder(spender_principal_id, spender_sub_account);
+    let spender = TokenHolder::new(spender_principal_id, spender_sub_account);
 
     let from_parse_result = from.parse::<TokenHolder>();
     let to_parse_result = to.parse::<TokenHolder>();
@@ -380,7 +380,7 @@ async fn transfer(
     call_data: Option<CallData>,
 ) -> TransferResult {
     let from = api::caller();
-    let transfer_from = parse_to_token_holder(from, from_sub_account);
+    let transfer_from = TokenHolder::new(from, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
 
     match receiver_parse_result {
@@ -480,7 +480,7 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: u128) -> TransferR
 #[candid_method(update, rename = "burn")]
 async fn burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult {
     let from = api::caller();
-    let transfer_from = parse_to_token_holder(from, from_sub_account);
+    let transfer_from = TokenHolder::new(from, from_sub_account);
     let fee = _calc_transfer_fee(value);
 
     if fee > value {
@@ -678,16 +678,6 @@ fn post_upgrade() {
             inner.insert(ik, iv);
         }
         storage::get_mut::<Allowances>().insert(k, inner);
-    }
-}
-
-fn parse_to_token_holder(from: Principal, from_sub_account: Option<Subaccount>) -> TransferFrom {
-    match from_sub_account {
-        Some(_) => {
-            let account_identity = AccountIdentifier::new(from, from_sub_account);
-            TransferFrom::Account(account_identity)
-        }
-        _ => TransferFrom::Principal(from),
     }
 }
 
