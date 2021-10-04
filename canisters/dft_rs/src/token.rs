@@ -11,7 +11,7 @@ use crate::types::{
     ExtendData, Fee, KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload,
     TokenReceiver, TransferFrom, TransferResponse, TransferResult, TxRecord,
 };
-use crate::utils::{principal, tx_id};
+use crate::utils::*;
 use candid::{candid_method, decode_args, IDLProg};
 use ic_cdk::{api, export::Principal, storage};
 use ic_cdk_macros::*;
@@ -285,7 +285,7 @@ async fn approve(
                 api::time(),
             ))
             .await;
-            let tx_id = tx_id::encode_tx_id(api::id(), crt_tx_cursor);
+            let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
             let mut res = ApproveResponse {
                 txid: tx_id,
                 error: None,
@@ -459,7 +459,7 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: u128) -> TransferR
         // after transfer (notify)
         let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
 
-        let tx_id = tx_id::encode_tx_id(api::id(), crt_tx_cursor);
+        let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
         ic_cdk::print(format!("transfer tx id {}", tx_id));
         if let Err(emsg) = after_token_send_notify_result {
             errors.push(emsg);
@@ -512,7 +512,7 @@ async fn _burn(from: TokenHolder, value: u128) -> BurnResult {
         TOTAL_SUPPLY -= value;
         let crt_tx_cursor =
             _save_tx_record_to_graphql(TxRecord::Burn(from.clone(), value, api::time())).await;
-        let tx_id = tx_id::encode_tx_id(api::id(), crt_tx_cursor);
+        let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
         BurnResult::Ok(tx_id)
     }
 }
@@ -712,7 +712,7 @@ async fn _on_token_received(
 
     // check receiver
     if let TokenHolder::Principal(cid) = receiver {
-        if principal::is_canister(cid) {
+        if is_canister(cid) {
             let did_res: Result<(String,), _> =
                 api::call::call(*cid, get_did_method_name, ()).await;
 
@@ -748,7 +748,7 @@ async fn _on_token_received(
 
 async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result<bool, String> {
     if let TokenHolder::Principal(cid) = receiver {
-        if principal::is_canister(cid) {
+        if is_canister(cid) {
             let call_result: Result<Vec<u8>, (api::call::RejectionCode, String)> =
                 api::call::call_raw(*cid, &_call_data.method, _call_data.args, 0).await;
             match call_result {
