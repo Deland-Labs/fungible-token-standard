@@ -1,146 +1,15 @@
-use candid::CandidType;
-use ic_cdk::export::Principal;
-use serde::{de, de::Error, Deserialize, Serialize};
+use ic_cdk::export::{
+    candid::{CandidType, Deserialize},
+    Principal,
+};
+use serde::{de, de::Error, Serialize};
 use sha2::{Digest, Sha224};
-use std::fmt;
 use std::{
-    collections::HashMap,
     convert::TryInto,
     fmt::{Display, Formatter},
     str::FromStr,
     string::String,
 };
-
-pub type TransactionId = String;
-pub type ExtendData = HashMap<String, String>;
-pub type Balances = HashMap<TokenHolder, u128>;
-pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
-#[derive(CandidType, Debug, Deserialize)]
-pub struct TokenPayload {
-    pub owner: Principal,
-    pub fee_to: TokenHolder,
-    pub meta: MetaData,
-    pub extend: Vec<(String, String)>,
-    pub logo: Vec<u8>,
-    pub balances: Vec<(TokenHolder, u128)>,
-    pub allowances: Vec<(TokenHolder, Vec<(TokenHolder, u128)>)>,
-    pub tx_id_cursor: u128,
-    pub storage_canister_id: Principal,
-}
-// Rate decimals = 8
-// transferFee = cmp::max(lowest,amount * rate / 10^8)
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub struct Fee {
-    pub lowest: u128,
-    pub rate: u128,
-}
-
-#[derive(CandidType, Debug, Deserialize)]
-pub struct MetaData {
-    pub name: String,
-    pub symbol: String,
-    pub decimals: u8,
-    pub total_supply: u128,
-    pub fee: Fee,
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub enum TokenHolder {
-    Account(AccountIdentifier),
-    Principal(Principal),
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
-pub struct KeyValuePair {
-    pub k: String,
-    pub v: String,
-}
-
-impl FromStr for TokenHolder {
-    type Err = String;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let pid = s.parse::<Principal>();
-        match pid {
-            Ok(_principal) => Ok(TokenHolder::Principal(_principal)),
-            _ => {
-                let account_identity = s.parse::<AccountIdentifier>();
-                match account_identity {
-                    Ok(_ai) => Ok(TokenHolder::Account(_ai)),
-                    _ => Err("invalid token holder format".to_string()),
-                }
-            }
-        }
-    }
-}
-
-impl fmt::Display for TokenHolder {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
-        let s = match &self {
-            TokenHolder::Account(_ai) => _ai.to_string(),
-            TokenHolder::Principal(_pid) => _pid.to_string(),
-        };
-        write!(f, "{}", s)
-    }
-}
-
-pub type TransferFrom = TokenHolder;
-pub type TokenReceiver = TokenHolder;
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub struct CallData {
-    pub method: String,
-    pub args: Vec<u8>,
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub struct TransferResponse {
-    pub txid: TransactionId,
-    pub error: Option<Vec<String>>,
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub enum TransferResult {
-    //transfer succeed, but call failed & notify failed
-    Ok(TransferResponse),
-    Err(String),
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub enum BurnResult {
-    Ok(TransactionId),
-    Err(String),
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub struct ApproveResponse {
-    pub txid: TransactionId,
-    pub error: Option<String>,
-}
-
-// Invalid data: Invalid IDL blob by candid 0.6.21
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub enum ApproveResult {
-    Ok(ApproveResponse),
-    Err(String),
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub enum TxRecord {
-    //  owner, spender, value, fee, timestamp
-    Approve(TokenHolder, TokenReceiver, u128, u128, u64),
-    // caller, from, to, value, fee, timestamp
-    Transfer(TokenHolder, TokenReceiver, u128, u128, u64),
-    // caller, from, value, timestamp
-    Burn(TokenHolder, u128, u64),
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub struct StatisticsInfo {
-    pub holders: u128,
-    pub transfers: u128,
-}
 
 /// While this is backed by an array of length 28, it's canonical representation
 /// is a hex string of length 64. The first 8 characters are the CRC-32 encoded
