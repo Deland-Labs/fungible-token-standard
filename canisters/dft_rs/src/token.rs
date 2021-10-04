@@ -7,9 +7,9 @@
  */
 use crate::extends;
 use crate::types::{
-    AccountIdentifier, Allowances, ApproveResponse, ApproveResult, Balances, BurnResult, CallData,
-    ExtendData, Fee, KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload,
-    TokenReceiver, TransferFrom, TransferResponse, TransferResult, TxRecord,
+    Allowances, ApproveResponse, ApproveResult, Balances, BurnResult, CallData, ExtendData, Fee,
+    KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload, TokenReceiver,
+    TransferFrom, TransferResponse, TransferResult, TxRecord,
 };
 use crate::utils::*;
 use candid::{candid_method, decode_args, IDLProg};
