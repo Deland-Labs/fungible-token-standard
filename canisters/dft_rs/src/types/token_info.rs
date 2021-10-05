@@ -1,5 +1,5 @@
 use ic_cdk::export::{
-    candid::{CandidType, Deserialize},
+    candid::{CandidType, Deserialize, Nat},
     Principal,
 };
 
@@ -8,9 +8,9 @@ use super::TokenHolder;
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TokenInfo {
     pub owner: Principal,
-    pub holders: u128,
-    pub allowance_size: u128,
+    pub holders: Nat,
+    pub allowance_size: Nat,
     pub fee_to: TokenHolder,
-    pub tx_count: u128,
+    pub tx_count: Nat,
     pub cycles: u64,
 }

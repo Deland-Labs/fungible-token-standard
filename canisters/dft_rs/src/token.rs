@@ -14,11 +14,18 @@ use crate::types::{
 };
 use crate::utils::*;
 use candid::{candid_method, decode_args};
-use ic_cdk::{api, export::Principal, storage};
+use ic_cdk::{
+    api,
+    export::{candid::Nat, Principal},
+    storage,
+};
 use ic_cdk_macros::*;
+use num_bigint::BigUint;
 use std::cmp;
 use std::collections::HashMap;
+use std::ops::{Div, Mul};
 use std::string::String;
+use std::sync::RwLock;
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
 const FEE_RATE_DECIMALS: u8 = 8u8;
@@ -27,15 +34,21 @@ const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
 // const TX_TYPES_MINT: &str = "mint";
 
+lazy_static! {
+    static ref NAT_ZERO: Nat = Nat::from(0);
+    static ref TOTAL_SUPPLY: RwLock<Nat> = RwLock::new(Nat::from(0));
+    static ref FEE: RwLock<Fee> = RwLock::new(Fee {
+        lowest: Nat::from(0),
+        rate: Nat::from(0),
+    });
+    static ref TX_ID_CURSOR: RwLock<Nat> = RwLock::new(Nat::from(0));
+}
+
 static mut OWNER: Principal = Principal::anonymous();
 static mut NAME: &str = "";
 static mut SYMBOL: &str = "";
 static mut DECIMALS: u8 = 0;
-static mut TOTAL_SUPPLY: u128 = 0;
-static mut FEE: Fee = Fee { lowest: 0, rate: 0 };
-static mut TX_ID_CURSOR: u128 = 0;
-// 256 * 256
-static mut LOGO: Vec<u8> = Vec::new();
+static mut LOGO: Vec<u8> = Vec::new(); // 256 * 256
 static mut STORAGE_CANISTER_ID: Principal = Principal::anonymous();
 static mut FEE_TO: TokenHolder = TokenHolder::Principal(Principal::anonymous());
 
@@ -46,7 +59,7 @@ fn canister_init(
     name: String,
     symbol: String,
     decimals: u8,
-    total_supply: u128,
+    total_supply: Nat,
     fee: Fee,
     owner: Option<Principal>,
 ) {
@@ -62,11 +75,13 @@ fn canister_init(
         } else {
             [].to_vec()
         };
+        let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
+        let mut rw_fee = FEE.write().unwrap();
         NAME = Box::leak(name.into_boxed_str());
         SYMBOL = Box::leak(symbol.into_boxed_str());
         DECIMALS = decimals;
-        TOTAL_SUPPLY = total_supply;
-        FEE = fee;
+        *rw_total_supply = total_supply;
+        *rw_fee = fee;
         let call_from = TokenHolder::new(caller, sub_account);
         FEE_TO = call_from.clone();
         ic_cdk::print(format!("caller is {}", caller.to_text()));
@@ -77,7 +92,7 @@ fn canister_init(
             }
         };
         let balances = storage::get_mut::<Balances>();
-        balances.insert(call_from.clone(), TOTAL_SUPPLY);
+        balances.insert(call_from.clone(), rw_total_supply.clone());
     }
 }
 
@@ -101,14 +116,14 @@ fn get_decimals() -> u8 {
 
 #[query(name = "totalSupply")]
 #[candid_method(query, rename = "totalSupply")]
-fn get_total_supply() -> u128 {
-    unsafe { TOTAL_SUPPLY }
+fn get_total_supply() -> Nat {
+    (*TOTAL_SUPPLY.read().unwrap()).clone()
 }
 
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
 fn get_fee_setting() -> Fee {
-    unsafe { FEE.clone() }
+    (*FEE.read().unwrap()).clone()
 }
 
 #[query(name = "meta")]
@@ -119,8 +134,8 @@ fn get_meta_data() -> MetaData {
             name: NAME.to_string(),
             symbol: SYMBOL.to_string(),
             decimals: DECIMALS,
-            total_supply: TOTAL_SUPPLY,
-            fee: FEE.clone(),
+            total_supply: (*TOTAL_SUPPLY.read().unwrap()).clone(),
+            fee: (*FEE.read().unwrap()).clone(),
         };
 
         ic_cdk::print(format!("meta is {:#?}", meta));
@@ -171,51 +186,51 @@ fn update_logo(logo: Vec<u8>) -> bool {
 
 #[query(name = "balanceOf")]
 #[candid_method(query, rename = "balanceOf")]
-fn balance_of(holder: String) -> u128 {
+fn balance_of(holder: String) -> Nat {
     let token_holder_parse_result = holder.parse::<TokenHolder>();
 
     let balance = match token_holder_parse_result {
         Ok(token_holder) => _balance_of(&token_holder),
-        _ => 0,
+        _ => Nat::from(0),
     };
     ic_cdk::print(format!("get account balance is {}", balance));
     balance
 }
 
-fn _balance_of(holder: &TokenHolder) -> u128 {
+fn _balance_of(holder: &TokenHolder) -> Nat {
     let balances = storage::get::<Balances>();
     match balances.get(holder) {
-        Some(balance) => *balance,
-        None => 0,
+        Some(balance) => balance.clone(),
+        None => Nat::from(0),
     }
 }
 
 #[query(name = "allowance")]
 #[candid_method(query, rename = "allowance")]
-fn allowance(owner: String, spender: String) -> u128 {
+fn allowance(owner: String, spender: String) -> Nat {
     let token_holder_owner_parse_result = owner.parse::<TokenHolder>();
     let token_holder_spender_parse_result = spender.parse::<TokenHolder>();
 
-    let allowance: u128 = match token_holder_owner_parse_result {
+    let allowance: Nat = match token_holder_owner_parse_result {
         Ok(token_holder_owner) => match token_holder_spender_parse_result {
             Ok(token_holder_spender) => _allowance(&token_holder_owner, &token_holder_spender),
-            _ => 0u128,
+            _ => Nat::from(0),
         },
-        _ => 0u128,
+        _ => Nat::from(0),
     };
 
     ic_cdk::print(format!("get allowance is {}", allowance));
     allowance
 }
 
-fn _allowance(owner: &TokenHolder, spender: &TokenHolder) -> u128 {
+fn _allowance(owner: &TokenHolder, spender: &TokenHolder) -> Nat {
     let allowances = storage::get::<Allowances>();
     match allowances.get(&owner) {
         Some(inner) => match inner.get(&spender) {
-            Some(value) => *value,
-            None => 0u128,
+            Some(value) => value.clone(),
+            None => Nat::from(0),
         },
-        None => 0u128,
+        None => Nat::from(0),
     }
 }
 
@@ -224,7 +239,7 @@ fn _allowance(owner: &TokenHolder, spender: &TokenHolder) -> u128 {
 async fn approve(
     owner_sub_account: Option<Subaccount>,
     spender: String,
-    value: u128,
+    value: Nat,
     call_data: Option<CallData>,
 ) -> ApproveResult {
     let owner = api::caller();
@@ -234,7 +249,7 @@ async fn approve(
 
     if let Ok(spender_holder) = spender_parse_result {
         //charge approve, prevent gas ddos attacks
-        match _charge_approve_fee(&spender_holder, approve_fee) {
+        match _charge_approve_fee(&spender_holder, approve_fee.clone()) {
             Ok(_) => {}
             Err(emsg) => return ApproveResult::Err(emsg),
         }
@@ -252,49 +267,48 @@ async fn approve(
                         allowances.remove(&owner_holder);
                     }
                 } else {
-                    temp.insert(spender_holder.clone(), value);
+                    temp.insert(spender_holder.clone(), value.clone());
                     allowances.insert(owner_holder.clone(), temp);
                 }
             }
             None => {
-                if value > 0 {
+                if value.gt(&Nat::from(0)) {
                     let mut inner = HashMap::new();
-                    inner.insert(spender_holder.clone(), value);
+                    inner.insert(spender_holder.clone(), value.clone());
                     let allowances = storage::get_mut::<Allowances>();
                     allowances.insert(owner_holder.clone(), inner);
                 }
             }
         };
-        unsafe {
-            let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Approve(
-                owner_holder.clone(),
-                spender_holder.clone(),
-                value,
-                approve_fee,
-                api::time(),
-            ))
-            .await;
-            let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
-            let mut res = ApproveResponse {
-                txid: tx_id,
-                error: None,
-            };
-            match call_data {
-                Some(data) => {
-                    // execute call
-                    let execute_call_result = _execute_call(&spender_holder, data).await;
 
-                    match execute_call_result {
-                        Err(emsg) => {
-                            res.error = Some(emsg);
-                            // approve succeed ,bu call failed
-                            return ApproveResult::Ok(res);
-                        }
-                        Ok(_) => return ApproveResult::Ok(res),
+        let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Approve(
+            owner_holder.clone(),
+            spender_holder.clone(),
+            value,
+            approve_fee,
+            api::time(),
+        ))
+        .await;
+        let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
+        let mut res = ApproveResponse {
+            txid: tx_id,
+            error: None,
+        };
+        match call_data {
+            Some(data) => {
+                // execute call
+                let execute_call_result = _execute_call(&spender_holder, data).await;
+
+                match execute_call_result {
+                    Err(emsg) => {
+                        res.error = Some(emsg);
+                        // approve succeed ,bu call failed
+                        return ApproveResult::Ok(res);
                     }
+                    Ok(_) => return ApproveResult::Ok(res),
                 }
-                None => return ApproveResult::Ok(res),
             }
+            None => return ApproveResult::Ok(res),
         }
     } else {
         return ApproveResult::Err(MSG_INVALID_SPENDER.to_string());
@@ -303,7 +317,7 @@ async fn approve(
 
 #[query(name = "getAllowancesByHolder")]
 #[candid_method(query, rename = "getAllowancesByHolder")]
-fn get_allowances_by_holder(holder: String) -> Vec<(TokenHolder, u128)> {
+fn get_allowances_by_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
     let allowances = storage::get::<Allowances>();
     match holder.parse::<TokenHolder>() {
         Ok(token_holder) => match allowances.get(&token_holder) {
@@ -320,7 +334,7 @@ async fn transfer_from(
     spender_sub_account: Option<Subaccount>,
     from: String,
     to: String,
-    value: u128,
+    value: Nat,
 ) -> TransferResult {
     let spender_principal_id = api::caller();
     let spender = TokenHolder::new(spender_principal_id, spender_sub_account);
@@ -332,10 +346,10 @@ async fn transfer_from(
         Ok(from_token_holder) => match to_parse_result {
             Ok(to_token_holder) => {
                 let spender_allowance = _allowance(&from_token_holder, &spender);
-                let fee = _calc_transfer_fee(value);
+                let fee = _calc_transfer_fee(value.clone());
 
                 // check allowance
-                if spender_allowance < value + fee {
+                if spender_allowance < value.clone() + fee.clone() {
                     return TransferResult::Err(MSG_ALLOWANCE_EXCEEDS.to_string());
                 }
                 let allowances_read = storage::get::<Allowances>();
@@ -343,10 +357,10 @@ async fn transfer_from(
                 // update allowance
                 match allowances_read.get(&from_token_holder) {
                     Some(inner) => {
-                        let spender_allowance_new = spender_allowance - value - fee;
+                        let spender_allowance_new = spender_allowance - value.clone() - fee;
                         let mut temp = inner.clone();
 
-                        if spender_allowance_new > 0 {
+                        if spender_allowance_new.gt(&Nat::from(0)) {
                             temp.insert(spender, spender_allowance_new);
                         } else {
                             temp.remove(&spender);
@@ -378,7 +392,7 @@ async fn transfer_from(
 async fn transfer(
     from_sub_account: Option<Subaccount>,
     to: String,
-    value: u128,
+    value: Nat,
     call_data: Option<CallData>,
 ) -> TransferResult {
     let from = api::caller();
@@ -419,11 +433,11 @@ async fn transfer(
     }
 }
 
-async fn _transfer(from: TokenHolder, to: TokenHolder, value: u128) -> TransferResult {
-    let fee = _calc_transfer_fee(value);
+async fn _transfer(from: TokenHolder, to: TokenHolder, value: Nat) -> TransferResult {
+    let fee = _calc_transfer_fee(value.clone());
     let from_balance = _balance_of(&from);
 
-    if from_balance < value + fee {
+    if from_balance < value.clone() + fee.clone() {
         return TransferResult::Err(MSG_BALANCE_EXCEEDS.to_string());
     }
 
@@ -436,56 +450,54 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: u128) -> TransferR
 
     let to_balance = _balance_of(&to);
     let balances = storage::get_mut::<Balances>();
-    let from_balance_new = from_balance - value - fee;
+    let from_balance_new = from_balance - value.clone() - fee.clone();
 
     if from_balance_new == 0 {
         balances.remove(&from);
     } else {
         balances.insert(from.clone(), from_balance_new);
     }
-    balances.insert(to.clone(), to_balance + value);
-    _fee_settle(fee);
+    balances.insert(to.clone(), to_balance + value.clone());
+    _fee_settle(fee.clone());
 
-    unsafe {
-        let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Transfer(
-            from.clone(),
-            to.clone(),
-            value,
-            fee,
-            api::time(),
-        ))
-        .await;
+    let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Transfer(
+        from.clone(),
+        to.clone(),
+        value.clone(),
+        fee,
+        api::time(),
+    ))
+    .await;
 
-        let mut errors: Vec<String> = Vec::new();
+    let mut errors: Vec<String> = Vec::new();
 
-        // after transfer (notify)
-        let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
+    // after transfer (notify)
+    let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
 
-        let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
-        ic_cdk::print(format!("transfer tx id {}", tx_id));
-        if let Err(emsg) = after_token_send_notify_result {
-            errors.push(emsg);
-            TransferResult::Ok(TransferResponse {
-                txid: tx_id,
-                error: Some(errors),
-            })
-        } else {
-            TransferResult::Ok(TransferResponse {
-                txid: tx_id,
-                error: None,
-            })
-        }
+    let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
+    ic_cdk::print(format!("transfer tx id {}", tx_id));
+    if let Err(emsg) = after_token_send_notify_result {
+        errors.push(emsg);
+        TransferResult::Ok(TransferResponse {
+            txid: tx_id,
+            error: Some(errors),
+        })
+    } else {
+        TransferResult::Ok(TransferResponse {
+            txid: tx_id,
+            error: None,
+        })
     }
 }
 
 #[update(name = "burn")]
 #[candid_method(update, rename = "burn")]
-async fn burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult {
+async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> BurnResult {
     let from = api::caller();
     let transfer_from = TokenHolder::new(from, from_sub_account);
-    let fee = _calc_transfer_fee(value);
+    let fee = _calc_transfer_fee(value.clone());
 
-    if fee > value {
+    if fee.gt(&value) {
         return BurnResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
     }
 
@@ -498,25 +510,25 @@ async fn burn(from_sub_account: Option<Subaccount>, value: u128) -> BurnResult {
     return _burn(transfer_from, value).await;
 }
 
-async fn _burn(from: TokenHolder, value: u128) -> BurnResult {
+async fn _burn(from: TokenHolder, value: Nat) -> BurnResult {
     let from_balance = _balance_of(&from);
 
     let balances = storage::get_mut::<Balances>();
 
-    let from_balance_new = from_balance - value;
+    let from_balance_new = from_balance - value.clone();
 
     if from_balance_new == 0 {
         balances.remove(&from);
     } else {
         balances.insert(from.clone(), from_balance_new);
     }
-    unsafe {
-        TOTAL_SUPPLY -= value;
-        let crt_tx_cursor =
-            _save_tx_record_to_graphql(TxRecord::Burn(from.clone(), value, api::time())).await;
-        let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
-        BurnResult::Ok(tx_id)
-    }
+
+    let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
+    *rw_total_supply -= value.clone();
+    let crt_tx_cursor =
+        _save_tx_record_to_graphql(TxRecord::Burn(from.clone(), value, api::time())).await;
+    let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
+    BurnResult::Ok(tx_id)
 }
 
 #[update(name = "setStorageCanisterID")]
@@ -536,10 +548,8 @@ fn set_storage_canister_id(storage_canister_id_opt: Option<Principal>) -> bool {
 #[candid_method(update, rename = "setFee")]
 fn set_fee(fee: Fee) -> bool {
     _only_owner();
-    unsafe {
-        FEE = fee;
-        true
-    }
+    *FEE.write().unwrap() = fee;
+    true
 }
 
 #[query(name = "setFeeTo")]
@@ -573,10 +583,10 @@ fn get_token_info() -> TokenInfo {
     unsafe {
         TokenInfo {
             owner: OWNER,
-            holders: storage::get::<Balances>().len() as u128,
-            allowance_size: storage::get::<Allowances>().len() as u128,
+            holders: Nat::from(storage::get::<Balances>().len()),
+            allowance_size: Nat::from(storage::get::<Allowances>().len()),
             fee_to: FEE_TO.clone(),
-            tx_count: TX_ID_CURSOR,
+            tx_count: (*TX_ID_CURSOR.read().unwrap()).clone(),
             cycles,
         }
     }
@@ -596,7 +606,7 @@ fn pre_upgrade() {
     let fee_to = unsafe { FEE_TO.clone() };
     let meta = get_meta_data();
     let logo = unsafe { LOGO.clone() };
-    let tx_id_cursor = unsafe { TX_ID_CURSOR };
+    let tx_id_cursor = (*TX_ID_CURSOR.read().unwrap()).clone();
     let storage_canister_id = unsafe { STORAGE_CANISTER_ID };
 
     let mut extend = Vec::new();
@@ -607,12 +617,12 @@ fn pre_upgrade() {
         extend.push((k.to_string(), v.to_string()));
     }
     for (k, v) in storage::get_mut::<Balances>().iter() {
-        balances.push((k.clone(), *v));
+        balances.push((k.clone(), v.clone()));
     }
     for (th, v) in storage::get_mut::<Allowances>().iter() {
         let mut allow_item = Vec::new();
         for (sp, val) in v.iter() {
-            allow_item.push((sp.clone(), *val));
+            allow_item.push((sp.clone(), val.clone()));
         }
         allowances.push((th.clone(), allow_item));
     }
@@ -641,9 +651,9 @@ fn post_upgrade() {
         NAME = Box::leak(payload.meta.name.into_boxed_str());
         SYMBOL = Box::leak(payload.meta.symbol.into_boxed_str());
         DECIMALS = payload.meta.decimals;
-        TOTAL_SUPPLY = payload.meta.total_supply;
-        FEE = payload.meta.fee;
-        TX_ID_CURSOR = payload.tx_id_cursor;
+        *TOTAL_SUPPLY.write().unwrap() = payload.meta.total_supply;
+        *FEE.write().unwrap() = payload.meta.fee;
+        *TX_ID_CURSOR.write().unwrap() = payload.tx_id_cursor;
         LOGO = payload.logo;
         STORAGE_CANISTER_ID = payload.storage_canister_id;
     }
@@ -666,7 +676,7 @@ fn post_upgrade() {
 fn _on_token_sending(
     #[warn(unused_variables)] _transfer_from: &TokenHolder,
     #[warn(unused_variables)] _receiver: &TokenReceiver,
-    #[warn(unused_variables)] _value: &u128,
+    #[warn(unused_variables)] _value: &Nat,
 ) -> Result<(), String> {
     Ok(())
 }
@@ -675,7 +685,7 @@ fn _on_token_sending(
 async fn _on_token_received(
     transfer_from: &TransferFrom,
     receiver: &TokenReceiver,
-    _value: &u128,
+    _value: &Nat,
 ) -> Result<bool, String> {
     let get_did_method_name = "__get_candid_interface_tmp_hack";
     let on_token_received_method_name = "on_token_received";
@@ -738,20 +748,18 @@ async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result
     Ok(true)
 }
 
-fn _calc_approve_fee() -> u128 {
-    unsafe {
-        return FEE.lowest;
-    }
+fn _calc_approve_fee() -> Nat {
+    return FEE.read().unwrap().lowest.clone();
 }
 
-fn _calc_transfer_fee(value: u128) -> u128 {
-    unsafe {
-        let div_by = (10 as u128).pow(FEE_RATE_DECIMALS as u32);
-        cmp::max(FEE.lowest, value * FEE.rate / div_by)
-    }
+fn _calc_transfer_fee(value: Nat) -> Nat {
+    let r_fee = FEE.read().unwrap();
+    let div_by: Nat = BigUint::from(10u32).pow(FEE_RATE_DECIMALS as u32).into();
+    let calc_fee: Nat = value.mul(r_fee.rate.clone()).div(div_by);
+    cmp::max(r_fee.lowest.clone(), calc_fee)
 }
 
-fn _charge_approve_fee(payer: &TokenHolder, fee: u128) -> Result<bool, String> {
+fn _charge_approve_fee(payer: &TokenHolder, fee: Nat) -> Result<bool, String> {
     if fee == 0 {
         return Ok(true);
     }
@@ -761,27 +769,29 @@ fn _charge_approve_fee(payer: &TokenHolder, fee: u128) -> Result<bool, String> {
     if payer_balance < fee {
         return Err(MSG_INSUFFICIENT_BALANCE.to_string());
     }
-    balances.insert(payer.clone(), payer_balance - fee);
+    balances.insert(payer.clone(), payer_balance - fee.clone());
     _fee_settle(fee);
     Ok(true)
 }
 
-fn _fee_settle(fee: u128) {
-    if fee > 0 {
-        let balances = storage::get_mut::<Balances>();
-        unsafe {
-            let fee_to_balance = _balance_of(&FEE_TO);
-            balances.insert(FEE_TO.clone(), fee_to_balance + fee);
-        }
+fn _fee_settle(fee: Nat) {
+    if !fee.gt(&Nat::from(0)) {
+        return;
+    }
+    let balances = storage::get_mut::<Balances>();
+    unsafe {
+        let fee_to_balance = _balance_of(&FEE_TO);
+        balances.insert(FEE_TO.clone(), fee_to_balance + fee);
     }
 }
 
-async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
+async fn _save_tx_record_to_graphql(tx: TxRecord) -> Nat {
     unsafe {
-        TX_ID_CURSOR += 1;
+        let mut rw_tx_id_cursor = TX_ID_CURSOR.write().unwrap();
+        *rw_tx_id_cursor += 1;
 
         if STORAGE_CANISTER_ID == Principal::anonymous() {
-            return TX_ID_CURSOR;
+            return rw_tx_id_cursor.clone();
         }
         let type_str: &str;
         let from_str: String;
@@ -826,7 +836,13 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
                                 }}) 
                                 {{ id }} 
                                }}"#,
-            TX_ID_CURSOR, type_str, from_str, to_str, value_str, fee_str, timestamp_str
+            rw_tx_id_cursor.clone(),
+            type_str,
+            from_str,
+            to_str,
+            value_str,
+            fee_str,
+            timestamp_str
         );
         //call storage canister
         let _support_res: Result<(String,), _> = api::call::call(
@@ -836,11 +852,7 @@ async fn _save_tx_record_to_graphql(tx: TxRecord) -> u128 {
         )
         .await;
         ic_cdk::print(format!("muation is :{}", muation.to_string()));
-        // match _support_res {
-        //     Ok(res) => ic_cdk::print(format!("graph write succeed :{}", res.0)),
-        //     Err((_, msg)) => ic_cdk::print(format!("graph write error :{}", msg)),
-        // };
-        TX_ID_CURSOR
+        rw_tx_id_cursor.clone()
     }
 }
 

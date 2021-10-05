@@ -1,21 +1,23 @@
 #![allow(dead_code)]
 
+use candid::Nat;
 use ic_cdk::export::Principal;
+use num_bigint::BigUint;
 const CANISTER_ID_HASH_LEN_IN_BYTES: usize = 10;
 const DFT_DOMAIN_SEPERATOR: &[u8] = b"\x0DFT-tx-id";
 const MSG_INVALID_DFT_TX_ID: &str = "Invalid dft tx id";
 //  length 45  [20: token_cansiter_id, 9: FUNGIBLE_TOKEN_CURSOR_SEPERATOR, 16: tx_cursor_id]
-pub fn encode_tx_id(token_cansiter_id: Principal, tx_index: u128) -> String {
+pub fn encode_tx_id(token_cansiter_id: Principal, tx_index: Nat) -> String {
     let mut blob: Vec<u8> = Vec::new();
     let canister_id_blob = token_cansiter_id.as_slice();
-    let tx_cursor_blob = u128_to_bytes(tx_index);
+    let tx_cursor_blob = tx_index.0.to_bytes_be();
     blob.extend(DFT_DOMAIN_SEPERATOR);
     blob.extend(canister_id_blob);
     blob.extend(tx_cursor_blob);
     hex::encode(blob)
 }
 
-pub fn decode_tx_id(tx_id: String) -> Result<(Principal, u128), String> {
+pub fn decode_tx_id(tx_id: String) -> Result<(Principal, Nat), String> {
     let blob = hex::decode(tx_id).unwrap();
 
     let dft_domain_seperator_blob = &blob[0..DFT_DOMAIN_SEPERATOR.len()];
@@ -32,34 +34,17 @@ pub fn decode_tx_id(tx_id: String) -> Result<(Principal, u128), String> {
         return Err(MSG_INVALID_DFT_TX_ID.to_string());
     }
 
-    if tx_cursor_blob.len() > 16 {
-        return Err(MSG_INVALID_DFT_TX_ID.to_string());
-    }
-
-    let mut tx_index: [u8; 16] = Default::default();
-    let fill_bytes: Vec<u8> = (0..(16 - tx_cursor_blob.len())).map(|_| 0u8).collect();
-
-    tx_index.copy_from_slice([fill_bytes.as_slice(), tx_cursor_blob].concat().as_slice());
-
-    Ok((canister_id_res.unwrap(), u128::from_be_bytes(tx_index)))
-}
-
-fn u128_to_bytes(n: u128) -> Vec<u8> {
-    let bytes = n.to_be_bytes();
-
-    for (k, &v) in bytes.iter().enumerate() {
-        if v != 0 {
-            return bytes[k..].to_vec();
-        }
-    }
-    return vec![0];
+    Ok((
+        canister_id_res.unwrap(),
+        BigUint::from_bytes_be(tx_cursor_blob).into(),
+    ))
 }
 
 #[test]
 fn test_encode_decode() {
     let token_id = Principal::from_text("rwlgt-iiaaa-aaaaa-aaaaa-cai").unwrap();
-    let tx_index = 18446744073709552999u128;
-    let tx_id = encode_tx_id(token_id, tx_index);
+    let tx_index = Nat::from(18446744073709552999u128);
+    let tx_id = encode_tx_id(token_id, tx_index.clone());
 
     let tx_id_decode_res = decode_tx_id(tx_id);
 

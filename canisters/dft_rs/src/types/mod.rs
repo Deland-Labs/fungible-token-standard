@@ -12,10 +12,14 @@ mod token_payload;
 mod transfer_result;
 mod tx_record;
 
+use ic_cdk::export::candid::Nat;
+use std::collections::HashMap;
+use std::string::String;
+
 pub type TransactionId = String;
 pub type ExtendData = HashMap<String, String>;
-pub type Balances = HashMap<TokenHolder, u128>;
-pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, u128>>;
+pub type Balances = HashMap<TokenHolder, Nat>;
+pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, Nat>>;
 pub use account_identifier::AccountIdentifier;
 pub use account_identifier::Subaccount;
 pub use account_identifier::SUB_ACCOUNT_ZERO;
@@ -23,8 +27,6 @@ pub use call_data::CallData;
 pub use fee::Fee;
 pub use key_value_pair::KeyValuePair;
 pub use metadata::MetaData;
-use std::collections::HashMap;
-use std::string::String;
 pub use token_holder::TokenHolder;
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;

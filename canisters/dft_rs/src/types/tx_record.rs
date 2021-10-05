@@ -1,12 +1,12 @@
 use super::{TokenHolder, TokenReceiver};
-use ic_cdk::export::candid::{CandidType, Deserialize};
+use ic_cdk::export::candid::{CandidType, Deserialize, Nat};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum TxRecord {
     //  owner, spender, value, fee, timestamp
-    Approve(TokenHolder, TokenReceiver, u128, u128, u64),
+    Approve(TokenHolder, TokenReceiver, Nat, Nat, u64),
     // caller, from, to, value, fee, timestamp
-    Transfer(TokenHolder, TokenReceiver, u128, u128, u64),
+    Transfer(TokenHolder, TokenReceiver, Nat, Nat, u64),
     // caller, from, value, timestamp
-    Burn(TokenHolder, u128, u64),
+    Burn(TokenHolder, Nat, u64),
 }
