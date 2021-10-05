@@ -1,5 +1,6 @@
 [workspace]
 members = [
     "canisters/dft_rs",
+    "canisters/dft_tx_storage",
     "canisters/graphql"
 ]

@@ -18,6 +18,15 @@
       "candid": "canisters/dft_rs/src/token.did",
       "wasm": "target/wasm32-unknown-unknown/release/dft_rs_opt.wasm"
     },
+    "dft_tx_storage": {
+      "type": "custom",
+      "build": [
+        "cargo build --target wasm32-unknown-unknown --package  dft_tx_storage --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_tx_storage.wasm -o target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
+      ],
+      "candid": "canisters/dft_tx_storage/src/storage.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
+    },
     "dft_motoko": {
       "main": "canisters/dft_motoko/main.mo"
     }
