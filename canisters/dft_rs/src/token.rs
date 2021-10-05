@@ -764,7 +764,7 @@ fn _charge_approve_fee(payer: &TokenHolder, fee: u128) -> Result<bool, String> {
     let balances = storage::get_mut::<Balances>();
     let payer_balance = _balance_of(&payer);
     if payer_balance < fee {
-        return Err(MSG_FAILED_TO_CHARGE_FEE.to_string());
+        return Err(MSG_INSUFFICIENT_BALANCE.to_string());
     }
     balances.insert(payer.clone(), payer_balance - fee);
     _fee_settle(fee);
