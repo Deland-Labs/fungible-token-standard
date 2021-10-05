@@ -11,6 +11,14 @@ type MetaData = record {
   total_supply : nat;
   symbol : text;
 };
+type TokenHolder = variant { Account : text; Principal : principal };
+type TokenInfo = record {
+  fee_to : TokenHolder;
+  owner : principal;
+  cycles : nat64;
+  tx_count : nat;
+  holders : nat;
+};
 type TransferResponse = record { txid : text; error : opt vec text };
 type TransferResult = variant { Ok : TransferResponse; Err : text };
 
@@ -27,6 +35,7 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   name : () -> (text) query;
   symbol : () -> (text) query;
   totalSupply : () -> (nat) query;
+  getTokenInfo : () -> (TokenInfo) query;
   tokenGraphql : () -> (opt principal) query;
   transfer : (opt vec nat8, text, nat, opt CallData) -> (TransferResult);
   transferFrom : (opt vec nat8, text, text, nat) -> (TransferResult);

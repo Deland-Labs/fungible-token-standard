@@ -8,7 +8,7 @@
 use crate::extends;
 use crate::types::{
     Allowances, ApproveResponse, ApproveResult, Balances, BurnResult, CallData, ExtendData, Fee,
-    KeyValuePair, MetaData, StatisticsInfo, Subaccount, TokenHolder, TokenPayload, TokenReceiver,
+    KeyValuePair, MetaData, Subaccount, TokenHolder, TokenInfo, TokenPayload, TokenReceiver,
     TransferFrom, TransferResponse, TransferResult, TxRecord,
 };
 use crate::utils::*;
@@ -583,22 +583,19 @@ fn _token_graphql() -> Option<Principal> {
     unsafe { Some(STORAGE_CANISTER_ID) }
 }
 
-#[query(name = "getStatistics")]
-#[candid_method(query, rename = "getStatistics")]
-fn get_statistics() -> StatisticsInfo {
+#[query(name = "getTokenInfo")]
+#[candid_method(query, rename = "getTokenInfo")]
+fn get_token_info() -> TokenInfo {
+    let cycles = api::canister_balance();
     unsafe {
-        StatisticsInfo {
-            holders: storage::get_mut::<Balances>().len() as u128,
-            transfers: TX_ID_CURSOR,
+        TokenInfo {
+            owner: OWNER,
+            holders: storage::get::<Balances>().len() as u128,
+            fee_to: FEE_TO.clone(),
+            tx_count: TX_ID_CURSOR,
+            cycles,
         }
     }
-}
-
-// query cycles balance
-#[query(name = "cyclesBalance")]
-#[candid_method(query, rename = "cyclesBalance")]
-fn cycles_balance() -> u128 {
-    api::canister_balance().into()
 }
 
 candid::export_service!();
