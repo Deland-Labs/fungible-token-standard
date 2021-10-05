@@ -9,6 +9,7 @@ use super::TokenHolder;
 pub struct TokenInfo {
     pub owner: Principal,
     pub holders: u128,
+    pub allowance_size: u128,
     pub fee_to: TokenHolder,
     pub tx_count: u128,
     pub cycles: u64,

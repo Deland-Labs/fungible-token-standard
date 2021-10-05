@@ -574,6 +574,7 @@ fn get_token_info() -> TokenInfo {
         TokenInfo {
             owner: OWNER,
             holders: storage::get::<Balances>().len() as u128,
+            allowance_size: storage::get::<Allowances>().len() as u128,
             fee_to: FEE_TO.clone(),
             tx_count: TX_ID_CURSOR,
             cycles,
