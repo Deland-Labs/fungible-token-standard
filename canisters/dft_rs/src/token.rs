@@ -6,6 +6,7 @@
  * Stability  : Experimental
  */
 use crate::extends;
+use crate::types::message::*;
 use crate::types::{
     Allowances, ApproveResponse, ApproveResult, Balances, BurnResult, CallData, ExtendData, Fee,
     KeyValuePair, MetaData, Subaccount, TokenHolder, TokenInfo, TokenPayload, TokenReceiver,
@@ -25,18 +26,6 @@ const TX_TYPES_APPROVE: &str = "approve";
 const TX_TYPES_TRANSFER: &str = "transfer";
 const TX_TYPES_BURN: &str = "burn";
 // const TX_TYPES_MINT: &str = "mint";
-
-const MSG_ONLY_OWNER: &str = "DFT: caller is not the owner";
-const MSG_INVALID_SPENDER: &str = "DFT: invalid spender";
-const MSG_INVALID_FROM: &str = "DFT: invalid format [from]";
-const MSG_INVALID_TO: &str = "DFT: invalid format [to]";
-const MSG_INVALID_FEE_TO: &str = "DFT: invalid format [feeTo]";
-const MSG_FAILED_TO_CHARGE_FEE: &str = "DFT: Failed to charge fee - insufficient balance";
-const MSG_ALLOWANCE_EXCEEDS: &str = "DFT: transfer amount exceeds allowance";
-const MSG_BALANCE_EXCEEDS: &str = "DFT: transfer amount exceeds balance";
-const MSG_BURN_VALUE_TOO_SMALL: &str = "DFT: burning value is too small";
-const MSG_BURN_VALUE_EXCEEDS: &str = "DFT: burning value exceeds balance";
-const MSG_NOTIFICATION_FAILED: &str = "DFT: notification failed";
 
 static mut OWNER: Principal = Principal::anonymous();
 static mut NAME: &str = "";
