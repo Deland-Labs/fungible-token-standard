@@ -35,6 +35,7 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   name : () -> (text) query;
   symbol : () -> (text) query;
   totalSupply : () -> (nat) query;
+  getAllowancesByHolder : (text) -> (vec record { TokenHolder; nat }) query;
   getTokenInfo : () -> (TokenInfo) query;
   tokenGraphql : () -> (opt principal) query;
   transfer : (opt vec nat8, text, nat, opt CallData) -> (TransferResult);

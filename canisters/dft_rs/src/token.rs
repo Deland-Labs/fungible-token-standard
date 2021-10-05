@@ -301,6 +301,19 @@ async fn approve(
     }
 }
 
+#[query(name = "getAllowancesByHolder")]
+#[candid_method(query, rename = "getAllowancesByHolder")]
+fn get_allowances_by_holder(holder: String) -> Vec<(TokenHolder, u128)> {
+    let allowances = storage::get::<Allowances>();
+    match holder.parse::<TokenHolder>() {
+        Ok(token_holder) => match allowances.get(&token_holder) {
+            Some(allowance) => allowance.clone().into_iter().map(|x| (x.0, x.1)).collect(),
+            None => Vec::new(),
+        },
+        Err(_) => Vec::new(),
+    }
+}
+
 #[update(name = "transferFrom")]
 #[candid_method(update, rename = "transferFrom")]
 async fn transfer_from(
