@@ -33,8 +33,14 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   logo : () -> (vec nat8) query;
   meta : () -> (MetaData) query;
   name : () -> (text) query;
+  owner : () -> (principal);
   symbol : () -> (text) query;
   totalSupply : () -> (nat) query;
+  setExtend : (vec KeyValuePair) -> (bool);
+  setFee : (Fee) -> (bool);
+  setFeeTo : (text) -> (bool);
+  setLogo : (vec nat8) -> (bool);
+  setOwner : (principal) -> (bool);
   getAllowancesByHolder : (text) -> (vec record { TokenHolder; nat }) query;
   getTokenInfo : () -> (TokenInfo) query;
   tokenGraphql : () -> (opt principal) query;

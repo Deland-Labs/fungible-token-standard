@@ -50,7 +50,7 @@ define test_token_impl
 	dfx canister call $(1) balanceOf "$(owner_id)" \
 	| grep '99_999_999_000_000_000_000_000_000' && echo 'PASS balanceOf check'
 
-	dfx canister call $(1) updateExtend '(vec {record {k = "OFFICIAL_SITE"; v = "http://test.com" }})' \
+	dfx canister call $(1) setExtend '(vec {record {k = "OFFICIAL_SITE"; v = "http://test.com" }})' \
 	| grep '(true)' && echo 'PASS updateExtend test'
 	dfx canister call $(1) extend  \
 	| grep 'k = "OFFICIAL_SITE"; v = "http://test.com"' && echo 'PASS extend test'
