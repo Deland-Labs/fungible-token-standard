@@ -13,7 +13,7 @@ use crate::types::{
     TransferFrom, TransferResponse, TransferResult, TxRecord,
 };
 use crate::utils::*;
-use candid::{candid_method, decode_args, IDLProg};
+use candid::{candid_method, decode_args};
 use ic_cdk::{api, export::Principal, storage};
 use ic_cdk_macros::*;
 use std::cmp;
@@ -506,25 +506,6 @@ async fn _burn(from: TokenHolder, value: u128) -> BurnResult {
     }
 }
 
-fn supported_interface(did: String, interface_sig: String) -> bool {
-    let verify_service_desc = format!("service:{{ {0};}}", interface_sig);
-    let verify_ast_result = verify_service_desc.parse::<IDLProg>();
-
-    match verify_ast_result {
-        Ok(verify_ast) => {
-            let verify_pretty: String = candid::parser::types::to_pretty(&verify_ast, 80);
-            let verify_pretty_sub: String =
-                verify_pretty.replace("service : { ", "").replace(" }", "");
-
-            let origin_did = did;
-            let origin_ast: IDLProg = origin_did.parse().unwrap();
-            let origin_pretty: String = candid::parser::types::to_pretty(&origin_ast, 80);
-            origin_pretty.contains(&verify_pretty_sub)
-        }
-        _ => false,
-    }
-}
-
 #[update(name = "setStorageCanisterID")]
 #[candid_method(update, rename = "setStorageCanisterID")]
 fn set_storage_canister_id(storage_canister_id_opt: Option<Principal>) -> bool {
@@ -693,7 +674,7 @@ async fn _on_token_received(
                 api::call::call(*cid, get_did_method_name, ()).await;
 
             if let Ok((did,)) = did_res {
-                let _support = supported_interface(did, on_token_received_method_sig.to_string());
+                let _support = is_support_interface(did, on_token_received_method_sig.to_string());
                 if _support {
                     let _check_res: Result<(bool,), _> = api::call::call(
                         *cid,
