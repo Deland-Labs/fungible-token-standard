@@ -1,14 +1,5 @@
 {
   "canisters": {
-    "graphql": {
-      "type": "custom",
-      "build": [
-        "cargo build --target wasm32-unknown-unknown --package graphql --release",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/graphql.wasm -o target/wasm32-unknown-unknown/release/graphql_opt.wasm"
-      ],
-      "candid": "canisters/graphql/src/graphql.did",
-      "wasm": "target/wasm32-unknown-unknown/release/graphql_opt.wasm"
-    },
     "dft_rs": {
       "type": "custom",
       "build": [

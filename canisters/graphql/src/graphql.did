@@ -1,4 +1,0 @@
-service : (opt principal) -> {
-    "graphql_query": (text, text) -> (text) query;
-    "graphql_mutation": (text, text) -> (text);
-}
