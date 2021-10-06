@@ -625,6 +625,10 @@ fn get_token_info() -> TokenInfo {
             fee_to: FEE_TO.clone(),
             tx_count: (*TX_ID_CURSOR.read().unwrap()).clone(),
             cycles,
+            storages: storage::get::<StorageCanisterIds>()
+                .iter()
+                .map(|v| *v.1)
+                .collect(),
         }
     }
 }

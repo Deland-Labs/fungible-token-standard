@@ -88,6 +88,7 @@ service : {
   //          fee_to: feeHolder,
   //          tx_count: total transaction count of the token,
   //          cycles: cycles balance of the token
+  //          storages : auto-scaling storage canister ids
   tokenInfo : () -> (TokenInfo) query;
 
   // Returns the amount which spender is still allowed to withdraw from owner.

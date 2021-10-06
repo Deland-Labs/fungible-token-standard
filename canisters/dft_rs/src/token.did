@@ -1,6 +1,3 @@
-type ApproveResponse = record { txid : text; error : opt text };
-type ApproveResult = variant { Ok : ApproveResponse; Err : text };
-type BurnResult = variant { Ok : text; Err : text };
 type CallData = record { method : text; args : vec nat8 };
 type Fee = record { rate : nat; lowest : nat };
 type KeyValuePair = record { k : text; v : text };
@@ -13,20 +10,22 @@ type MetaData = record {
 };
 type TokenHolder = variant { Account : text; Principal : principal };
 type TokenInfo = record {
+  allowance_size : nat;
   fee_to : TokenHolder;
   owner : principal;
   cycles : nat64;
   tx_count : nat;
   holders : nat;
+  storages : vec principal;
 };
-type TransferResponse = record { txid : text; error : opt vec text };
-type TransferResult = variant { Ok : TransferResponse; Err : text };
+type TransactionResponse = record { txid : text; error : opt vec text };
+type TransactionResult = variant { Ok : TransactionResponse; Err : text };
 
 service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {
   allowance : (text, text) -> (nat) query;
-  approve : (opt vec nat8, text, nat, opt CallData) -> (ApproveResult);
+  approve : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
   balanceOf : (text) -> (nat) query;
-  burn : (opt vec nat8, nat) -> (BurnResult);
+  burn : (opt vec nat8, nat) -> (TransactionResult);
   decimals : () -> (nat8) query;
   extend : () -> (vec KeyValuePair) query;
   fee : () -> (Fee) query;
@@ -43,6 +42,6 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   setOwner : (principal) -> (bool);
   allowancesByHolder : (text) -> (vec record { TokenHolder; nat }) query;
   tokenInfo : () -> (TokenInfo) query;
-  transfer : (opt vec nat8, text, nat, opt CallData) -> (TransferResult);
-  transferFrom : (opt vec nat8, text, text, nat) -> (TransferResult);
+  transfer : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
+  transferFrom : (opt vec nat8, text, text, nat) -> (TransactionResult);
 }

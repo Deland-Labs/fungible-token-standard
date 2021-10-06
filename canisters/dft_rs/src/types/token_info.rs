@@ -13,4 +13,5 @@ pub struct TokenInfo {
     pub fee_to: TokenHolder,
     pub tx_count: Nat,
     pub cycles: u64,
+    pub storages: Vec<Principal>,
 }
