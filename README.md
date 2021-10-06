@@ -42,6 +42,12 @@ service : {
 
   // Return token's fee setting
   fee : () -> (Fee) query;
+  
+  // Set token's fee setting
+  setFee : (Fee) -> (bool);
+
+  // Any fee will send to the feeHolder
+  setFeeTo : (feeHolder: text) -> (bool);
 
   // Return all of the meta data of a token.
   meta: () -> (MetaData) query;
@@ -55,12 +61,34 @@ service : {
   //   DSCVR, OPENCHAT, DISTRIKT, WEACT
 
   extend: () -> (vec KeyValuePair) query;
+  
+  // Set extend data of a token.
+  setExtend : (vec KeyValuePair) -> (bool);
 
   // Return token logo picture
   logo : () -> (vec nat8) query;
 
+  // Set the logo of a token
+  setLogo : (logo : vec nat8) -> (bool);
+
   // Returns the account balance of another account with address owner.
   balanceOf: (holder: text) -> (nat) query;
+
+  // Return token's owner
+  owner : () -> (principal);  
+
+  // Set the token owner
+  //    owner can invoke [setFee, setFeeTo, setLogo, setExtend, setOwner]
+  setOwner : (owner: principal) -> (bool);
+  
+  // Return token's info:
+  // owner: OWNER,
+  //          holders: total holder count of the token,
+  //          allowance_size: total allowance count of the token,
+  //          fee_to: feeHolder,
+  //          tx_count: total transaction count of the token,
+  //          cycles: cycles balance of the token
+  tokenInfo : () -> (TokenInfo) query;
 
   // Returns the amount which spender is still allowed to withdraw from owner.
   allowance:(owner: text, spender: text)->(nat) query;
@@ -69,6 +97,10 @@ service : {
   // If this function is called again it overwrites the current allowance with value.
   // If `calldata` is not null and `spender` is canister, approve means approveAndCall.
   approve: (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (ApproveResult);
+
+  //Get all allownances of the holder
+  allowancesOfHolder : (holder: text) -> (vec record { TokenHolder; nat }) query;
+
   // Transfers value amount of tokens from `address from` to [address to].
   // The transferFrom method is used for a withdraw workflow, allowing canister
   // to transfer tokens on your behalf.

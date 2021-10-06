@@ -41,9 +41,8 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   setFeeTo : (text) -> (bool);
   setLogo : (vec nat8) -> (bool);
   setOwner : (principal) -> (bool);
-  getAllowancesByHolder : (text) -> (vec record { TokenHolder; nat }) query;
-  getTokenInfo : () -> (TokenInfo) query;
-  tokenGraphql : () -> (opt principal) query;
+  allowancesByHolder : (text) -> (vec record { TokenHolder; nat }) query;
+  tokenInfo : () -> (TokenInfo) query;
   transfer : (opt vec nat8, text, nat, opt CallData) -> (TransferResult);
   transferFrom : (opt vec nat8, text, text, nat) -> (TransferResult);
 }

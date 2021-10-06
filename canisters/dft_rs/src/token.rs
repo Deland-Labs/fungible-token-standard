@@ -345,8 +345,8 @@ async fn approve(
     }
 }
 
-#[query(name = "getAllowancesByHolder")]
-#[candid_method(query, rename = "getAllowancesByHolder")]
+#[query(name = "allowancesOfHolder")]
+#[candid_method(query, rename = "allowancesOfHolder")]
 fn get_allowances_by_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
     let allowances = storage::get::<Allowances>();
     match holder.parse::<TokenHolder>() {
@@ -613,8 +613,8 @@ fn _set_fee_to(holder: TokenHolder) -> bool {
     }
 }
 
-#[query(name = "getTokenInfo")]
-#[candid_method(query, rename = "getTokenInfo")]
+#[query(name = "tokenInfo")]
+#[candid_method(query, rename = "tokenInfo")]
 fn get_token_info() -> TokenInfo {
     let cycles = api::canister_balance();
     unsafe {
