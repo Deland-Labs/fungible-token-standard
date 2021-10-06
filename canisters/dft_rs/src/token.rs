@@ -254,7 +254,7 @@ async fn approve(
     spender: String,
     value: Nat,
     call_data: Option<CallData>,
-) -> ApproveResult {
+) -> TransactionResult {
     let caller = api::caller();
     let owner_holder = TokenHolder::new(caller, owner_sub_account);
     let spender_parse_result = spender.parse::<TokenHolder>();
@@ -264,7 +264,7 @@ async fn approve(
         //charge approve, prevent gas ddos attacks
         match _charge_approve_fee(&spender_holder, approve_fee.clone()) {
             Ok(_) => {}
-            Err(emsg) => return ApproveResult::Err(emsg),
+            Err(emsg) => return TransactionResult::Err(emsg),
         }
 
         let allowances_read = storage::get::<Allowances>();
@@ -320,28 +320,28 @@ async fn approve(
                     Err(emsg) => {
                         // approve succeed ,bu call failed
                         errors.push(emsg);
-                        return ApproveResult::Ok(ApproveResponse {
+                        return TransactionResult::Ok(TransactionResponse {
                             txid: tx_id,
-                            errors: Some(errors),
+                            error: Some(errors),
                         });
                     }
                     Ok(_) => {
-                        return ApproveResult::Ok(ApproveResponse {
+                        return TransactionResult::Ok(TransactionResponse {
                             txid: tx_id,
-                            errors: None,
+                            error: None,
                         })
                     }
                 }
             }
             None => {
-                return ApproveResult::Ok(ApproveResponse {
+                return TransactionResult::Ok(TransactionResponse {
                     txid: tx_id,
-                    errors: None,
+                    error: None,
                 })
             }
         }
     } else {
-        return ApproveResult::Err(MSG_INVALID_SPENDER.to_string());
+        return TransactionResult::Err(MSG_INVALID_SPENDER.to_string());
     }
 }
 
@@ -365,7 +365,7 @@ async fn transfer_from(
     from: String,
     to: String,
     value: Nat,
-) -> TransferResult {
+) -> TransactionResult {
     let caller = api::caller();
     let spender = TokenHolder::new(caller, spender_sub_account);
 
@@ -380,7 +380,7 @@ async fn transfer_from(
 
                 // check allowance
                 if spender_allowance < value.clone() + fee.clone() {
-                    return TransferResult::Err(MSG_ALLOWANCE_EXCEEDS.to_string());
+                    return TransactionResult::Err(MSG_ALLOWANCE_EXCEEDS.to_string());
                 }
                 let allowances_read = storage::get::<Allowances>();
 
@@ -411,9 +411,9 @@ async fn transfer_from(
                 // transfer
                 _transfer(caller, from_token_holder, to_token_holder, value).await
             }
-            _ => TransferResult::Err(MSG_INVALID_TO.to_string()),
+            _ => TransactionResult::Err(MSG_INVALID_TO.to_string()),
         },
-        _ => TransferResult::Err(MSG_INVALID_FROM.to_string()),
+        _ => TransactionResult::Err(MSG_INVALID_FROM.to_string()),
     }
 }
 
@@ -424,7 +424,7 @@ async fn transfer(
     to: String,
     value: Nat,
     call_data: Option<CallData>,
-) -> TransferResult {
+) -> TransactionResult {
     let caller = api::caller();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
@@ -433,7 +433,7 @@ async fn transfer(
         Ok(receiver) => {
             let mut errors: Vec<String> = Vec::new();
             match _transfer(caller, transfer_from, receiver.clone(), value).await {
-                TransferResult::Ok(tx_res) => {
+                TransactionResult::Ok(tx_res) => {
                     if let Some(inner_errors) = tx_res.error {
                         errors = [errors, inner_errors].concat();
                     }
@@ -445,21 +445,21 @@ async fn transfer(
                         };
                     }
                     if errors.len() > 0 {
-                        TransferResult::Ok(TransferResponse {
+                        TransactionResult::Ok(TransactionResponse {
                             txid: tx_res.txid,
                             error: Some(errors),
                         })
                     } else {
-                        TransferResult::Ok(TransferResponse {
+                        TransactionResult::Ok(TransactionResponse {
                             txid: tx_res.txid,
                             error: None,
                         })
                     }
                 }
-                TransferResult::Err(emsg) => return TransferResult::Err(emsg),
+                TransactionResult::Err(emsg) => return TransactionResult::Err(emsg),
             }
         }
-        _ => TransferResult::Err(MSG_INVALID_FROM.to_string()),
+        _ => TransactionResult::Err(MSG_INVALID_FROM.to_string()),
     }
 }
 
@@ -468,19 +468,19 @@ async fn _transfer(
     from: TokenHolder,
     to: TokenHolder,
     value: Nat,
-) -> TransferResult {
+) -> TransactionResult {
     let fee = _calc_transfer_fee(value.clone());
     let from_balance = _balance_of(&from);
 
     if from_balance < value.clone() + fee.clone() {
-        return TransferResult::Err(MSG_BALANCE_EXCEEDS.to_string());
+        return TransactionResult::Err(MSG_BALANCE_EXCEEDS.to_string());
     }
 
     // before transfer
     let before_sending_check_result = _on_token_sending(&from, &to, &value);
 
     if let Err(emsg) = before_sending_check_result {
-        return TransferResult::Err(emsg);
+        return TransactionResult::Err(emsg);
     }
 
     let to_balance = _balance_of(&to);
@@ -519,12 +519,12 @@ async fn _transfer(
     ic_cdk::print(format!("transfer tx id {}", tx_id));
     if let Err(emsg) = after_token_send_notify_result {
         errors.push(emsg);
-        TransferResult::Ok(TransferResponse {
+        TransactionResult::Ok(TransactionResponse {
             txid: tx_id,
             error: Some(errors),
         })
     } else {
-        TransferResult::Ok(TransferResponse {
+        TransactionResult::Ok(TransactionResponse {
             txid: tx_id,
             error: None,
         })
@@ -533,25 +533,25 @@ async fn _transfer(
 
 #[update(name = "burn")]
 #[candid_method(update, rename = "burn")]
-async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> BurnResult {
+async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> TransactionResult {
     let caller = api::caller();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
     let fee = _calc_transfer_fee(value.clone());
 
     if fee.gt(&value) {
-        return BurnResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
+        return TransactionResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
     }
 
     let from_balance = _balance_of(&transfer_from);
 
     if from_balance < value {
-        return BurnResult::Err(MSG_BURN_VALUE_EXCEEDS.to_string());
+        return TransactionResult::Err(MSG_BURN_VALUE_EXCEEDS.to_string());
     }
 
     return _burn(caller, transfer_from, value).await;
 }
 
-async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> BurnResult {
+async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> TransactionResult {
     let from_balance = _balance_of(&from);
 
     let balances = storage::get_mut::<Balances>();
@@ -577,7 +577,7 @@ async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> BurnResult {
     .await;
 
     let tx_id = encode_tx_id(api::id(), tx_index_new);
-    BurnResult::Ok(BurnResponse {
+    TransactionResult::Ok(TransactionResponse {
         txid: tx_id,
         error: if err_save_msg.len() > 0 {
             Some(vec![err_save_msg])

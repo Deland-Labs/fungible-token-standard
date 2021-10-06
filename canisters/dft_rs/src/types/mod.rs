@@ -1,6 +1,4 @@
 mod account_identifier;
-mod approve_result;
-mod burn_result;
 mod call_data;
 mod fee;
 mod key_value_pair;
@@ -9,7 +7,7 @@ mod metadata;
 mod token_holder;
 mod token_info;
 mod token_payload;
-mod transfer_result;
+mod transcation_result;
 mod tx_record;
 
 use candid::Principal;
@@ -33,14 +31,10 @@ pub use metadata::MetaData;
 pub use token_holder::TokenHolder;
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
-pub use approve_result::ApproveResponse;
-pub use approve_result::ApproveResult;
-pub use burn_result::BurnResponse;
-pub use burn_result::BurnResult;
 pub use token_info::TokenInfo;
 pub use token_payload::TokenPayload;
-pub use transfer_result::TransferResponse;
-pub use transfer_result::TransferResult;
+pub use transcation_result::TransactionResponse;
+pub use transcation_result::TransactionResult;
 pub use tx_record::TxRecord;
 
 #[test]
