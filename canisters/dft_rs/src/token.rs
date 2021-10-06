@@ -649,22 +649,26 @@ fn pre_upgrade() {
     let mut balances = Vec::new();
     let mut allowances = Vec::new();
     let mut storage_canister_ids = Vec::new();
+    let mut txs = Vec::new();
 
-    for (k, v) in storage::get_mut::<ExtendData>().iter() {
+    for (k, v) in storage::get::<ExtendData>().iter() {
         extend.push((k.to_string(), v.to_string()));
     }
-    for (k, v) in storage::get_mut::<Balances>().iter() {
+    for (k, v) in storage::get::<Balances>().iter() {
         balances.push((k.clone(), v.clone()));
     }
-    for (th, v) in storage::get_mut::<Allowances>().iter() {
+    for (th, v) in storage::get::<Allowances>().iter() {
         let mut allow_item = Vec::new();
         for (sp, val) in v.iter() {
             allow_item.push((sp.clone(), val.clone()));
         }
         allowances.push((th.clone(), allow_item));
     }
-    for (k, v) in storage::get_mut::<StorageCanisterIds>().iter() {
+    for (k, v) in storage::get::<StorageCanisterIds>().iter() {
         storage_canister_ids.push((k.clone(), *v));
+    }
+    for v in storage::get::<Txs>().iter() {
+        txs.push(v.clone());
     }
     let payload = TokenPayload {
         owner,
@@ -676,6 +680,7 @@ fn pre_upgrade() {
         allowances,
         tx_id_cursor,
         storage_canister_ids,
+        txs_inner: txs,
     };
     storage::stable_save((payload,)).unwrap();
 }
@@ -712,6 +717,8 @@ fn post_upgrade() {
     for (k, v) in payload.storage_canister_ids {
         storage::get_mut::<StorageCanisterIds>().insert(k, v);
     }
+
+    storage::get_mut::<Txs>().extend(payload.txs_inner);
 }
 
 // do something becore sending

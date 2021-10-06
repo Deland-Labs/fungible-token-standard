@@ -1,4 +1,4 @@
-use super::{MetaData, TokenHolder};
+use super::{MetaData, TokenHolder, Txs};
 use candid::Principal;
 use ic_cdk::export::{
     candid::{CandidType, Deserialize, Nat}
@@ -16,4 +16,5 @@ pub struct TokenPayload {
     pub allowances: Vec<(TokenHolder, Vec<(TokenHolder, Nat)>)>,
     pub tx_id_cursor: Nat,
     pub storage_canister_ids: Vec<(Nat, Principal)>,
+    pub txs_inner: Txs,
 }
