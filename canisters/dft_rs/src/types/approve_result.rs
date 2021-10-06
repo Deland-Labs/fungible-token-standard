@@ -4,7 +4,7 @@ use ic_cdk::export::candid::{CandidType, Deserialize};
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct ApproveResponse {
     pub txid: TransactionId,
-    pub error: Option<String>,
+    pub errors: Option<Vec<String>>,
 }
 
 // Invalid data: Invalid IDL blob by candid 0.6.21

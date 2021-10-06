@@ -1,7 +1,5 @@
-use ic_cdk::export::{
-    candid::{CandidType, Deserialize},
-    Principal,
-};
+use candid::Principal;
+use ic_cdk::export::candid::{CandidType, Deserialize};
 use std::{
     fmt::{self, Display},
     str::FromStr,
@@ -10,7 +8,6 @@ use std::{
 
 use super::{AccountIdentifier, Subaccount};
 #[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
 pub enum TokenHolder {
     Account(AccountIdentifier),
     Principal(Principal),
@@ -53,4 +50,14 @@ impl Display for TokenHolder {
         };
         write!(f, "{}", s)
     }
+}
+
+#[test]
+fn test_token_holder_size() {
+    let token_holder_size = std::mem::size_of::<TokenHolder>();
+    assert_eq!(
+        31, token_holder_size,
+        "token_holder_size is  not {}",
+        token_holder_size
+    );
 }

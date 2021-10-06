@@ -6,14 +6,13 @@
  * Stability  : Experimental
  */
 use crate::extends;
-use crate::types::message::*;
-use crate::types::{
-    Allowances, ApproveResponse, ApproveResult, Balances, BurnResult, CallData, ExtendData, Fee,
-    KeyValuePair, MetaData, Subaccount, TokenHolder, TokenInfo, TokenPayload, TokenReceiver,
-    TransferFrom, TransferResponse, TransferResult, TxRecord,
+use crate::ic_management::{
+    create_canister, get_canister_status, install_canister, CanisterIdRecord, CanisterSettings,
+    CreateCanisterArgs,
 };
+use crate::types::{message::*, *};
 use crate::utils::*;
-use candid::{candid_method, decode_args};
+use candid::{candid_method, decode_args, encode_args};
 use ic_cdk::{
     api,
     export::{candid::Nat, Principal},
@@ -28,11 +27,10 @@ use std::string::String;
 use std::sync::RwLock;
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
+const MAX_TXS_CACHE_IN_DFT: usize = 1;
 const FEE_RATE_DECIMALS: u8 = 8u8;
-const TX_TYPES_APPROVE: &str = "approve";
-const TX_TYPES_TRANSFER: &str = "transfer";
-const TX_TYPES_BURN: &str = "burn";
-// const TX_TYPES_MINT: &str = "mint";
+const MAX_HEAP_MEMORY_SIZE: u32 = 4294967295u32; // 4G
+const CYCLES_PER_TOKEN: u64 = 2000_000_000_000; // 2T
 
 lazy_static! {
     static ref NAT_ZERO: Nat = Nat::from(0);
@@ -49,7 +47,6 @@ static mut NAME: &str = "";
 static mut SYMBOL: &str = "";
 static mut DECIMALS: u8 = 0;
 static mut LOGO: Vec<u8> = Vec::new(); // 256 * 256
-static mut STORAGE_CANISTER_ID: Principal = Principal::anonymous();
 static mut FEE_TO: TokenHolder = TokenHolder::Principal(Principal::anonymous());
 
 #[init]
@@ -258,8 +255,8 @@ async fn approve(
     value: Nat,
     call_data: Option<CallData>,
 ) -> ApproveResult {
-    let owner = api::caller();
-    let owner_holder = TokenHolder::new(owner, owner_sub_account);
+    let caller = api::caller();
+    let owner_holder = TokenHolder::new(caller, owner_sub_account);
     let spender_parse_result = spender.parse::<TokenHolder>();
     let approve_fee = _calc_approve_fee();
 
@@ -296,8 +293,10 @@ async fn approve(
                 }
             }
         };
-
-        let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Approve(
+        let tx_index_new = _get_new_tx_index();
+        let save_err_msg = _save_tx_record(TxRecord::Approve(
+            tx_index_new.clone(),
+            caller,
             owner_holder.clone(),
             spender_holder.clone(),
             value,
@@ -305,11 +304,13 @@ async fn approve(
             api::time(),
         ))
         .await;
-        let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
-        let mut res = ApproveResponse {
-            txid: tx_id,
-            error: None,
-        };
+        let tx_id = encode_tx_id(api::id(), tx_index_new);
+
+        let mut errors: Vec<String> = Vec::new();
+
+        if save_err_msg.len() > 0 {
+            errors.push(save_err_msg);
+        }
         match call_data {
             Some(data) => {
                 // execute call
@@ -317,14 +318,27 @@ async fn approve(
 
                 match execute_call_result {
                     Err(emsg) => {
-                        res.error = Some(emsg);
                         // approve succeed ,bu call failed
-                        return ApproveResult::Ok(res);
+                        errors.push(emsg);
+                        return ApproveResult::Ok(ApproveResponse {
+                            txid: tx_id,
+                            errors: Some(errors),
+                        });
                     }
-                    Ok(_) => return ApproveResult::Ok(res),
+                    Ok(_) => {
+                        return ApproveResult::Ok(ApproveResponse {
+                            txid: tx_id,
+                            errors: None,
+                        })
+                    }
                 }
             }
-            None => return ApproveResult::Ok(res),
+            None => {
+                return ApproveResult::Ok(ApproveResponse {
+                    txid: tx_id,
+                    errors: None,
+                })
+            }
         }
     } else {
         return ApproveResult::Err(MSG_INVALID_SPENDER.to_string());
@@ -352,8 +366,8 @@ async fn transfer_from(
     to: String,
     value: Nat,
 ) -> TransferResult {
-    let spender_principal_id = api::caller();
-    let spender = TokenHolder::new(spender_principal_id, spender_sub_account);
+    let caller = api::caller();
+    let spender = TokenHolder::new(caller, spender_sub_account);
 
     let from_parse_result = from.parse::<TokenHolder>();
     let to_parse_result = to.parse::<TokenHolder>();
@@ -395,7 +409,7 @@ async fn transfer_from(
                     }
                 };
                 // transfer
-                _transfer(from_token_holder, to_token_holder, value).await
+                _transfer(caller, from_token_holder, to_token_holder, value).await
             }
             _ => TransferResult::Err(MSG_INVALID_TO.to_string()),
         },
@@ -411,14 +425,14 @@ async fn transfer(
     value: Nat,
     call_data: Option<CallData>,
 ) -> TransferResult {
-    let from = api::caller();
-    let transfer_from = TokenHolder::new(from, from_sub_account);
+    let caller = api::caller();
+    let transfer_from = TokenHolder::new(caller, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
 
     match receiver_parse_result {
         Ok(receiver) => {
             let mut errors: Vec<String> = Vec::new();
-            match _transfer(transfer_from, receiver.clone(), value).await {
+            match _transfer(caller, transfer_from, receiver.clone(), value).await {
                 TransferResult::Ok(tx_res) => {
                     if let Some(inner_errors) = tx_res.error {
                         errors = [errors, inner_errors].concat();
@@ -449,7 +463,12 @@ async fn transfer(
     }
 }
 
-async fn _transfer(from: TokenHolder, to: TokenHolder, value: Nat) -> TransferResult {
+async fn _transfer(
+    caller: Principal,
+    from: TokenHolder,
+    to: TokenHolder,
+    value: Nat,
+) -> TransferResult {
     let fee = _calc_transfer_fee(value.clone());
     let from_balance = _balance_of(&from);
 
@@ -475,8 +494,10 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: Nat) -> TransferRe
     }
     balances.insert(to.clone(), to_balance + value.clone());
     _fee_settle(fee.clone());
-
-    let crt_tx_cursor = _save_tx_record_to_graphql(TxRecord::Transfer(
+    let tx_index_new = _get_new_tx_index();
+    let save_err_msg = _save_tx_record(TxRecord::Transfer(
+        tx_index_new.clone(),
+        caller,
         from.clone(),
         to.clone(),
         value.clone(),
@@ -487,10 +508,14 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: Nat) -> TransferRe
 
     let mut errors: Vec<String> = Vec::new();
 
+    if save_err_msg.len() > 0 {
+        errors.push(save_err_msg)
+    }
+
     // after transfer (notify)
     let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
 
-    let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
+    let tx_id = encode_tx_id(api::id(), tx_index_new);
     ic_cdk::print(format!("transfer tx id {}", tx_id));
     if let Err(emsg) = after_token_send_notify_result {
         errors.push(emsg);
@@ -509,8 +534,8 @@ async fn _transfer(from: TokenHolder, to: TokenHolder, value: Nat) -> TransferRe
 #[update(name = "burn")]
 #[candid_method(update, rename = "burn")]
 async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> BurnResult {
-    let from = api::caller();
-    let transfer_from = TokenHolder::new(from, from_sub_account);
+    let caller = api::caller();
+    let transfer_from = TokenHolder::new(caller, from_sub_account);
     let fee = _calc_transfer_fee(value.clone());
 
     if fee.gt(&value) {
@@ -523,10 +548,10 @@ async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> BurnResult {
         return BurnResult::Err(MSG_BURN_VALUE_EXCEEDS.to_string());
     }
 
-    return _burn(transfer_from, value).await;
+    return _burn(caller, transfer_from, value).await;
 }
 
-async fn _burn(from: TokenHolder, value: Nat) -> BurnResult {
+async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> BurnResult {
     let from_balance = _balance_of(&from);
 
     let balances = storage::get_mut::<Balances>();
@@ -541,23 +566,25 @@ async fn _burn(from: TokenHolder, value: Nat) -> BurnResult {
 
     let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
     *rw_total_supply -= value.clone();
-    let crt_tx_cursor =
-        _save_tx_record_to_graphql(TxRecord::Burn(from.clone(), value, api::time())).await;
-    let tx_id = encode_tx_id(api::id(), crt_tx_cursor);
-    BurnResult::Ok(tx_id)
-}
+    let tx_index_new = _get_new_tx_index();
+    let err_save_msg = _save_tx_record(TxRecord::Burn(
+        tx_index_new.clone(),
+        caller,
+        from.clone(),
+        value,
+        api::time(),
+    ))
+    .await;
 
-#[update(name = "setStorageCanisterID")]
-#[candid_method(update, rename = "setStorageCanisterID")]
-fn set_storage_canister_id(storage_canister_id_opt: Option<Principal>) -> bool {
-    _only_owner();
-    unsafe {
-        match storage_canister_id_opt {
-            Some(id) => STORAGE_CANISTER_ID = id,
-            None => STORAGE_CANISTER_ID = Principal::anonymous(),
-        }
-        true
-    }
+    let tx_id = encode_tx_id(api::id(), tx_index_new);
+    BurnResult::Ok(BurnResponse {
+        txid: tx_id,
+        error: if err_save_msg.len() > 0 {
+            Some(vec![err_save_msg])
+        } else {
+            None
+        },
+    })
 }
 
 #[update(name = "setFee")]
@@ -584,12 +611,6 @@ fn _set_fee_to(holder: TokenHolder) -> bool {
         FEE_TO = holder;
         true
     }
-}
-
-#[query(name = "tokenGraphql")]
-#[candid_method(query, rename = "tokenGraphql")]
-fn _token_graphql() -> Option<Principal> {
-    unsafe { Some(STORAGE_CANISTER_ID) }
 }
 
 #[query(name = "getTokenInfo")]
@@ -623,11 +644,11 @@ fn pre_upgrade() {
     let meta = get_meta_data();
     let logo = unsafe { LOGO.clone() };
     let tx_id_cursor = (*TX_ID_CURSOR.read().unwrap()).clone();
-    let storage_canister_id = unsafe { STORAGE_CANISTER_ID };
 
     let mut extend = Vec::new();
     let mut balances = Vec::new();
     let mut allowances = Vec::new();
+    let mut storage_canister_ids = Vec::new();
 
     for (k, v) in storage::get_mut::<ExtendData>().iter() {
         extend.push((k.to_string(), v.to_string()));
@@ -642,6 +663,9 @@ fn pre_upgrade() {
         }
         allowances.push((th.clone(), allow_item));
     }
+    for (k, v) in storage::get_mut::<StorageCanisterIds>().iter() {
+        storage_canister_ids.push((k.clone(), *v));
+    }
     let payload = TokenPayload {
         owner,
         fee_to,
@@ -651,7 +675,7 @@ fn pre_upgrade() {
         balances,
         allowances,
         tx_id_cursor,
-        storage_canister_id,
+        storage_canister_ids,
     };
     storage::stable_save((payload,)).unwrap();
 }
@@ -671,7 +695,6 @@ fn post_upgrade() {
         *FEE.write().unwrap() = payload.meta.fee;
         *TX_ID_CURSOR.write().unwrap() = payload.tx_id_cursor;
         LOGO = payload.logo;
-        STORAGE_CANISTER_ID = payload.storage_canister_id;
     }
     for (k, v) in payload.extend {
         storage::get_mut::<ExtendData>().insert(k, v);
@@ -685,6 +708,9 @@ fn post_upgrade() {
             inner.insert(ik, iv);
         }
         storage::get_mut::<Allowances>().insert(k, inner);
+    }
+    for (k, v) in payload.storage_canister_ids {
+        storage::get_mut::<StorageCanisterIds>().insert(k, v);
     }
 }
 
@@ -801,74 +827,162 @@ fn _fee_settle(fee: Nat) {
     }
 }
 
-async fn _save_tx_record_to_graphql(tx: TxRecord) -> Nat {
-    unsafe {
-        let mut rw_tx_id_cursor = TX_ID_CURSOR.write().unwrap();
-        *rw_tx_id_cursor += 1;
+async fn _save_tx_record(tx: TxRecord) -> String {
+    let txs = storage::get_mut::<Txs>();
+    txs.push(tx);
 
-        if STORAGE_CANISTER_ID == Principal::anonymous() {
-            return rw_tx_id_cursor.clone();
-        }
-        let type_str: &str;
-        let from_str: String;
-        let to_str: String;
-        let value_str: String;
-        let fee_str: String;
-        let timestamp_str: String;
-        match tx {
-            TxRecord::Approve(owner, spender, value, fee, t) => {
-                type_str = TX_TYPES_APPROVE;
-                from_str = owner.to_string();
-                to_str = spender.to_string();
-                value_str = value.to_string();
-                fee_str = fee.to_string();
-                timestamp_str = t.to_string();
-            }
-            TxRecord::Transfer(from, to, value, fee, t) => {
-                type_str = TX_TYPES_TRANSFER;
-                from_str = from.to_string();
-                to_str = to.to_string();
-                value_str = value.to_string();
-                fee_str = fee.to_string();
-                timestamp_str = t.to_string();
-            }
-            TxRecord::Burn(from, value, t) => {
-                type_str = TX_TYPES_BURN;
-                from_str = from.to_string();
-                to_str = "".to_string();
-                value_str = value.to_string();
-                fee_str = "0".to_string();
-                timestamp_str = t.to_string();
-            }
-        }
+    let last_tx_index = _get_tx_index(&txs[0]);
+    if txs.len() >= MAX_TXS_CACHE_IN_DFT {
+        let storage_canister_id_res = _get_available_storage_id(&last_tx_index).await;
 
-        let vals = "{}".to_string();
-        let muation = format!(
-            r#"mutation {{ 
-                            createTx(input: {{ 
-                                txid:  "{0}",txtype:"{1}",
-                                from:"{2}",to:"{3}",value:"{4}",
-                                fee:"{5}",timestamp:"{6}",
-                                }}) 
-                                {{ id }} 
-                               }}"#,
-            rw_tx_id_cursor.clone(),
-            type_str,
-            from_str,
-            to_str,
-            value_str,
-            fee_str,
-            timestamp_str
+        match storage_canister_id_res {
+            Ok(storage_canister_id) => {
+                let should_save_txs = txs[0..MAX_TXS_CACHE_IN_DFT].to_vec();
+                api::print(format!(
+                    "should save tx length is {}",
+                    should_save_txs.len()
+                ));
+                //save to auto-scaling storage
+                match api::call::call(storage_canister_id, "batchAppend", (should_save_txs,)).await
+                {
+                    Ok((res,)) if res => {
+                        api::print("append save res true");
+                        let txs_after_call = storage::get_mut::<Txs>();
+                        txs[0..MAX_TXS_CACHE_IN_DFT].iter().for_each(|_| {
+                            txs_after_call.remove(0);
+                        });
+                    }
+                    Err((_, emsg)) => {
+                        api::print(format!(
+                            "batchAppend: save to auto-scaling storage failed,{}  ",
+                            emsg
+                        ));
+                    }
+                    _ => {
+                        api::print("append save res false?");
+                    }
+                }
+            }
+            Err(emsg) => {
+                //Fallback: if create auto-scaling storage failed, do not remove it from dft cache storage.
+                //Possible reasons for failure:
+                //    1. Not enough cycles balance to create auto-scaling storage.
+                //    2. Other unknown reason.
+                api::print(
+                    "save to auto-scaling storage failed, do not remove it from dft cache storage",
+                );
+                return emsg;
+            }
+        };
+    }
+
+    "".to_string()
+}
+
+fn _get_new_tx_index() -> Nat {
+    let mut rw_tx_id_cursor = TX_ID_CURSOR.write().unwrap();
+    *rw_tx_id_cursor += 1;
+
+    rw_tx_id_cursor.clone()
+}
+
+fn _get_tx_index(tx: &TxRecord) -> Nat {
+    match tx {
+        TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
+        TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
+        TxRecord::Burn(ti, _, _, _, _) => ti.clone(),
+    }
+}
+
+async fn _get_available_storage_id(tx_index: &Nat) -> Result<Principal, String> {
+    let mut max_key = Nat::from(0);
+    let mut last_storage_id = Principal::anonymous();
+    for (k, v) in storage::get::<StorageCanisterIds>().iter() {
+        if k >= &max_key && last_storage_id != *v {
+            max_key = k.clone();
+            last_storage_id = v.clone();
+        }
+    }
+    let mut is_necessary_create_new_storage_canister = last_storage_id == Principal::anonymous();
+
+    // check storage remain size
+    if !is_necessary_create_new_storage_canister {
+        let req = CanisterIdRecord {
+            canister_id: last_storage_id,
+        };
+        let status = get_canister_status(req).await;
+        match status {
+            Ok(res) => {
+                ic_cdk::print(format!("memory_size is {}", res.memory_size));
+                let min_storage_size_for_cache_txs =
+                    Nat::from(MAX_TXS_CACHE_IN_DFT * std::mem::size_of::<TxRecord>());
+
+                if (Nat::from(MAX_HEAP_MEMORY_SIZE) - res.memory_size)
+                    .lt(&min_storage_size_for_cache_txs)
+                {
+                    is_necessary_create_new_storage_canister = true;
+                } else {
+                    return Ok(last_storage_id);
+                }
+            }
+            Err(_) => {
+                //api::trap(format!("get_canister_status failed {}", emsg).as_str());
+                return Err(MSG_STORAGE_SCALING_FAILED.to_string());
+            }
+        };
+    }
+
+    if is_necessary_create_new_storage_canister {
+        const STORAGE_WASM: &[u8] = std::include_bytes!(
+            "../../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
         );
-        //call storage canister
-        let _support_res: Result<(String,), _> = api::call::call(
-            STORAGE_CANISTER_ID,
-            "graphql_mutation",
-            (muation.to_string(), vals),
-        )
-        .await;
-        ic_cdk::print(format!("muation is :{}", muation.to_string()));
-        rw_tx_id_cursor.clone()
+        let dft_id = api::id();
+        let create_args = CreateCanisterArgs {
+            cycles: CYCLES_PER_TOKEN,
+            settings: CanisterSettings {
+                controllers: Some(vec![dft_id.clone()]),
+                compute_allocation: None,
+                memory_allocation: None,
+                freezing_threshold: None,
+            },
+        };
+        api::print("creating token storage...");
+        let create_result = create_canister(create_args).await;
+
+        match create_result {
+            Ok(cdr) => {
+                api::print(format!(
+                    "token new storage canister id : {} ,start index is {}",
+                    cdr.canister_id.clone().to_string(),
+                    tx_index.clone()
+                ));
+
+                let install_args = encode_args((dft_id.clone(), tx_index.clone()))
+                    .expect("Failed to encode arguments.");
+
+                match install_canister(&cdr.canister_id, STORAGE_WASM.to_vec(), install_args).await
+                {
+                    Ok(_) => {
+                        storage::get_mut::<StorageCanisterIds>()
+                            .insert(tx_index.clone(), cdr.canister_id);
+                        return Ok(cdr.canister_id);
+                    }
+                    Err(emsg) => {
+                        api::print(format!(
+                            "install auto-scaling storage canister failed. details:{}",
+                            emsg
+                        ));
+                        return Err(MSG_STORAGE_SCALING_FAILED.to_string());
+                    }
+                }
+            }
+            Err(emsg) => {
+                api::print(format!("create new storage canister failed {}", emsg).as_str());
+                return Err(MSG_STORAGE_SCALING_FAILED.to_string());
+            }
+        };
+    } else {
+        return Ok(last_storage_id);
     }
 }
 

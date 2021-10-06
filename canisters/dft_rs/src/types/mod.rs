@@ -12,6 +12,7 @@ mod token_payload;
 mod transfer_result;
 mod tx_record;
 
+use candid::Principal;
 use ic_cdk::export::candid::Nat;
 use std::collections::HashMap;
 use std::string::String;
@@ -19,6 +20,8 @@ use std::string::String;
 pub type TransactionId = String;
 pub type ExtendData = HashMap<String, String>;
 pub type Balances = HashMap<TokenHolder, Nat>;
+pub type StorageCanisterIds = HashMap<Nat, Principal>;
+pub type Txs = Vec<TxRecord>;
 pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, Nat>>;
 pub use account_identifier::AccountIdentifier;
 pub use account_identifier::Subaccount;
@@ -32,9 +35,16 @@ pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
 pub use approve_result::ApproveResponse;
 pub use approve_result::ApproveResult;
+pub use burn_result::BurnResponse;
 pub use burn_result::BurnResult;
 pub use token_info::TokenInfo;
 pub use token_payload::TokenPayload;
 pub use transfer_result::TransferResponse;
 pub use transfer_result::TransferResult;
 pub use tx_record::TxRecord;
+
+#[test]
+fn test_nat_size() {
+    let nat_size = std::mem::size_of::<Nat>();
+    assert_eq!(24, nat_size, "nat_size is not {}", 24);
+}

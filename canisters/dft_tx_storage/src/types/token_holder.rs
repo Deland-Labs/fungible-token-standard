@@ -1,7 +1,5 @@
-use ic_cdk::export::{
-    candid::{CandidType, Deserialize},
-    Principal,
-};
+use candid::Principal;
+use ic_cdk::export::candid::{CandidType, Deserialize};
 use std::{
     fmt::{self, Display},
     str::FromStr,
@@ -10,7 +8,6 @@ use std::{
 
 use super::AccountIdentifier;
 #[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
 pub enum TokenHolder {
     Account(AccountIdentifier),
     Principal(Principal),

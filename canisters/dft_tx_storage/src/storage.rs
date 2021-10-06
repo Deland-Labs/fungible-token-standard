@@ -16,6 +16,10 @@ fn canister_init(dft_id: Principal, dft_tx_start_index: u128) {
         DFT_ID = dft_id;
         DFT_TX_START_INDEX = dft_tx_start_index;
     }
+    api::print(format!(
+        "dft is {} start index is {}",
+        dft_id, dft_tx_start_index
+    ));
 }
 
 #[update(name = "append")]

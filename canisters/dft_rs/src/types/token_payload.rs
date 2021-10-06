@@ -1,7 +1,7 @@
 use super::{MetaData, TokenHolder};
+use candid::Principal;
 use ic_cdk::export::{
-    candid::{CandidType, Deserialize, Nat},
-    Principal,
+    candid::{CandidType, Deserialize, Nat}
 };
 use std::string::String;
 
@@ -15,5 +15,5 @@ pub struct TokenPayload {
     pub balances: Vec<(TokenHolder, Nat)>,
     pub allowances: Vec<(TokenHolder, Vec<(TokenHolder, Nat)>)>,
     pub tx_id_cursor: Nat,
-    pub storage_canister_id: Principal,
+    pub storage_canister_ids: Vec<(Nat, Principal)>,
 }

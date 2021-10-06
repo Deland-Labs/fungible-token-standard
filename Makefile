@@ -12,7 +12,6 @@ build:
 install: build
 	dfx canister --no-wallet  install dft_rs \
 	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat } , null)'
-	dfx canister --no-wallet  install graphql  --argument '(null)'
 	dfx canister --no-wallet  install dft_motoko \
 	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat }, null)'
 
@@ -22,18 +21,14 @@ upgrade: build
 	dfx canister --no-wallet  install dft_rs \
 	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat }, null)' \
 	  --mode reinstall
-	dfx canister --no-wallet  install graphql   --argument '(null)' --mode reinstall
 	dfx canister --no-wallet  install dft_motoko \
 	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat }, null)' \
 		--mode reinstall
  
 define test_token_impl
 	@echo "calling $(0), will test $(1)"
-	$(eval graphql_id := $(shell dfx canister id graphql))
 	$(eval dft_id := $(shell dfx canister id $(1)))
 	$(eval owner_id := $(shell dfx identity get-principal))
-	dfx canister call graphql set_token_canister_id '(principal "$(dft_id)")'
-	dfx canister call $(1)  setStorageCanisterID '(opt principal "$(graphql_id)")'
 	dfx canister call $(1)  name | grep 'Deland Token' && echo 'PASS name check'
 	dfx canister call $(1)  symbol | grep 'DLD' && echo 'PASS symbol check'
 	dfx canister call $(1)  decimals | grep '(18 : nat8)' && echo 'PASS decimals check'
@@ -64,8 +59,6 @@ define test_token_impl
 	dfx canister call $(1) allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
 	| grep '3_000_000_000_000_000_000' && echo 'PASS allowance check'
 	sleep 3
-	dfx canister call graphql  graphql_query '("query { readTx { id,txid,txtype,from,to,value,fee,timestamp } }", "{}")' \
-	|grep '"txid":"2"' && echo 'PASS graphql check'
 endef
 
 .PHONY: test_rs
