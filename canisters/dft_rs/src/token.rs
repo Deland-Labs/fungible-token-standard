@@ -27,7 +27,8 @@ use std::string::String;
 use std::sync::RwLock;
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
-const MAX_TXS_CACHE_IN_DFT: usize = 1;
+const MAX_TXS_CACHE_IN_DFT: usize = 1000;
+const MAX_GET_TXS_SIZE: usize = 200;
 const FEE_RATE_DECIMALS: u8 = 8u8;
 const MAX_HEAP_MEMORY_SIZE: u32 = 4294967295u32; // 4G
 const CYCLES_PER_TOKEN: u64 = 2000_000_000_000; // 2T
@@ -633,6 +634,65 @@ fn get_token_info() -> TokenInfo {
     }
 }
 
+#[query(name = "transactionByIndex")]
+#[candid_method(query, rename = "transactionByIndex")]
+fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
+    let txs = storage::get::<Txs>();
+    let inner_start_tx_index = _get_tx_index(&txs[0]);
+    let inner_end_tx_index = TX_ID_CURSOR.read().unwrap().clone();
+
+    if tx_index > inner_end_tx_index || tx_index == 0 || txs.len() == 0 {
+        return TxRecordResult::Err(MSG_OUT_OF_TX_INDEX_RANGE.to_string());
+    };
+
+    if tx_index <= inner_end_tx_index && tx_index >= inner_start_tx_index {
+        let tx = txs
+            .iter()
+            .find(|&tx| _get_tx_index(tx) == tx_index)
+            .unwrap();
+        return TxRecordResult::Ok(tx.clone());
+    } else {
+        let (_, forward_storage_canister_id) = storage::get::<StorageCanisterIds>()
+            .iter()
+            .find(|k| tx_index > *k.0)
+            .unwrap();
+        return TxRecordResult::Forward(*forward_storage_canister_id);
+    }
+}
+
+#[query(name = "lastTransactions")]
+#[candid_method(query, rename = "lastTransactions")]
+fn last_transactions(size: usize) -> Result<Vec<TxRecord>, String> {
+    if size > MAX_GET_TXS_SIZE {
+        return Err(MSG_GET_LAST_TXS_SIZE_TOO_LARGE.to_string());
+    }
+
+    let txs = storage::get::<Txs>();
+    if txs.len() == 0 {
+        return Ok(Vec::new());
+    } else if txs.len() < size {
+        return Ok(txs.clone());
+    } else {
+        return Ok(txs[0..size].to_vec());
+    }
+}
+
+#[query(name = "transactionById")]
+#[candid_method(query, rename = "transactionById")]
+fn transaction_by_id(tx_id: String) -> TxRecordResult {
+    let decode_res = decode_tx_id(tx_id);
+    match decode_res {
+        Ok((dft_id, tx_index)) => {
+            if dft_id != api::id() {
+                TxRecordResult::Err(MSG_NOT_BELONG_DFT_TX_ID.to_string())
+            } else {
+                transaction_by_index(tx_index)
+            }
+        }
+        Err(_) => TxRecordResult::Err(MSG_INVALID_TX_ID.to_string()),
+    }
+}
+
 candid::export_service!();
 
 #[query(name = "__get_candid_interface_tmp_hack")]
@@ -843,7 +903,10 @@ async fn _save_tx_record(tx: TxRecord) -> String {
     txs.push(tx);
 
     let last_tx_index = _get_tx_index(&txs[0]);
-    if txs.len() >= MAX_TXS_CACHE_IN_DFT {
+    // When create auto-scaling storage ?
+    // DFT's txs count > 2000
+    // It's means when creating a test DFT, when the number of transactions is less than 2000, no storage will be created to save cycles
+    if txs.len() >= MAX_TXS_CACHE_IN_DFT * 2 {
         let storage_canister_id_res = _get_available_storage_id(&last_tx_index).await;
 
         match storage_canister_id_res {

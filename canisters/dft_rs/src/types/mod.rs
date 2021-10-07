@@ -36,6 +36,7 @@ pub use token_payload::TokenPayload;
 pub use transcation_result::TransactionResponse;
 pub use transcation_result::TransactionResult;
 pub use tx_record::TxRecord;
+pub use tx_record::TxRecordResult;
 
 #[test]
 fn test_nat_size() {
