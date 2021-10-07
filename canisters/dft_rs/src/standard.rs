@@ -293,7 +293,7 @@ async fn approve(
                 }
             }
         };
-        let tx_index_new = _get_new_tx_index();
+        let tx_index_new = _get_next_tx_index();
         let save_err_msg = _save_tx_record(TxRecord::Approve(
             tx_index_new.clone(),
             caller,
@@ -494,7 +494,7 @@ async fn _transfer(
     }
     balances.insert(to.clone(), to_balance + value.clone());
     _fee_settle(fee.clone());
-    let tx_index_new = _get_new_tx_index();
+    let tx_index_new = _get_next_tx_index();
     let save_err_msg = _save_tx_record(TxRecord::Transfer(
         tx_index_new.clone(),
         caller,
@@ -566,7 +566,7 @@ async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> TransactionR
 
     let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
     *rw_total_supply -= value.clone();
-    let tx_index_new = _get_new_tx_index();
+    let tx_index_new = _get_next_tx_index();
     let err_save_msg = _save_tx_record(TxRecord::Burn(
         tx_index_new.clone(),
         caller,
@@ -952,7 +952,7 @@ async fn _save_tx_record(tx: TxRecord) -> String {
     "".to_string()
 }
 
-fn _get_new_tx_index() -> Nat {
+fn _get_next_tx_index() -> Nat {
     let mut rw_tx_id_cursor = TX_ID_CURSOR.write().unwrap();
     let ret = rw_tx_id_cursor.clone();
     *rw_tx_id_cursor += 1;
