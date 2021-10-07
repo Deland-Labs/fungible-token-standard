@@ -5,12 +5,11 @@
  * Maintainer : Deland Team (https://delandlabs.com)
  * Stability  : Experimental
  */
-
 use crate::extends;
 use crate::ic_management::*;
-use crate::types::{message::*, *};
-use crate::utils::*;
 use candid::{candid_method, decode_args, encode_args};
+use dft_rs_types::{message::*, *};
+use dft_rs_utils::*;
 use ic_cdk::{
     api,
     export::{candid::Nat, Principal},

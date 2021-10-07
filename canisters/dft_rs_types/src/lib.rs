@@ -11,7 +11,7 @@ mod transcation_result;
 mod tx_record;
 
 use candid::Principal;
-use ic_cdk::export::candid::Nat;
+use candid::Nat;
 use std::collections::HashMap;
 use std::string::String;
 

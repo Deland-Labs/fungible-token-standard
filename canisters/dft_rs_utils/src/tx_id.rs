@@ -1,8 +1,7 @@
 #![allow(dead_code)]
-
-use candid::Nat;
-use ic_cdk::export::Principal;
+use candid::{Nat, Principal};
 use num_bigint::BigUint;
+
 const CANISTER_ID_HASH_LEN_IN_BYTES: usize = 10;
 const DFT_DOMAIN_SEPERATOR: &[u8] = b"\x0DFT-tx-id";
 const MSG_INVALID_DFT_TX_ID: &str = "Invalid dft tx id";

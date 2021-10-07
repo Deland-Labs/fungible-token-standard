@@ -1,6 +1,6 @@
 use super::{TokenHolder, TokenReceiver};
-use candid::{Nat, Principal};
-use ic_cdk::export::candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Nat, Principal};
+
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum TxRecord {
     // tx_index, caller, owner, spender, value, fee, timestamp
@@ -20,7 +20,6 @@ pub enum TxRecordResult {
     // Such as out of tx index or tx id not exist
     Err(String),
 }
-
 
 #[test]
 fn test_tx_record_size() {

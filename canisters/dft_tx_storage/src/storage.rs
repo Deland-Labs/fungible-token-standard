@@ -1,8 +1,10 @@
 use std::convert::TryInto;
 
-use crate::{types::*, utils::decode_tx_id};
 use candid::{candid_method, Nat};
-use ic_cdk::{api, export::Principal, storage};
+use candid::{CandidType, Deserialize, Principal};
+use dft_rs_types::*;
+use dft_rs_utils::decode_tx_id;
+use ic_cdk::{api, storage};
 use ic_cdk_macros::*;
 use std::sync::RwLock;
 
@@ -14,6 +16,21 @@ const MSG_NOT_BELONG_DFT_TX_ID: &str = "DFT_TX_STORAGE: tx id not belong to the 
 
 lazy_static! {
     static ref DFT_TX_START_INDEX: RwLock<Nat> = RwLock::new(Nat::from(0));
+}
+
+#[derive(CandidType, Debug, Deserialize)]
+pub struct StorageInfo {
+    pub dft_id: Principal,
+    pub tx_start_index: Nat,
+    pub txs_count: Nat,
+    pub cycles: u64,
+}
+
+#[derive(CandidType, Debug, Deserialize)]
+pub struct StoragePayload {
+    pub dft_id: Principal,
+    pub tx_start_index: Nat,
+    pub txs: Txs,
 }
 
 #[init]

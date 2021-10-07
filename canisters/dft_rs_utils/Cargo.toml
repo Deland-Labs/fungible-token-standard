@@ -1,0 +1,10 @@
+[package]
+name = "dft_rs_utils"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies] 
+hex = {version = "0.4.2", features = ["serde"] }
+candid = "0.6.21"
+serde = "1.0.127"
+num-bigint = "0.3.3"

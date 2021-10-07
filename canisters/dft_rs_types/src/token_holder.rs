@@ -1,5 +1,4 @@
-use candid::Principal;
-use ic_cdk::export::candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize, Principal};
 use std::{
     fmt::{self, Display},
     str::FromStr,

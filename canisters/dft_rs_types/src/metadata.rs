@@ -1,5 +1,5 @@
 use super::Fee;
-use ic_cdk::export::candid::{CandidType, Deserialize, Nat};
+use candid::{CandidType, Deserialize, Nat};
 
 #[derive(CandidType, Debug, Deserialize)]
 pub struct MetaData {

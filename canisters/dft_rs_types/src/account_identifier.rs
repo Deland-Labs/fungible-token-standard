@@ -1,7 +1,5 @@
-use ic_cdk::export::{
-    candid::{CandidType, Deserialize},
-    Principal,
-};
+use candid::{CandidType, Deserialize, Principal};
+
 use serde::{de, de::Error, Serialize};
 use sha2::{Digest, Sha224};
 use std::{

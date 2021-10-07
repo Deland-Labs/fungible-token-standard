@@ -1,5 +1,5 @@
 #![allow(dead_code)]
-use ic_cdk::export::Principal;
+use candid::Principal;
 
 const CANISTER_ID_HASH_LEN_IN_BYTES: usize = 10;
 pub fn is_canister(id: &Principal) -> bool {

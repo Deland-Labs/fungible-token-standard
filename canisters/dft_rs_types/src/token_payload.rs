@@ -1,8 +1,5 @@
 use super::{MetaData, TokenHolder, Txs};
-use candid::Principal;
-use ic_cdk::export::{
-    candid::{CandidType, Deserialize, Nat}
-};
+use candid::{CandidType, Deserialize, Nat, Principal};
 use std::string::String;
 
 #[derive(CandidType, Debug, Deserialize)]

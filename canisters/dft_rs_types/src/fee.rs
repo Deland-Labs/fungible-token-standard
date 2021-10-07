@@ -1,4 +1,4 @@
-use ic_cdk::export::candid::{CandidType, Deserialize, Nat};
+use candid::{CandidType, Deserialize, Nat};
 
 // Rate decimals = 8
 // transferFee = cmp::max(lowest,amount * rate / 10^8)

@@ -1,9 +1,5 @@
-use ic_cdk::export::{
-    candid::{CandidType, Deserialize, Nat},
-    Principal,
-};
-
 use super::TokenHolder;
+use candid::{CandidType, Deserialize, Nat, Principal};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TokenInfo {

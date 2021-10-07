@@ -1,5 +1,5 @@
 use super::TransactionId;
-use ic_cdk::export::candid::{CandidType, Deserialize};
+use candid::{CandidType, Deserialize};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TransactionResponse {
