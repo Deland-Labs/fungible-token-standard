@@ -124,9 +124,13 @@ service : {
   lastTransactions : (size: nat64) -> (TxRecordsResult) query;
 
   // Get transcation information by id
+  // If not exist in DFT, return the storage canister id of the transaction located
+  // Call transactionById to the storage canister id again ,will return the transaction information.
   transactionById : (transactionId: text) -> (TxRecordResult) query;
 
   // Get transcation information by tx index
+  // If not exist in DFT, return the storage canister id of the transaction located
+  // Call transactionById to the storage canister id again ,will return the transaction information.
   transactionByIndex : (nat) -> (TxRecordResult) query;
 }
 ```
