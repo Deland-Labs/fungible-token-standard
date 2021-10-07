@@ -16,46 +16,17 @@ type BurnResult = variant { Ok; Err : String };
 type CallData = record { method : text; args : vec nat8 };
 type Fee = record { lowest: nat; rate :nat32 };
 type KeyValuePair = record { k : text; v : text };
-type MetaData = record {
-  fee : Fee;
-  decimals : nat8;
-  name : text;
-  total_supply : nat;
-  symbol : text;
-};
+type MetaData = record { fee : Fee; decimals : nat8; name : text; total_supply : nat; symbol : text; };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
-type TxRecordResult = variant {
-  Ok : TxRecord;
-  Err : text;
-  Forward : principal;
-};
+type TxRecordResult = variant {  Ok : TxRecord;  Err : text; Forward : principal; };
 type TxRecord = variant {
-  Approve : record {
-    nat;
-    principal;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-  };
+  Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
   Burn : record { nat; principal; TokenHolder; nat; nat64 };
-  Transfer : record {
-    nat;
-    principal;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-  };
+  Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
 };
 //DFT support AccountId (ICP holder address) and Principal as token holder
 type TokenHolder = variant { Account : text; Principal : principal; };
-type TransferResult = variant {
-  Ok : record { nat; opt vec String };
-  Err : String;
-};
+type TransferResult = variant { Ok : record { nat; opt vec String }; Err : String; };
 service : {
   // Return token's name
   name : () -> (text) query;

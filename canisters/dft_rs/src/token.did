@@ -1,39 +1,13 @@
 type CallData = record { method : text; args : vec nat8 };
 type Fee = record { rate : nat; lowest : nat };
 type KeyValuePair = record { k : text; v : text };
-type MetaData = record {
-  fee : Fee;
-  decimals : nat8;
-  name : text;
-  total_supply : nat;
-  symbol : text;
-};
+type MetaData = record { fee : Fee; decimals : nat8; name : text; total_supply : nat; symbol : text; };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
-type TxRecordResult = variant {
-  Ok : TxRecord;
-  Err : text;
-  Forward : principal;
-};
+type TxRecordResult = variant { Ok : TxRecord; Err : text; Forward : principal; };
 type TxRecord = variant {
-  Approve : record {
-    nat;
-    principal;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-  };
+  Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
   Burn : record { nat; principal; TokenHolder; nat; nat64 };
-  Transfer : record {
-    nat;
-    principal;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-  };
+  Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
 };
 type TokenHolder = variant { Account : text; Principal : principal };
 type TokenInfo = record {

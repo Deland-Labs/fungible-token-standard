@@ -1,16 +1,18 @@
+type StorageInfo = record { dft_id : principal; tx_start_index : nat; txs_count : nat; cycles : nat64; };
 type TxRecordResult = variant { Ok : TxRecord; Err : text };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
 type TokenHolder = variant { Account : text; Principal : principal };
 type TxRecord = variant {
-  Approve : record { TokenHolder; TokenHolder; nat; nat; nat64 };
-  Burn : record { TokenHolder; nat; nat64 };
-  Transfer : record { TokenHolder; TokenHolder; nat; nat; nat64 };
+  Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
+  Burn : record { nat; principal; TokenHolder; nat; nat64 };
+  Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
 };
 service : (principal, nat) -> {  
   append : (TxRecord) -> (bool);
   batchAppend : (vec TxRecord) -> (bool);
   cyclesBalance : () -> (nat) query;
-  getTransactionById : (text) -> (TxRecordResult) query;
-  getTransactionByIndex : (nat) -> (TxRecordResult) query;
-  getTransactions : (nat, nat64) -> (TxRecordsResult) query;
+  transactionById : (text) -> (TxRecordResult) query;
+  transactionByIndex : (nat) -> (TxRecordResult) query;
+  transactions : (nat, nat64) -> (TxRecordsResult) query;
+  storageInfo : () -> (StorageInfo) query;
 }

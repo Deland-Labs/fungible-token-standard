@@ -26,7 +26,7 @@ use std::{
 };
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
-const MAX_TXS_CACHE_IN_DFT: usize = 1;
+const MAX_TXS_CACHE_IN_DFT: usize = 1000;
 const MAX_GET_TXS_SIZE: usize = 200;
 const FEE_RATE_DECIMALS: u8 = 8u8;
 const MAX_HEAP_MEMORY_SIZE: u32 = 4294967295u32; // 4G
