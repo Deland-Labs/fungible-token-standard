@@ -141,7 +141,7 @@ service : {
 
    - Create the first ATSS when the DFT's transactions (txs) > 2000. It means that no auto-scaling storage will be created before the DFT's txs > 2000 to save cycles
 
-   - Create the next ATSS when the current ATSS's storage size is not enough to save 1000 txs.
+   - Create the next ATSS when the current ATSS's storage size is not enough to store 1000 txs.
 
 2. What's the fallback strategy?
    If the creation of the ATSS fails, the txs will be stored in the DFT, txs will be moved to ATSS when the creation is successful.
@@ -188,7 +188,7 @@ We are from Deland-Labs team.
 
 We are building a decentralized exchange based on Dfinity with Open Order Protocol.
 
-Offcial Website : [https://deland.one](https://deland.one)
+Offcial Website : [https://delandlabs.com](https://delandlabs.com)
 
 ## References
 
