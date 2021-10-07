@@ -2,12 +2,14 @@
 
 ## Overview
 
-  Thinking in [Dfinity Fungible Token Standard](./Thinking-in-dft.md)
+Thinking in [Dfinity Fungible Token Standard](./Thinking-in-dft.md)
 
-## Tools 
-  [DFT issuance tool](https://github.com/Deland-Labs/dft-issuance-tool)
+## Tools
+
+[DFT issuance tool](https://github.com/Deland-Labs/dft-issuance-tool)
 
 ## Standard
+
 ```RUST
 type ApproveResult = variant { Ok : opt String; Err : String };
 type BurnResult = variant { Ok; Err : String };
@@ -20,6 +22,33 @@ type MetaData = record {
   name : text;
   total_supply : nat;
   symbol : text;
+};
+type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
+type TxRecordResult = variant {
+  Ok : TxRecord;
+  Err : text;
+  Forward : principal;
+};
+type TxRecord = variant {
+  Approve : record {
+    nat;
+    principal;
+    TokenHolder;
+    TokenHolder;
+    nat;
+    nat;
+    nat64;
+  };
+  Burn : record { nat; principal; TokenHolder; nat; nat64 };
+  Transfer : record {
+    nat;
+    principal;
+    TokenHolder;
+    TokenHolder;
+    nat;
+    nat;
+    nat64;
+  };
 };
 //DFT support AccountId (ICP holder address) and Principal as token holder
 type TokenHolder = variant { Account : text; Principal : principal; };
@@ -42,7 +71,7 @@ service : {
 
   // Return token's fee setting
   fee : () -> (Fee) query;
-  
+
   // Set token's fee setting
   setFee : (Fee) -> (bool);
 
@@ -61,7 +90,7 @@ service : {
   //   DSCVR, OPENCHAT, DISTRIKT, WEACT
 
   extend: () -> (vec KeyValuePair) query;
-  
+
   // Set extend data of a token.
   setExtend : (vec KeyValuePair) -> (bool);
 
@@ -75,12 +104,12 @@ service : {
   balanceOf: (holder: text) -> (nat) query;
 
   // Return token's owner
-  owner : () -> (principal);  
+  owner : () -> (principal);
 
   // Set the token owner
   //    owner can invoke [setFee, setFeeTo, setLogo, setExtend, setOwner]
   setOwner : (owner: principal) -> (bool);
-  
+
   // Return token's info:
   // owner: OWNER,
   //          holders: total holder count of the token,
@@ -94,7 +123,7 @@ service : {
   // Returns the amount which spender is still allowed to withdraw from owner.
   allowance:(owner: text, spender: text)->(nat) query;
 
-  // Allows `spender` to withdraw from your account multiple times, up to the `value` amount. 
+  // Allows `spender` to withdraw from your account multiple times, up to the `value` amount.
   // If this function is called again it overwrites the current allowance with value.
   // If `calldata` is not null and `spender` is canister, approve means approveAndCall.
   approve: (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (ApproveResult);
@@ -108,7 +137,7 @@ service : {
   // If the receiver's (`to`) notification hook function exists,  will be called.
   transferFrom: (spenderSubAccount: opt vec nat8, from: text, to: text,value: nat) ->(TransferResult);
 
-  // Transfer from : 
+  // Transfer from :
   //      1. `fromSubAccount` is not null : Use the accountId generated based on the caller's Principal and the provided `fromSubAccount`
   //      2. `fromSubAccount` is  null    : Use caller's Principal
   // Then transfer `value` from the holder to `to` , return TransferResponse
@@ -119,28 +148,60 @@ service : {
 
   // Destroys `amount` tokens from `account`, reducing the total supply.
   burn: (fromSubAccount: opt vec nat8,amount: nat) -> (BurnResult);
+
+  // Get last transcation of the DFT, max size is 200
+  lastTransactions : (size: nat64) -> (TxRecordsResult) query;
+
+  // Get transcation information by id
+  transactionById : (transactionId: text) -> (TxRecordResult) query;
+
+  // Get transcation information by tx index
+  transactionByIndex : (nat) -> (TxRecordResult) query;
 }
 ```
+
+## Auto-Scaling Storage (ATSS) details
+
+1. When will the ATSS be created?
+
+   - Create the first ATSS when the DFT's transactions (txs) > 2000. It means that no auto-scaling storage will be created before the DFT's txs > 2000 to save cycles
+
+   - Create the next ATSS when the current ATSS's storage size is not enough to save 1000 txs.
+
+2. What's the fallback strategy?
+   If the creation of the ATSS fails, the txs will be stored in the DFT, txs will be moved to ATSS when the creation is successful.
+   Possible reasons for failure:
+   - Not enough cycles balance to create ATSS.
+   - Other unknown reason.
+
 ## Compile dependencies
+
 ### dfx
+
 ```bash
 sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
 ```
+
 ### rust
 
 Linux & Mac
+
 1. Install Rust & cmake & optimizer
+
 ```bash
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 brew install cmake
 cargo install ic-cdk-optimizer
 ```
-2. Add wasm32-unknown-unknown target 
+
+2. Add wasm32-unknown-unknown target
+
 ```bash
 rustup target add wasm32-unknown-unknown
 ```
 
 ## How to test?
+
 ```bash
    make test_rs
    make test_motoko
@@ -148,12 +209,11 @@ rustup target add wasm32-unknown-unknown
 
 ## About us
 
-   We are from Deland-Labs team. 
+We are from Deland-Labs team.
 
-   We are building a decentralized exchange based on Dfinity with Open Order Protocol.
+We are building a decentralized exchange based on Dfinity with Open Order Protocol.
 
-   Offcial Website : [https://deland.one](https://deland.one)
-
+Offcial Website : [https://deland.one](https://deland.one)
 
 ## References
 
