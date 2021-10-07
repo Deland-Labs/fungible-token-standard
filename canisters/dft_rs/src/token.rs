@@ -6,10 +6,7 @@
  * Stability  : Experimental
  */
 use crate::extends;
-use crate::ic_management::{
-    create_canister, get_canister_status, install_canister, CanisterIdRecord, CanisterSettings,
-    CreateCanisterArgs,
-};
+use crate::ic_management::*;
 use crate::types::{message::*, *};
 use crate::utils::*;
 use candid::{candid_method, decode_args, encode_args};
@@ -20,14 +17,16 @@ use ic_cdk::{
 };
 use ic_cdk_macros::*;
 use num_bigint::BigUint;
-use std::cmp;
-use std::collections::HashMap;
-use std::ops::{Div, Mul};
-use std::string::String;
-use std::sync::RwLock;
+use std::{
+    cmp,
+    collections::HashMap,
+    ops::{Div, Mul},
+    string::String,
+    sync::RwLock,
+};
 
 // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
-const MAX_TXS_CACHE_IN_DFT: usize = 1000;
+const MAX_TXS_CACHE_IN_DFT: usize = 1;
 const MAX_GET_TXS_SIZE: usize = 200;
 const FEE_RATE_DECIMALS: u8 = 8u8;
 const MAX_HEAP_MEMORY_SIZE: u32 = 4294967295u32; // 4G
@@ -641,7 +640,7 @@ fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
     let inner_start_tx_index = _get_tx_index(&txs[0]);
     let inner_end_tx_index = TX_ID_CURSOR.read().unwrap().clone();
 
-    if tx_index > inner_end_tx_index || tx_index == 0 || txs.len() == 0 {
+    if tx_index > inner_end_tx_index || txs.len() == 0 {
         return TxRecordResult::Err(MSG_OUT_OF_TX_INDEX_RANGE.to_string());
     };
 
@@ -955,9 +954,10 @@ async fn _save_tx_record(tx: TxRecord) -> String {
 
 fn _get_new_tx_index() -> Nat {
     let mut rw_tx_id_cursor = TX_ID_CURSOR.write().unwrap();
+    let ret = rw_tx_id_cursor.clone();
     *rw_tx_id_cursor += 1;
 
-    rw_tx_id_cursor.clone()
+    ret
 }
 
 fn _get_tx_index(tx: &TxRecord) -> Nat {
