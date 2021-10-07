@@ -1,10 +1,13 @@
 [package]
-name = "dft_rs_utils"
+name = "dft_types"
 version = "0.1.0"
 edition = "2018"
 
 [dependencies] 
+ic-cdk = "0.3.0"
 hex = {version = "0.4.2", features = ["serde"] }
+crc32fast = "1.2.0"
 candid = "0.6.21"
 serde = "1.0.127"
+sha2 = "0.9.1"
 num-bigint = "0.3.3"

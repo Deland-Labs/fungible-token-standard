@@ -1,13 +1,20 @@
 [package]
-name = "dft_rs_types"
+name = "dft_tx_storage"
 version = "0.1.0"
 edition = "2018"
 
-[dependencies] 
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+dft_types = { path = "../dft_types" }
+dft_utils = { path = "../dft_utils" }
 ic-cdk = "0.3.0"
+ic-cdk-macros = "0.3.0"
 hex = {version = "0.4.2", features = ["serde"] }
 crc32fast = "1.2.0"
 candid = "0.6.21"
 serde = "1.0.127"
 sha2 = "0.9.1"
 num-bigint = "0.3.3"
+lazy_static = "1.4.0"

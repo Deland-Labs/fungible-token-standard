@@ -1,7 +1,0 @@
-[workspace]
-members = [
-    "canisters/dft_rs",
-    "canisters/dft_rs_types",
-    "canisters/dft_rs_utils",
-    "canisters/dft_tx_storage"
-]

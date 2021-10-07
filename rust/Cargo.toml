@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "dft",
+    "dft_types",
+    "dft_utils",
+    "dft_tx_storage"
+]

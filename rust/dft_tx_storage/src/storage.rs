@@ -2,8 +2,8 @@ use std::convert::TryInto;
 
 use candid::{candid_method, Nat};
 use candid::{CandidType, Deserialize, Principal};
-use dft_rs_types::*;
-use dft_rs_utils::decode_tx_id;
+use dft_types::*;
+use dft_utils::decode_tx_id;
 use ic_cdk::{api, storage};
 use ic_cdk_macros::*;
 use std::sync::RwLock;

@@ -8,8 +8,8 @@
 use crate::extends;
 use crate::ic_management::*;
 use candid::{candid_method, decode_args, encode_args};
-use dft_rs_types::{message::*, *};
-use dft_rs_utils::*;
+use dft_types::{message::*, *};
+use dft_utils::*;
 use ic_cdk::{
     api,
     export::{candid::Nat, Principal},
