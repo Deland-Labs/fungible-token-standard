@@ -50,7 +50,7 @@ static mut LOGO: Vec<u8> = Vec::new(); // 256 * 256
 static mut FEE_TO: TokenHolder = TokenHolder::Principal(Principal::anonymous());
 
 #[init]
-fn canister_init(
+async fn canister_init(
     sub_account: Option<Subaccount>,
     logo: Option<Vec<u8>>,
     name: String,
@@ -72,12 +72,10 @@ fn canister_init(
         } else {
             [].to_vec()
         };
-        let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
         let mut rw_fee = FEE.write().unwrap();
         NAME = Box::leak(name.into_boxed_str());
         SYMBOL = Box::leak(symbol.into_boxed_str());
         DECIMALS = decimals;
-        *rw_total_supply = total_supply;
         *rw_fee = fee;
         let call_from = TokenHolder::new(caller, sub_account);
         FEE_TO = call_from.clone();
@@ -88,8 +86,7 @@ fn canister_init(
                 ic_cdk::print(format!("init : account is {}", p.to_text()))
             }
         };
-        let balances = storage::get_mut::<Balances>();
-        balances.insert(call_from.clone(), rw_total_supply.clone());
+        _mint(caller, call_from, total_supply).await;
     }
 }
 
@@ -572,6 +569,37 @@ async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> TransactionR
         caller,
         from.clone(),
         value,
+        api::time(),
+    ))
+    .await;
+
+    let tx_id = encode_tx_id(api::id(), tx_index_new);
+    TransactionResult::Ok(TransactionResponse {
+        txid: tx_id,
+        error: if err_save_msg.len() > 0 {
+            Some(vec![err_save_msg])
+        } else {
+            None
+        },
+    })
+}
+
+async fn _mint(caller: Principal, to: TokenHolder, value: Nat) -> TransactionResult {
+    let to_balance = _balance_of(&to);
+    let balances = storage::get_mut::<Balances>();
+    let to_balance_new = to_balance + value.clone();
+    balances.insert(to.clone(), to_balance_new);
+
+    let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
+    *rw_total_supply += value.clone();
+    let tx_index_new = _get_next_tx_index();
+    let err_save_msg = _save_tx_record(TxRecord::Transfer(
+        tx_index_new.clone(),
+        caller,
+        TokenHolder::new(Principal::anonymous(), None),
+        to.clone(),
+        value,
+        Nat::from(0),
         api::time(),
     ))
     .await;
