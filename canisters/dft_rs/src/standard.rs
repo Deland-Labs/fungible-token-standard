@@ -5,6 +5,7 @@
  * Maintainer : Deland Team (https://delandlabs.com)
  * Stability  : Experimental
  */
+
 use crate::extends;
 use crate::ic_management::*;
 use crate::types::{message::*, *};
@@ -528,26 +529,7 @@ async fn _transfer(
     }
 }
 
-#[update(name = "burn")]
-#[candid_method(update, rename = "burn")]
-async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> TransactionResult {
-    let caller = api::caller();
-    let transfer_from = TokenHolder::new(caller, from_sub_account);
-    let fee = _calc_transfer_fee(value.clone());
-
-    if fee.gt(&value) {
-        return TransactionResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
-    }
-
-    let from_balance = _balance_of(&transfer_from);
-
-    if from_balance < value {
-        return TransactionResult::Err(MSG_BURN_VALUE_EXCEEDS.to_string());
-    }
-
-    return _burn(caller, transfer_from, value).await;
-}
-
+#[allow(dead_code)]
 async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> TransactionResult {
     let from_balance = _balance_of(&from);
 

@@ -26,7 +26,6 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   allowance : (text, text) -> (nat) query;
   approve : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
   balanceOf : (text) -> (nat) query;
-  burn : (opt vec nat8, nat) -> (TransactionResult);
   decimals : () -> (nat8) query;
   extend : () -> (vec KeyValuePair) query;
   fee : () -> (Fee) query;

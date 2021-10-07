@@ -11,22 +11,31 @@ Thinking in [Dfinity Fungible Token Standard](./Thinking-in-dft.md)
 ## Standard
 
 ```RUST
-type ApproveResult = variant { Ok : opt String; Err : String };
-type BurnResult = variant { Ok; Err : String };
 type CallData = record { method : text; args : vec nat8 };
-type Fee = record { lowest: nat; rate :nat32 };
+type Fee = record { rate : nat; lowest : nat };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record { fee : Fee; decimals : nat8; name : text; total_supply : nat; symbol : text; };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
-type TxRecordResult = variant {  Ok : TxRecord;  Err : text; Forward : principal; };
+type TxRecordResult = variant { Ok : TxRecord; Err : text; Forward : principal; };
 type TxRecord = variant {
   Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
   Burn : record { nat; principal; TokenHolder; nat; nat64 };
   Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
 };
 //DFT support AccountId (ICP holder address) and Principal as token holder
-type TokenHolder = variant { Account : text; Principal : principal; };
-type TransferResult = variant { Ok : record { nat; opt vec String }; Err : String; };
+type TokenHolder = variant { Account : text; Principal : principal };
+type TokenInfo = record {
+  allowance_size : nat;
+  fee_to : TokenHolder;
+  owner : principal;
+  cycles : nat64;
+  tx_count : nat;
+  holders : nat;
+  storages : vec principal;
+};
+type TransactionResponse = record { txid : text; error : opt vec text };
+type TransactionResult = variant { Ok : TransactionResponse; Err : text };
+
 service : {
   // Return token's name
   name : () -> (text) query;
@@ -97,7 +106,7 @@ service : {
   // Allows `spender` to withdraw from your account multiple times, up to the `value` amount.
   // If this function is called again it overwrites the current allowance with value.
   // If `calldata` is not null and `spender` is canister, approve means approveAndCall.
-  approve: (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (ApproveResult);
+  approve: (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (TransactionResult);
 
   //Get all allownances of the holder
   allowancesOfHolder : (holder: text) -> (vec record { TokenHolder; nat }) query;
@@ -106,7 +115,7 @@ service : {
   // The transferFrom method is used for a withdraw workflow, allowing canister
   // to transfer tokens on your behalf.
   // If the receiver's (`to`) notification hook function exists,  will be called.
-  transferFrom: (spenderSubAccount: opt vec nat8, from: text, to: text,value: nat) ->(TransferResult);
+  transferFrom: (spenderSubAccount: opt vec nat8, from: text, to: text,value: nat) ->(TransactionResult);
 
   // Transfer from :
   //      1. `fromSubAccount` is not null : Use the accountId generated based on the caller's Principal and the provided `fromSubAccount`
@@ -115,10 +124,7 @@ service : {
   // `to` can be an AccountId , a Principal,or a canister id (If the container has a notification hook function, a notification will be triggered).
   // If `calldata` is not null and `to` is canister, transfer means transferAndCall.
   // Transfer 0 value ​​will be reject.
-  transfer: (fromSubAccount:opt vec nat8, to: text, value: nat, calldata: opt CallData) -> (TransferResult);
-
-  // Destroys `amount` tokens from `account`, reducing the total supply.
-  burn: (fromSubAccount: opt vec nat8,amount: nat) -> (BurnResult);
+  transfer: (fromSubAccount:opt vec nat8, to: text, value: nat, calldata: opt CallData) -> (TransactionResult);
 
   // Get last transcation of the DFT, max size is 200
   lastTransactions : (size: nat64) -> (TxRecordsResult) query;
