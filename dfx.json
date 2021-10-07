@@ -6,7 +6,7 @@
         "cargo build --target wasm32-unknown-unknown --package  dft_rs --release",
         "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_rs.wasm -o target/wasm32-unknown-unknown/release/dft_rs_opt.wasm"
       ],
-      "candid": "canisters/dft_rs/src/token.did",
+      "candid": "canisters/dft_rs/src/standard.did",
       "wasm": "target/wasm32-unknown-unknown/release/dft_rs_opt.wasm"
     },
     "dft_tx_storage": {

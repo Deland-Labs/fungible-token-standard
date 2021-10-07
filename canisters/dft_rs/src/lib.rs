@@ -2,6 +2,6 @@
 extern crate lazy_static;
 mod extends;
 mod ic_management;
-pub mod token;
+pub mod standard;
 mod types;
 mod utils;
