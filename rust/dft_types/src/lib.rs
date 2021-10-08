@@ -1,5 +1,6 @@
 mod account_identifier;
 mod call_data;
+mod extend_keys;
 mod fee;
 mod key_value_pair;
 pub mod message;
@@ -9,9 +10,8 @@ mod token_info;
 mod token_payload;
 mod transcation_result;
 mod tx_record;
-
-use candid::Principal;
 use candid::Nat;
+use candid::Principal;
 use std::collections::HashMap;
 use std::string::String;
 
@@ -31,6 +31,7 @@ pub use metadata::MetaData;
 pub use token_holder::TokenHolder;
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
+pub use extend_keys::EXTEND_KEYS;
 pub use token_info::TokenInfo;
 pub use token_payload::TokenPayload;
 pub use transcation_result::TransactionResponse;

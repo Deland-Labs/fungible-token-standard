@@ -5,7 +5,6 @@
  * Maintainer : Deland Team (https://delandlabs.com)
  * Stability  : Experimental
  */
-use crate::extends;
 use crate::ic_management::*;
 use candid::{candid_method, decode_args, encode_args};
 use dft_types::{message::*, *};
@@ -173,7 +172,7 @@ fn set_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
     _only_owner();
     let extend_data_store = storage::get_mut::<ExtendData>();
     for kv_pair in extend_data.iter() {
-        if extends::EXTEND_KEYS.contains(&kv_pair.k.as_str()) {
+        if EXTEND_KEYS.contains(&kv_pair.k.as_str()) {
             extend_data_store.insert(kv_pair.k.clone(), kv_pair.v.clone());
         }
     }
