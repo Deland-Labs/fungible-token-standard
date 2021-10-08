@@ -109,7 +109,7 @@ service : {
   approve: (fromSubAccount: opt vec nat8, spender: text, value: nat, calldata: opt CallData) -> (TransactionResult);
 
   //Get all allownances of the holder
-  allowancesOfHolder : (holder: text) -> (vec record { TokenHolder; nat }) query;
+  allowancesOf : (holder: text) -> (vec record { TokenHolder; nat }) query;
 
   // Transfers value amount of tokens from `address from` to [address to].
   // The transferFrom method is used for a withdraw workflow, allowing canister

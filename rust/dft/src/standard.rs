@@ -342,9 +342,9 @@ async fn approve(
     }
 }
 
-#[query(name = "allowancesOfHolder")]
-#[candid_method(query, rename = "allowancesOfHolder")]
-fn get_allowances_by_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
+#[query(name = "allowancesOf")]
+#[candid_method(query, rename = "allowancesOf")]
+fn allowances_of_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
     let allowances = storage::get::<Allowances>();
     match holder.parse::<TokenHolder>() {
         Ok(token_holder) => match allowances.get(&token_holder) {
