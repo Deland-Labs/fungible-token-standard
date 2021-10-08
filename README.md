@@ -4,7 +4,7 @@
 
 Thinking in [Dfinity Fungible Token Standard](./Thinking-in-dft.md)
 
-## How to create a fungible token with 1 line of code
+## How to use rust to create a fungible token with [1 line of code](https://github.com/Deland-Labs/dfinity-fungible-token-standard/blob/86a87b7631c9c075bf02399d75e74de319b8d99d/rust/dft_basic/src/lib.rs#L7)?
 
 ```RUST
 dft_derive::standard_basic!();
@@ -188,10 +188,16 @@ rustup target add wasm32-unknown-unknown
 ```
 
 ## How to test?
-
+### Rust
 ```bash
-   make test_rs
-   make test_motoko
+   cd rust
+   make test
+```
+
+### Motoko
+```bash
+   cd motoko
+   make test
 ```
 
 ## About us
