@@ -21,14 +21,14 @@ pub(crate) fn basic_standard() -> TokenStream {
             string::String,
             sync::RwLock,
         };
-
+        
         // transferFee = amount * rate / 10.pow(FEE_RATE_DECIMALS)
         const MAX_TXS_CACHE_IN_DFT: usize = 1000;
         const MAX_GET_TXS_SIZE: usize = 200;
         const FEE_RATE_DECIMALS: u8 = 8u8;
         const MAX_HEAP_MEMORY_SIZE: u32 = 4294967295u32; // 4G
         const CYCLES_PER_TOKEN: u64 = 2000_000_000_000; // 2T
-
+        
         lazy_static! {
             static ref NAT_ZERO: Nat = Nat::from(0);
             static ref TOTAL_SUPPLY: RwLock<Nat> = RwLock::new(Nat::from(0));
@@ -38,14 +38,14 @@ pub(crate) fn basic_standard() -> TokenStream {
             });
             static ref TX_ID_CURSOR: RwLock<Nat> = RwLock::new(Nat::from(0));
         }
-
+        
         static mut OWNER: Principal = Principal::anonymous();
         static mut NAME: &str = "";
         static mut SYMBOL: &str = "";
         static mut DECIMALS: u8 = 0;
         static mut LOGO: Vec<u8> = Vec::new(); // 256 * 256
         static mut FEE_TO: TokenHolder = TokenHolder::Principal(Principal::anonymous());
-
+        
         #[init]
         async fn canister_init(
             sub_account: Option<Subaccount>,
@@ -82,17 +82,18 @@ pub(crate) fn basic_standard() -> TokenStream {
                     TokenHolder::Principal(p) => {
                         ic_cdk::print(format!("init : account is {}", p.to_text()))
                     }
+                    _ => {}
                 };
                 _mint(caller, call_from, total_supply).await;
             }
         }
-
+        
         #[update(name = "owner")]
         #[candid_method(update, rename = "owner")]
         fn owner() -> Principal {
             unsafe { OWNER }
         }
-
+        
         #[update(name = "setOwner")]
         #[candid_method(update, rename = "setOwner")]
         fn set_owner(owner: Principal) -> bool {
@@ -102,37 +103,37 @@ pub(crate) fn basic_standard() -> TokenStream {
             }
             true
         }
-
+        
         #[query(name = "name")]
         #[candid_method(query, rename = "name")]
         fn get_name() -> String {
             unsafe { NAME.to_string() }
         }
-
+        
         #[query(name = "symbol")]
         #[candid_method(query, rename = "symbol")]
         fn get_symbol() -> String {
             unsafe { SYMBOL.to_string() }
         }
-
+        
         #[query(name = "decimals")]
         #[candid_method(query, rename = "decimals")]
         fn get_decimals() -> u8 {
             unsafe { DECIMALS }
         }
-
+        
         #[query(name = "totalSupply")]
         #[candid_method(query, rename = "totalSupply")]
         fn get_total_supply() -> Nat {
             (*TOTAL_SUPPLY.read().unwrap()).clone()
         }
-
+        
         #[query(name = "fee")]
         #[candid_method(query, rename = "fee")]
         fn get_fee_setting() -> Fee {
             (*FEE.read().unwrap()).clone()
         }
-
+        
         #[query(name = "meta")]
         #[candid_method(query, rename = "meta")]
         fn get_meta_data() -> MetaData {
@@ -144,12 +145,12 @@ pub(crate) fn basic_standard() -> TokenStream {
                     total_supply: (*TOTAL_SUPPLY.read().unwrap()).clone(),
                     fee: (*FEE.read().unwrap()).clone(),
                 };
-
+        
                 ic_cdk::print(format!("meta is {:#?}", meta));
                 meta
             }
         }
-
+        
         #[query(name = "extend")]
         #[candid_method(query, rename = "extend")]
         fn get_extend_data() -> Vec<KeyValuePair> {
@@ -163,7 +164,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             }
             return_vec
         }
-
+        
         #[update(name = "setExtend")]
         #[candid_method(update, rename = "setExtend")]
         fn set_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
@@ -176,13 +177,13 @@ pub(crate) fn basic_standard() -> TokenStream {
             }
             true
         }
-
+        
         #[query(name = "logo")]
         #[candid_method(query, rename = "logo")]
         fn logo() -> Vec<u8> {
             unsafe { LOGO.clone() }
         }
-
+        
         #[update(name = "setLogo")]
         #[candid_method(update, rename = "setLogo")]
         fn set_logo(logo: Vec<u8>) -> bool {
@@ -190,12 +191,12 @@ pub(crate) fn basic_standard() -> TokenStream {
             unsafe { LOGO = logo }
             true
         }
-
+        
         #[query(name = "balanceOf")]
         #[candid_method(query, rename = "balanceOf")]
         fn balance_of(holder: String) -> Nat {
             let token_holder_parse_result = holder.parse::<TokenHolder>();
-
+        
             let balance = match token_holder_parse_result {
                 Ok(token_holder) => _balance_of(&token_holder),
                 _ => Nat::from(0),
@@ -203,7 +204,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             ic_cdk::print(format!("get account balance is {}", balance));
             balance
         }
-
+        
         fn _balance_of(holder: &TokenHolder) -> Nat {
             let balances = storage::get::<Balances>();
             match balances.get(holder) {
@@ -211,13 +212,13 @@ pub(crate) fn basic_standard() -> TokenStream {
                 None => Nat::from(0),
             }
         }
-
+        
         #[query(name = "allowance")]
         #[candid_method(query, rename = "allowance")]
         fn allowance(owner: String, spender: String) -> Nat {
             let token_holder_owner_parse_result = owner.parse::<TokenHolder>();
             let token_holder_spender_parse_result = spender.parse::<TokenHolder>();
-
+        
             let allowance: Nat = match token_holder_owner_parse_result {
                 Ok(token_holder_owner) => match token_holder_spender_parse_result {
                     Ok(token_holder_spender) => _allowance(&token_holder_owner, &token_holder_spender),
@@ -225,11 +226,11 @@ pub(crate) fn basic_standard() -> TokenStream {
                 },
                 _ => Nat::from(0),
             };
-
+        
             ic_cdk::print(format!("get allowance is {}", allowance));
             allowance
         }
-
+        
         fn _allowance(owner: &TokenHolder, spender: &TokenHolder) -> Nat {
             let allowances = storage::get::<Allowances>();
             match allowances.get(&owner) {
@@ -240,7 +241,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 None => Nat::from(0),
             }
         }
-
+        
         #[update(name = "approve")]
         #[candid_method(update, rename = "approve")]
         async fn approve(
@@ -253,14 +254,14 @@ pub(crate) fn basic_standard() -> TokenStream {
             let owner_holder = TokenHolder::new(caller, owner_sub_account);
             let spender_parse_result = spender.parse::<TokenHolder>();
             let approve_fee = _calc_approve_fee();
-
+        
             if let Ok(spender_holder) = spender_parse_result {
                 //charge approve, prevent gas ddos attacks
                 match _charge_approve_fee(&spender_holder, approve_fee.clone()) {
                     Ok(_) => {}
                     Err(emsg) => return TransactionResult::Err(emsg),
                 }
-
+        
                 let allowances_read = storage::get::<Allowances>();
                 match allowances_read.get(&owner_holder) {
                     Some(inner) => {
@@ -299,9 +300,9 @@ pub(crate) fn basic_standard() -> TokenStream {
                 ))
                 .await;
                 let tx_id = encode_tx_id(api::id(), tx_index_new);
-
+        
                 let mut errors: Vec<String> = Vec::new();
-
+        
                 if save_err_msg.len() > 0 {
                     errors.push(save_err_msg);
                 }
@@ -309,7 +310,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                     Some(data) => {
                         // execute call
                         let execute_call_result = _execute_call(&spender_holder, data).await;
-
+        
                         match execute_call_result {
                             Err(emsg) => {
                                 // approve succeed ,bu call failed
@@ -338,7 +339,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 return TransactionResult::Err(MSG_INVALID_SPENDER.to_string());
             }
         }
-
+        
         #[query(name = "allowancesOf")]
         #[candid_method(query, rename = "allowancesOf")]
         fn allowances_of_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
@@ -351,7 +352,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 Err(_) => Vec::new(),
             }
         }
-
+        
         #[update(name = "transferFrom")]
         #[candid_method(update, rename = "transferFrom")]
         async fn transfer_from(
@@ -362,35 +363,35 @@ pub(crate) fn basic_standard() -> TokenStream {
         ) -> TransactionResult {
             let caller = api::caller();
             let spender = TokenHolder::new(caller, spender_sub_account);
-
+        
             let from_parse_result = from.parse::<TokenHolder>();
             let to_parse_result = to.parse::<TokenHolder>();
-
+        
             match from_parse_result {
                 Ok(from_token_holder) => match to_parse_result {
                     Ok(to_token_holder) => {
                         let spender_allowance = _allowance(&from_token_holder, &spender);
                         let fee = _calc_transfer_fee(value.clone());
-
+        
                         // check allowance
                         if spender_allowance < value.clone() + fee.clone() {
                             return TransactionResult::Err(MSG_ALLOWANCE_EXCEEDS.to_string());
                         }
                         let allowances_read = storage::get::<Allowances>();
-
+        
                         // update allowance
                         match allowances_read.get(&from_token_holder) {
                             Some(inner) => {
                                 let spender_allowance_new = spender_allowance - value.clone() - fee;
                                 let mut temp = inner.clone();
-
+        
                                 if spender_allowance_new.gt(&Nat::from(0)) {
                                     temp.insert(spender, spender_allowance_new);
                                 } else {
                                     temp.remove(&spender);
                                 }
                                 let allowances = storage::get_mut::<Allowances>();
-
+        
                                 if temp.len() > 0 {
                                     allowances.insert(from_token_holder.clone(), temp);
                                 } else {
@@ -410,7 +411,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 _ => TransactionResult::Err(MSG_INVALID_FROM.to_string()),
             }
         }
-
+        
         #[update(name = "transfer")]
         #[candid_method(update, rename = "transfer")]
         async fn transfer(
@@ -422,7 +423,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             let caller = api::caller();
             let transfer_from = TokenHolder::new(caller, from_sub_account);
             let receiver_parse_result = to.parse::<TokenReceiver>();
-
+        
             match receiver_parse_result {
                 Ok(receiver) => {
                     let mut errors: Vec<String> = Vec::new();
@@ -456,7 +457,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 _ => TransactionResult::Err(MSG_INVALID_FROM.to_string()),
             }
         }
-
+        
         async fn _transfer(
             caller: Principal,
             from: TokenHolder,
@@ -465,22 +466,22 @@ pub(crate) fn basic_standard() -> TokenStream {
         ) -> TransactionResult {
             let fee = _calc_transfer_fee(value.clone());
             let from_balance = _balance_of(&from);
-
+        
             if from_balance < value.clone() + fee.clone() {
                 return TransactionResult::Err(MSG_BALANCE_EXCEEDS.to_string());
             }
-
+        
             // before transfer
             let before_sending_check_result = _on_token_sending(&from, &to, &value);
-
+        
             if let Err(emsg) = before_sending_check_result {
                 return TransactionResult::Err(emsg);
             }
-
+        
             let to_balance = _balance_of(&to);
             let balances = storage::get_mut::<Balances>();
             let from_balance_new = from_balance - value.clone() - fee.clone();
-
+        
             if from_balance_new == 0 {
                 balances.remove(&from);
             } else {
@@ -499,16 +500,16 @@ pub(crate) fn basic_standard() -> TokenStream {
                 api::time(),
             ))
             .await;
-
+        
             let mut errors: Vec<String> = Vec::new();
-
+        
             if save_err_msg.len() > 0 {
                 errors.push(save_err_msg)
             }
-
+        
             // after transfer (notify)
             let after_token_send_notify_result = _on_token_received(&from, &to, &value).await;
-
+        
             let tx_id = encode_tx_id(api::id(), tx_index_new);
             ic_cdk::print(format!("transfer tx id {}", tx_id));
             if let Err(emsg) = after_token_send_notify_result {
@@ -524,27 +525,27 @@ pub(crate) fn basic_standard() -> TokenStream {
                 })
             }
         }
-
+        
         async fn _mint(caller: Principal, to: TokenHolder, value: Nat) -> TransactionResult {
             let to_balance = _balance_of(&to);
             let balances = storage::get_mut::<Balances>();
             let to_balance_new = to_balance + value.clone();
             balances.insert(to.clone(), to_balance_new);
-
+        
             let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
             *rw_total_supply += value.clone();
             let tx_index_new = _get_next_tx_index();
             let err_save_msg = _save_tx_record(TxRecord::Transfer(
                 tx_index_new.clone(),
                 caller,
-                TokenHolder::new(Principal::anonymous(), None),
+                TokenHolder::None,
                 to.clone(),
                 value,
                 Nat::from(0),
                 api::time(),
             ))
             .await;
-
+        
             let tx_id = encode_tx_id(api::id(), tx_index_new);
             TransactionResult::Ok(TransactionResponse {
                 txid: tx_id,
@@ -555,7 +556,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 },
             })
         }
-
+        
         #[update(name = "setFee")]
         #[candid_method(update, rename = "setFee")]
         fn set_fee(fee: Fee) -> bool {
@@ -563,7 +564,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             *FEE.write().unwrap() = fee;
             true
         }
-
+        
         #[query(name = "setFeeTo")]
         #[candid_method(update, rename = "setFeeTo")]
         fn set_fee_to(fee_to: String) -> bool {
@@ -574,14 +575,14 @@ pub(crate) fn basic_standard() -> TokenStream {
                 Err(_) => api::trap(MSG_INVALID_FEE_TO),
             }
         }
-
+        
         fn _set_fee_to(holder: TokenHolder) -> bool {
             unsafe {
                 FEE_TO = holder;
                 true
             }
         }
-
+        
         #[query(name = "tokenInfo")]
         #[candid_method(query, rename = "tokenInfo")]
         fn get_token_info() -> TokenInfo {
@@ -601,18 +602,18 @@ pub(crate) fn basic_standard() -> TokenStream {
                 }
             }
         }
-
+        
         #[query(name = "transactionByIndex")]
         #[candid_method(query, rename = "transactionByIndex")]
         fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
             let txs = storage::get::<Txs>();
             let inner_start_tx_index = _get_tx_index(&txs[0]);
             let inner_end_tx_index = TX_ID_CURSOR.read().unwrap().clone();
-
+        
             if tx_index > inner_end_tx_index || txs.len() == 0 {
                 return TxRecordResult::Err(MSG_OUT_OF_TX_INDEX_RANGE.to_string());
             };
-
+        
             if tx_index <= inner_end_tx_index && tx_index >= inner_start_tx_index {
                 let tx = txs
                     .iter()
@@ -627,14 +628,14 @@ pub(crate) fn basic_standard() -> TokenStream {
                 return TxRecordResult::Forward(*forward_storage_canister_id);
             }
         }
-
+        
         #[query(name = "lastTransactions")]
         #[candid_method(query, rename = "lastTransactions")]
         fn last_transactions(size: usize) -> Result<Vec<TxRecord>, String> {
             if size > MAX_GET_TXS_SIZE {
                 return Err(MSG_GET_LAST_TXS_SIZE_TOO_LARGE.to_string());
             }
-
+        
             let txs = storage::get::<Txs>();
             if txs.len() == 0 {
                 return Ok(Vec::new());
@@ -644,7 +645,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 return Ok(txs[0..size].to_vec());
             }
         }
-
+        
         #[query(name = "transactionById")]
         #[candid_method(query, rename = "transactionById")]
         fn transaction_by_id(tx_id: String) -> TxRecordResult {
@@ -660,15 +661,15 @@ pub(crate) fn basic_standard() -> TokenStream {
                 Err(_) => TxRecordResult::Err(MSG_INVALID_TX_ID.to_string()),
             }
         }
-
+        
         candid::export_service!();
-
+        
         #[query(name = "__get_candid_interface_tmp_hack")]
         #[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
         fn __get_candid_interface_tmp_hack() -> String {
             __export_service()
         }
-
+        
         #[pre_upgrade]
         fn pre_upgrade() {
             let owner = unsafe { OWNER };
@@ -676,13 +677,13 @@ pub(crate) fn basic_standard() -> TokenStream {
             let meta = get_meta_data();
             let logo = unsafe { LOGO.clone() };
             let tx_id_cursor = (*TX_ID_CURSOR.read().unwrap()).clone();
-
+        
             let mut extend = Vec::new();
             let mut balances = Vec::new();
             let mut allowances = Vec::new();
             let mut storage_canister_ids = Vec::new();
             let mut txs = Vec::new();
-
+        
             for (k, v) in storage::get::<ExtendData>().iter() {
                 extend.push((k.to_string(), v.to_string()));
             }
@@ -716,7 +717,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             };
             storage::stable_save((payload,)).unwrap();
         }
-
+        
         #[post_upgrade]
         fn post_upgrade() {
             // There can only be one value in stable memory, currently. otherwise, lifetime error.
@@ -749,10 +750,10 @@ pub(crate) fn basic_standard() -> TokenStream {
             for (k, v) in payload.storage_canister_ids {
                 storage::get_mut::<StorageCanisterIds>().insert(k, v);
             }
-
+        
             storage::get_mut::<Txs>().extend(payload.txs_inner);
         }
-
+        
         // do something becore sending
         fn _on_token_sending(
             #[warn(unused_variables)] _transfer_from: &TokenHolder,
@@ -761,7 +762,7 @@ pub(crate) fn basic_standard() -> TokenStream {
         ) -> Result<(), String> {
             Ok(())
         }
-
+        
         // call it after transfer, notify receiver with (from,value)
         async fn _on_token_received(
             transfer_from: &TransferFrom,
@@ -771,13 +772,13 @@ pub(crate) fn basic_standard() -> TokenStream {
             let get_did_method_name = "__get_candid_interface_tmp_hack";
             let on_token_received_method_name = "on_token_received";
             let on_token_received_method_sig = "on_token_received:(TransferFrom,nat)->(bool)query";
-
+        
             // check receiver
             if let TokenHolder::Principal(cid) = receiver {
                 if is_canister(cid) {
                     let did_res: Result<(String,), _> =
                         api::call::call(*cid, get_did_method_name, ()).await;
-
+        
                     if let Ok((did,)) = did_res {
                         let _support = is_support_interface(did, on_token_received_method_sig.to_string());
                         if _support {
@@ -787,9 +788,9 @@ pub(crate) fn basic_standard() -> TokenStream {
                                 (transfer_from, _value),
                             )
                             .await;
-
+        
                             ic_cdk::print("notify executed!");
-
+        
                             match _check_res {
                                 Ok((is_notify_succeed,)) => {
                                     if !is_notify_succeed {
@@ -807,7 +808,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             }
             Ok(true)
         }
-
+        
         async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result<bool, String> {
             if let TokenHolder::Principal(cid) = receiver {
                 if is_canister(cid) {
@@ -828,23 +829,23 @@ pub(crate) fn basic_standard() -> TokenStream {
             }
             Ok(true)
         }
-
+        
         fn _calc_approve_fee() -> Nat {
             return FEE.read().unwrap().lowest.clone();
         }
-
+        
         fn _calc_transfer_fee(value: Nat) -> Nat {
             let r_fee = FEE.read().unwrap();
             let div_by: Nat = BigUint::from(10u32).pow(FEE_RATE_DECIMALS as u32).into();
             let calc_fee: Nat = value.mul(r_fee.rate.clone()).div(div_by);
             cmp::max(r_fee.lowest.clone(), calc_fee)
         }
-
+        
         fn _charge_approve_fee(payer: &TokenHolder, fee: Nat) -> Result<bool, String> {
             if fee == 0 {
                 return Ok(true);
             }
-
+        
             let balances = storage::get_mut::<Balances>();
             let payer_balance = _balance_of(&payer);
             if payer_balance < fee {
@@ -854,7 +855,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             _fee_settle(fee);
             Ok(true)
         }
-
+        
         fn _fee_settle(fee: Nat) {
             if !fee.gt(&Nat::from(0)) {
                 return;
@@ -865,18 +866,18 @@ pub(crate) fn basic_standard() -> TokenStream {
                 balances.insert(FEE_TO.clone(), fee_to_balance + fee);
             }
         }
-
+        
         async fn _save_tx_record(tx: TxRecord) -> String {
             let txs = storage::get_mut::<Txs>();
             txs.push(tx);
-
+        
             let last_tx_index = _get_tx_index(&txs[0]);
             // When create auto-scaling storage ?
             // DFT's txs count > 2000
             // It's means when creating a test DFT, when the number of transactions is less than 2000, no storage will be created to save cycles
             if txs.len() >= MAX_TXS_CACHE_IN_DFT * 2 {
                 let storage_canister_id_res = _get_available_storage_id(&last_tx_index).await;
-
+        
                 match storage_canister_id_res {
                     Ok(storage_canister_id) => {
                         let should_save_txs = txs[0..MAX_TXS_CACHE_IN_DFT].to_vec();
@@ -917,18 +918,18 @@ pub(crate) fn basic_standard() -> TokenStream {
                     }
                 };
             }
-
+        
             "".to_string()
         }
-
+        
         fn _get_next_tx_index() -> Nat {
             let mut rw_tx_id_cursor = TX_ID_CURSOR.write().unwrap();
             let ret = rw_tx_id_cursor.clone();
             *rw_tx_id_cursor += 1;
-
+        
             ret
         }
-
+        
         fn _get_tx_index(tx: &TxRecord) -> Nat {
             match tx {
                 TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
@@ -936,7 +937,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 TxRecord::Burn(ti, _, _, _, _) => ti.clone(),
             }
         }
-
+        
         async fn _get_available_storage_id(tx_index: &Nat) -> Result<Principal, String> {
             let mut max_key = Nat::from(0);
             let mut last_storage_id = Principal::anonymous();
@@ -947,7 +948,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 }
             }
             let mut is_necessary_create_new_storage_canister = last_storage_id == Principal::anonymous();
-
+        
             // check storage remain size
             if !is_necessary_create_new_storage_canister {
                 let req = CanisterIdRecord {
@@ -959,7 +960,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                         ic_cdk::print(format!("memory_size is {}", res.memory_size));
                         let min_storage_size_for_cache_txs =
                             Nat::from(MAX_TXS_CACHE_IN_DFT * std::mem::size_of::<TxRecord>());
-
+        
                         if (Nat::from(MAX_HEAP_MEMORY_SIZE) - res.memory_size)
                             .lt(&min_storage_size_for_cache_txs)
                         {
@@ -974,7 +975,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                     }
                 };
             }
-
+        
             if is_necessary_create_new_storage_canister {
                 const STORAGE_WASM: &[u8] = std::include_bytes!(
                     "../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
@@ -991,7 +992,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 };
                 api::print("creating token storage...");
                 let create_result = create_canister(create_args).await;
-
+        
                 match create_result {
                     Ok(cdr) => {
                         api::print(format!(
@@ -999,10 +1000,10 @@ pub(crate) fn basic_standard() -> TokenStream {
                             cdr.canister_id.clone().to_string(),
                             tx_index.clone()
                         ));
-
+        
                         let install_args = encode_args((dft_id.clone(), tx_index.clone()))
                             .expect("Failed to encode arguments.");
-
+        
                         match install_canister(&cdr.canister_id, STORAGE_WASM.to_vec(), install_args).await
                         {
                             Ok(_) => {
@@ -1028,7 +1029,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 return Ok(last_storage_id);
             }
         }
-
+        
         fn _only_owner() {
             unsafe {
                 if OWNER != api::caller() {
@@ -1036,18 +1037,18 @@ pub(crate) fn basic_standard() -> TokenStream {
                 }
             }
         }
-
+        
         mod ic_management {
             #![allow(dead_code)]
             use ic_cdk::api;
             use ic_cdk::export::candid::{CandidType, Nat, Principal};
             use serde::Deserialize;
-
+        
             #[derive(CandidType, Clone, Deserialize, Debug)]
             pub struct CanisterIdRecord {
                 pub canister_id: Principal,
             }
-
+        
             #[derive(CandidType, Debug, Clone, Deserialize)]
             pub struct CanisterSettings {
                 pub controllers: Option<Vec<Principal>>,
@@ -1055,7 +1056,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 pub memory_allocation: Option<Nat>,
                 pub freezing_threshold: Option<Nat>,
             }
-
+        
             #[allow(non_camel_case_types)]
             #[derive(CandidType, Debug, Deserialize)]
             pub enum CanisterStatus {
@@ -1066,7 +1067,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 #[serde(rename = "stopped")]
                 Stopped,
             }
-
+        
             #[derive(CandidType, Debug, Deserialize)]
             pub struct CanisterStatusResponse {
                 pub status: CanisterStatus,
@@ -1076,7 +1077,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 pub memory_size: Nat,
                 pub cycles: Nat,
             }
-
+        
             // Install Wasm
             #[derive(CandidType, Deserialize)]
             enum InstallMode {
@@ -1087,7 +1088,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 #[serde(rename = "upgrade")]
                 Upgrade,
             }
-
+        
             #[derive(CandidType, Deserialize)]
             struct CanisterInstall {
                 mode: InstallMode,
@@ -1097,13 +1098,13 @@ pub(crate) fn basic_standard() -> TokenStream {
                 #[serde(with = "serde_bytes")]
                 arg: Vec<u8>,
             }
-
+        
             #[derive(CandidType, Clone, Deserialize)]
             pub struct CreateCanisterArgs {
                 pub cycles: u64,
                 pub settings: CanisterSettings,
             }
-
+        
             pub async fn get_canister_status(
                 id_record: CanisterIdRecord,
             ) -> Result<CanisterStatusResponse, String> {
@@ -1121,7 +1122,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                     )),
                 }
             }
-
+        
             pub async fn create_canister(args: CreateCanisterArgs) -> Result<CanisterIdRecord, String> {
                 #[derive(CandidType)]
                 struct In {
@@ -1130,7 +1131,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 let in_arg = In {
                     settings: Some(args.settings),
                 };
-
+        
                 let (create_result,): (CanisterIdRecord,) = match api::call::call_with_payment(
                     Principal::management_canister(),
                     "create_canister",
@@ -1147,10 +1148,10 @@ pub(crate) fn basic_standard() -> TokenStream {
                         ))
                     }
                 };
-
+        
                 Ok(create_result)
             }
-
+        
             pub async fn install_canister(
                 canister_id: &Principal,
                 wasm_module: Vec<u8>,
@@ -1162,7 +1163,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                     wasm_module: wasm_module.clone(),
                     arg: args,
                 };
-
+        
                 match api::call::call(
                     Principal::management_canister(),
                     "install_code",
@@ -1180,7 +1181,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 };
                 Ok(())
             }
-
+        
             pub async fn deposit_cycles(id_record: CanisterIdRecord) -> Result<(), String> {
                 let res: Result<(), _> = api::call::call(
                     Principal::management_canister(),
@@ -1197,6 +1198,115 @@ pub(crate) fn basic_standard() -> TokenStream {
                 }
             }
         }
+    ))
+}
 
+pub(crate) fn standard_ext_burnable() -> TokenStream {
+    TokenStream::from(quote!(
+        #[update(name = "burnFrom")]
+        #[candid_method(update, rename = "burnFrom")]
+        async fn burnFrom(
+            from_sub_account: Option<Subaccount>,
+            spender: String,
+            value: Nat,
+        ) -> TransactionResult {
+            let caller = api::caller();
+            let token_holder_owner = TokenHolder::new(caller, from_sub_account);
+            let spender_parse_res = to.parse::<TokenHolder>();
+            let fee = _calc_transfer_fee(value.clone());
+            match spender_parse_res {
+                Ok(holder) => {
+                    let allowance = _allowance(&token_holder_owner, &token_holder_spender);
+                    if fee.gt(&value) {
+                        return TransactionResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
+                    }
+
+                    if allowance < value {
+                        return TransactionResult::Err(MSG_BURN_FROM_VALUE_EXCEEDS.to_string());
+                    }
+
+                    return _burn(caller, token_holder_owner, value).await;
+                }
+
+                Err(_) => return TransactionResult::Err(MSG_INVALID_TO.to_string()),
+            };
+        }
+
+        #[update(name = "burn")]
+        #[candid_method(update, rename = "burn")]
+        async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> TransactionResult {
+            let caller = api::caller();
+            let transfer_from = TokenHolder::new(caller, from_sub_account);
+            let fee = _calc_transfer_fee(value.clone());
+            if fee.gt(&value) {
+                return TransactionResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
+            }
+
+            let from_balance = _balance_of(&transfer_from);
+            if from_balance < value {
+                return TransactionResult::Err(MSG_BURN_VALUE_EXCEEDS.to_string());
+            }
+            return _burn(caller, transfer_from, value).await;
+        }
+
+        #[allow(dead_code)]
+        async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> TransactionResult {
+            let from_balance = _balance_of(&from);
+
+            let balances = storage::get_mut::<Balances>();
+
+            let from_balance_new = from_balance - value.clone();
+
+            if from_balance_new == 0 {
+                balances.remove(&from);
+            } else {
+                balances.insert(from.clone(), from_balance_new);
+            }
+
+            let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
+            *rw_total_supply -= value.clone();
+            let tx_index_new = _get_next_tx_index();
+            let err_save_msg = _save_tx_record(TxRecord::Transfer(
+                tx_index_new.clone(),
+                caller,
+                from.clone(),
+                TokenHolder::None,
+                value,
+                Nat::from(0),
+                api::time(),
+            ))
+            .await;
+
+            let tx_id = encode_tx_id(api::id(), tx_index_new);
+            TransactionResult::Ok(TransactionResponse {
+                txid: tx_id,
+                error: if err_save_msg.len() > 0 {
+                    Some(vec![err_save_msg])
+                } else {
+                    None
+                },
+            })
+        }
+    ))
+}
+
+pub(crate) fn standard_ext_mintable() -> TokenStream {
+    TokenStream::from(quote!(
+        #[update(name = "mint")]
+        #[candid_method(update, rename = "mint")]
+
+        async fn mint(to: String, value: Nat) -> TransactionResult {
+            _only_owner();
+
+            let holder_parse_res = to.parse::<TokenHolder>();
+
+            match holder_parse_res {
+                Ok(holder) => {
+                    return _mint(api::caller(), holder, value).await;
+                }
+
+                Err(_) => return TransactionResult::Err(MSG_INVALID_TO.to_string()),
+            };
+        }
     ))
 }

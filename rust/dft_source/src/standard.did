@@ -1,0 +1,50 @@
+type CallData = record { method : text; args : vec nat8 };
+type Fee = record { rate : nat; lowest : nat };
+type KeyValuePair = record { k : text; v : text };
+type MetaData = record { fee : Fee; decimals : nat8; name : text; total_supply : nat; symbol : text; };
+type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
+type TxRecordResult = variant { Ok : TxRecord; Err : text; Forward : principal; };
+type TxRecord = variant {
+  Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
+  Burn : record { nat; principal; TokenHolder; nat; nat64 };
+  Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
+};
+type TokenHolder = variant { Account : text; Principal : principal };
+type TokenInfo = record {
+  allowance_size : nat;
+  fee_to : TokenHolder;
+  owner : principal;
+  cycles : nat64;
+  tx_count : nat;
+  holders : nat;
+  storages : vec principal;
+};
+type TransactionResponse = record { txid : text; error : opt vec text };
+type TransactionResult = variant { Ok : TransactionResponse; Err : text };
+
+service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {
+  allowance : (text, text) -> (nat) query;
+  approve : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
+  balanceOf : (text) -> (nat) query;
+  decimals : () -> (nat8) query;
+  extend : () -> (vec KeyValuePair) query;
+  fee : () -> (Fee) query;
+  logo : () -> (vec nat8) query;
+  meta : () -> (MetaData) query;
+  name : () -> (text) query;
+  owner : () -> (principal);
+  symbol : () -> (text) query;
+  totalSupply : () -> (nat) query;
+  setExtend : (vec KeyValuePair) -> (bool);
+  setFee : (Fee) -> (bool);
+  setFeeTo : (text) -> (bool);
+  setLogo : (vec nat8) -> (bool);
+  setOwner : (principal) -> (bool);
+  allowancesOf : (holder: text) -> (vec record { TokenHolder; nat }) query;
+  tokenInfo : () -> (TokenInfo) query;
+  transfer : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
+  transferFrom : (opt vec nat8, text, text, nat) -> (TransactionResult);
+  lastTransactions : (nat64) -> (TxRecordsResult) query;
+  transactionById : (text) -> (TxRecordResult) query;
+  transactionByIndex : (nat) -> (TxRecordResult) query;
+}

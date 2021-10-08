@@ -10,6 +10,7 @@ use super::{AccountIdentifier, Subaccount};
 pub enum TokenHolder {
     Account(AccountIdentifier),
     Principal(Principal),
+    None,
 }
 
 impl TokenHolder {
@@ -46,6 +47,7 @@ impl Display for TokenHolder {
         let s = match &self {
             TokenHolder::Account(_ai) => _ai.to_string(),
             TokenHolder::Principal(_pid) => _pid.to_string(),
+            TokenHolder::None => "".into(),
         };
         write!(f, "{}", s)
     }
