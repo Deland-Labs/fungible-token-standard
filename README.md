@@ -4,6 +4,12 @@
 
 Thinking in [Dfinity Fungible Token Standard](./Thinking-in-dft.md)
 
+## How to create a fungible token with 1 line of code
+
+```RUST
+dft_derive::standard_basic!();
+```
+
 ## Tools
 
 [DFT issuance tool](https://github.com/Deland-Labs/dft-issuance-tool)

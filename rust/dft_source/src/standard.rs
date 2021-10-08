@@ -1025,6 +1025,108 @@ async fn _get_available_storage_id(tx_index: &Nat) -> Result<Principal, String> 
     }
 }
 
+#[update(name = "burnFrom")]
+#[candid_method(update, rename = "burnFrom")]
+async fn burn_from(
+    from_sub_account: Option<Subaccount>,
+    spender: String,
+    value: Nat,
+) -> TransactionResult {
+    let caller = api::caller();
+    let token_holder_owner = TokenHolder::new(caller, from_sub_account);
+    let spender_parse_res = spender.parse::<TokenHolder>();
+    let fee = _calc_transfer_fee(value.clone());
+    match spender_parse_res {
+        Ok(holder) => {
+            let allowance = _allowance(&token_holder_owner, &holder);
+            if fee.gt(&value) {
+                return TransactionResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
+            }
+
+            if allowance < value {
+                return TransactionResult::Err(MSG_BURN_FROM_VALUE_EXCEEDS.to_string());
+            }
+
+            return _burn(caller, token_holder_owner, value).await;
+        }
+
+        Err(_) => return TransactionResult::Err(MSG_INVALID_TO.to_string()),
+    };
+}
+
+#[update(name = "burn")]
+#[candid_method(update, rename = "burn")]
+async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> TransactionResult {
+    let caller = api::caller();
+    let transfer_from = TokenHolder::new(caller, from_sub_account);
+    let fee = _calc_transfer_fee(value.clone());
+    if fee.gt(&value) {
+        return TransactionResult::Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
+    }
+
+    let from_balance = _balance_of(&transfer_from);
+    if from_balance < value {
+        return TransactionResult::Err(MSG_BURN_VALUE_EXCEEDS.to_string());
+    }
+    return _burn(caller, transfer_from, value).await;
+}
+
+#[allow(dead_code)]
+async fn _burn(caller: Principal, from: TokenHolder, value: Nat) -> TransactionResult {
+    let from_balance = _balance_of(&from);
+
+    let balances = storage::get_mut::<Balances>();
+
+    let from_balance_new = from_balance - value.clone();
+
+    if from_balance_new == 0 {
+        balances.remove(&from);
+    } else {
+        balances.insert(from.clone(), from_balance_new);
+    }
+
+    let mut rw_total_supply = TOTAL_SUPPLY.write().unwrap();
+    *rw_total_supply -= value.clone();
+    let tx_index_new = _get_next_tx_index();
+    let err_save_msg = _save_tx_record(TxRecord::Transfer(
+        tx_index_new.clone(),
+        caller,
+        from.clone(),
+        TokenHolder::None,
+        value,
+        Nat::from(0),
+        api::time(),
+    ))
+    .await;
+
+    let tx_id = encode_tx_id(api::id(), tx_index_new);
+    TransactionResult::Ok(TransactionResponse {
+        txid: tx_id,
+        error: if err_save_msg.len() > 0 {
+            Some(vec![err_save_msg])
+        } else {
+            None
+        },
+    })
+}
+
+#[update(name = "mint")]
+#[candid_method(update, rename = "mint")]
+
+async fn mint(to: String, value: Nat) -> TransactionResult {
+    _only_owner();
+
+    let holder_parse_res = to.parse::<TokenHolder>();
+
+    match holder_parse_res {
+        Ok(holder) => {
+            return _mint(api::caller(), holder, value).await;
+        }
+
+        Err(_) => return TransactionResult::Err(MSG_INVALID_TO.to_string()),
+    };
+}
+
 fn _only_owner() {
     unsafe {
         if OWNER != api::caller() {
