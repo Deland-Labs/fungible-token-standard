@@ -1017,7 +1017,7 @@ async fn _get_available_storage_id(tx_index: &Nat) -> Result<Principal, String> 
 
     if is_necessary_create_new_storage_canister {
         const STORAGE_WASM: &[u8] = std::include_bytes!(
-            "../../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
+            "../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
         );
         let dft_id = api::id();
         let create_args = CreateCanisterArgs {
