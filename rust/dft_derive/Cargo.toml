@@ -1,14 +1,13 @@
 [package]
-name = "dft_rs"
+name = "dft_derive"
 version = "0.1.0"
 edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
-crate-type = ["cdylib"]
+proc-macro = true
 
 [dependencies] 
-dft_derive = { path = "../dft_derive" }
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
 ic-cdk = "0.3.0"
@@ -21,3 +20,5 @@ serde_bytes = "0.11"
 sha2 = "0.9.1"
 num-bigint = "0.3.3"
 lazy_static = "1.4.0"
+syn =  {version="1.0.80",features=["full","fold"]}
+quote = "1.0.10"
