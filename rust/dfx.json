@@ -9,6 +9,15 @@
       "candid": "dft/src/standard.did",
       "wasm": "target/wasm32-unknown-unknown/release/dft_opt.wasm"
     },
+    "dft_receiver": {
+      "type": "custom",
+      "build": [
+        "cargo build --target wasm32-unknown-unknown --package  dft_receiver --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_receiver.wasm -o target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
+      ],
+      "candid": "dft_receiver/src/receiver.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
+    },
     "dft_tx_storage": {
       "type": "custom",
       "build": [
