@@ -933,8 +933,7 @@ pub(crate) fn basic_standard() -> TokenStream {
         fn _get_tx_index(tx: &TxRecord) -> Nat {
             match tx {
                 TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
-                TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
-                TxRecord::Burn(ti, _, _, _, _) => ti.clone(),
+                TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone()
             }
         }
 
