@@ -148,26 +148,23 @@ fn get_meta_data() -> MetaData {
 
 #[query(name = "extend")]
 #[candid_method(query, rename = "extend")]
-fn get_extend_data() -> Vec<(String,String)> {
+fn get_extend_data() -> Vec<(String, String)> {
     let extend_data_store = storage::get::<ExtendData>();
-    let mut return_vec: Vec<(String,String)> = Vec::new();
+    let mut return_vec: Vec<(String, String)> = Vec::new();
     for (k, v) in extend_data_store.iter() {
-        return_vec.push(KeyValuePair {
-            k: k.to_string(),
-            v: v.to_string(),
-        });
+        return_vec.push((k.to_string(), v.to_string()));
     }
     return_vec
 }
 
 #[update(name = "setExtend")]
 #[candid_method(update, rename = "setExtend")]
-fn set_extend_data(extend_data: Vec<(String,String)>) -> bool {
+fn set_extend_data(extend_data: Vec<(String, String)>) -> bool {
     _only_owner();
     let extend_data_store = storage::get_mut::<ExtendData>();
-    for kv_pair in extend_data.iter() {
-        if EXTEND_KEYS.contains(&kv_pair.k.as_str()) {
-            extend_data_store.insert(kv_pair.k.clone(), kv_pair.v.clone());
+    for data in extend_data.iter() {
+        if EXTEND_KEYS.contains(&data.0.as_str()) {
+            extend_data_store.insert(data.0.clone(), data.1.clone());
         }
     }
     true
@@ -928,7 +925,7 @@ fn _get_next_tx_index() -> Nat {
 fn _get_tx_index(tx: &TxRecord) -> Nat {
     match tx {
         TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
-        TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone()
+        TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
     }
 }
 
