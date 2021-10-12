@@ -153,26 +153,23 @@ pub(crate) fn basic_standard() -> TokenStream {
 
         #[query(name = "extend")]
         #[candid_method(query, rename = "extend")]
-        fn get_extend_data() -> Vec<KeyValuePair> {
+        fn get_extend_data() -> Vec<(String, String)> {
             let extend_data_store = storage::get::<ExtendData>();
-            let mut return_vec: Vec<KeyValuePair> = Vec::new();
+            let mut return_vec: Vec<(String, String)> = Vec::new();
             for (k, v) in extend_data_store.iter() {
-                return_vec.push(KeyValuePair {
-                    k: k.to_string(),
-                    v: v.to_string(),
-                });
+                return_vec.push((k.to_string(), v.to_string()));
             }
             return_vec
         }
 
         #[update(name = "setExtend")]
         #[candid_method(update, rename = "setExtend")]
-        fn set_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
+        fn set_extend_data(extend_data: Vec<(String, String)>) -> bool {
             _only_owner();
             let extend_data_store = storage::get_mut::<ExtendData>();
             for kv_pair in extend_data.iter() {
-                if EXTEND_KEYS.contains(&kv_pair.k.as_str()) {
-                    extend_data_store.insert(kv_pair.k.clone(), kv_pair.v.clone());
+                if EXTEND_KEYS.contains(&kv_pair.0.as_str()) {
+                    extend_data_store.insert(kv_pair.0.clone(), kv_pair.1.clone());
                 }
             }
             true
@@ -669,7 +666,7 @@ pub(crate) fn basic_standard() -> TokenStream {
         fn __get_candid_interface_tmp_hack() -> String {
             __export_service()
         }
-
+        
         #[pre_upgrade]
         fn pre_upgrade() {
             let owner = unsafe { OWNER };

@@ -1,6 +1,5 @@
 type CallData = record { method : text; args : vec nat8 };
 type Fee = record { rate : nat; lowest : nat };
-type KeyValuePair = record { k : text; v : text };
 type MetaData = record { fee : Fee; decimals : nat8; name : text; total_supply : nat; symbol : text; };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
 type TxRecordResult = variant { Ok : TxRecord; Err : text; Forward : principal; };
@@ -27,7 +26,7 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   approve : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
   balanceOf : (text) -> (nat) query;
   decimals : () -> (nat8) query;
-  extend : () -> (vec KeyValuePair) query;
+  extend : () -> (vec (text,text)) query;
   fee : () -> (Fee) query;
   logo : () -> (vec nat8) query;
   meta : () -> (MetaData) query;
@@ -35,7 +34,7 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   owner : () -> (principal);
   symbol : () -> (text) query;
   totalSupply : () -> (nat) query;
-  setExtend : (vec KeyValuePair) -> (bool);
+  setExtend : (vec (text,text)) -> (bool);
   setFee : (Fee) -> (bool);
   setFeeTo : (text) -> (bool);
   setLogo : (vec nat8) -> (bool);

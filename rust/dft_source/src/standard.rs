@@ -148,9 +148,9 @@ fn get_meta_data() -> MetaData {
 
 #[query(name = "extend")]
 #[candid_method(query, rename = "extend")]
-fn get_extend_data() -> Vec<KeyValuePair> {
+fn get_extend_data() -> Vec<(String,String)> {
     let extend_data_store = storage::get::<ExtendData>();
-    let mut return_vec: Vec<KeyValuePair> = Vec::new();
+    let mut return_vec: Vec<(String,String)> = Vec::new();
     for (k, v) in extend_data_store.iter() {
         return_vec.push(KeyValuePair {
             k: k.to_string(),
@@ -162,7 +162,7 @@ fn get_extend_data() -> Vec<KeyValuePair> {
 
 #[update(name = "setExtend")]
 #[candid_method(update, rename = "setExtend")]
-fn set_extend_data(extend_data: Vec<KeyValuePair>) -> bool {
+fn set_extend_data(extend_data: Vec<(String,String)>) -> bool {
     _only_owner();
     let extend_data_store = storage::get_mut::<ExtendData>();
     for kv_pair in extend_data.iter() {
