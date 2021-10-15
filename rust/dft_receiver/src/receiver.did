@@ -1,4 +1,4 @@
-type TokenHolder = variant { Account : text; Principal : principal };
+type TokenHolder = variant { None; Account : text; Principal : principal };
 
 service : {
   on_token_received : (from: TokenHolder,value: nat)->(bool) query;

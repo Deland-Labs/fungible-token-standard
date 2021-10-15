@@ -1,10 +1,9 @@
 type StorageInfo = record { dft_id : principal; tx_start_index : nat; txs_count : nat; cycles : nat64; };
 type TxRecordResult = variant { Ok : TxRecord; Err : text };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
-type TokenHolder = variant { Account : text; Principal : principal };
+type TokenHolder = variant { None; Account : text; Principal : principal };
 type TxRecord = variant {
   Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
-  Burn : record { nat; principal; TokenHolder; nat; nat64 };
   Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
 };
 service : (principal, nat) -> {  

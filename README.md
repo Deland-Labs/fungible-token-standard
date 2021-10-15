@@ -25,11 +25,10 @@ type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
 type TxRecordResult = variant { Ok : TxRecord; Err : text; Forward : principal; };
 type TxRecord = variant {
   Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
-  Burn : record { nat; principal; TokenHolder; nat; nat64 };
   Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
 };
 //DFT support AccountId (ICP holder address) and Principal as token holder
-type TokenHolder = variant { Account : text; Principal : principal };
+type TokenHolder = variant { None; Account : text; Principal : principal };
 type TokenInfo = record {
   allowance_size : nat;
   fee_to : TokenHolder;
