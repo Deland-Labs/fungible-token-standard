@@ -105,7 +105,7 @@ module {
     let FACEBOOK: Text = "FACEBOOK";
     let TWITTER: Text = "TWITTER";
     let GITHUB: Text = "GITHUB";
-    let TEGEGRAM: Text = "TEGEGRAM";
+    let TELEGRAM: Text = "TELEGRAM";
     let WECHAT: Text = "WECHAT";
     let LINKEDIN: Text = "LINKEDIN";
     let DISCORD: Text = "DISCORD";
@@ -131,7 +131,7 @@ module {
       FACEBOOK,
       TWITTER,
       GITHUB,
-      TEGEGRAM,
+      TELEGRAM,
       WECHAT,
       LINKEDIN,
       DISCORD,

@@ -8,7 +8,7 @@ const SLACK: &str = "SLACK";
 const FACEBOOK: &str = "FACEBOOK";
 const TWITTER: &str = "TWITTER";
 const GITHUB: &str = "GITHUB";
-const TEGEGRAM: &str = "TEGEGRAM";
+const TELEGRAM: &str = "TELEGRAM";
 const WECHAT: &str = "WECHAT";
 const LINKEDIN: &str = "LINKEDIN";
 const DISCORD: &str = "DISCORD";
@@ -34,7 +34,7 @@ pub const EXTEND_KEYS: [&str; 19] = [
     FACEBOOK,
     TWITTER,
     GITHUB,
-    TEGEGRAM,
+    TELEGRAM,
     WECHAT,
     LINKEDIN,
     DISCORD,
