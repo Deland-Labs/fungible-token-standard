@@ -18,7 +18,7 @@ dft_derive::standard_basic!();
 
 ```RUST
 type CallData = record { method : text; args : vec nat8 };
-type Fee = record { rate : nat; lowest : nat };
+type Fee = record { rate : nat; minimum : nat };
 type KeyValuePair = record { k : text; v : text };
 type MetaData = record { fee : Fee; decimals : nat8; name : text; total_supply : nat; symbol : text; };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };

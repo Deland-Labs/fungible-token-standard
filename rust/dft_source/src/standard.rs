@@ -28,7 +28,7 @@ lazy_static! {
     static ref NAT_ZERO: Nat = Nat::from(0);
     static ref TOTAL_SUPPLY: RwLock<Nat> = RwLock::new(Nat::from(0));
     static ref FEE: RwLock<Fee> = RwLock::new(Fee {
-        lowest: Nat::from(0),
+        minimum: Nat::from(0),
         rate: Nat::from(0),
     });
     static ref TX_ID_CURSOR: RwLock<Nat> = RwLock::new(Nat::from(0));
@@ -823,14 +823,14 @@ async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result
 }
 
 fn _calc_approve_fee() -> Nat {
-    return FEE.read().unwrap().lowest.clone();
+    return FEE.read().unwrap().minimum.clone();
 }
 
 fn _calc_transfer_fee(value: Nat) -> Nat {
     let r_fee = FEE.read().unwrap();
     let div_by: Nat = BigUint::from(10u32).pow(FEE_RATE_DECIMALS as u32).into();
     let calc_fee: Nat = value.mul(r_fee.rate.clone()).div(div_by);
-    cmp::max(r_fee.lowest.clone(), calc_fee)
+    cmp::max(r_fee.minimum.clone(), calc_fee)
 }
 
 fn _charge_approve_fee(payer: &TokenHolder, fee: Nat) -> Result<bool, String> {

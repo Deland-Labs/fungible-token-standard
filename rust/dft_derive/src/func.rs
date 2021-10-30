@@ -33,7 +33,7 @@ pub(crate) fn basic_standard() -> TokenStream {
             static ref NAT_ZERO: Nat = Nat::from(0);
             static ref TOTAL_SUPPLY: RwLock<Nat> = RwLock::new(Nat::from(0));
             static ref FEE: RwLock<Fee> = RwLock::new(Fee {
-                lowest: Nat::from(0),
+                minimum: Nat::from(0),
                 rate: Nat::from(0),
             });
             static ref TX_ID_CURSOR: RwLock<Nat> = RwLock::new(Nat::from(0));
@@ -167,9 +167,9 @@ pub(crate) fn basic_standard() -> TokenStream {
         fn set_extend_data(extend_data: Vec<(String, String)>) -> bool {
             _only_owner();
             let extend_data_store = storage::get_mut::<ExtendData>();
-            for kv_pair in extend_data.iter() {
-                if EXTEND_KEYS.contains(&kv_pair.0.as_str()) {
-                    extend_data_store.insert(kv_pair.0.clone(), kv_pair.1.clone());
+            for data in extend_data.iter() {
+                if EXTEND_KEYS.contains(&data.0.as_str()) {
+                    extend_data_store.insert(data.0.clone(), data.1.clone());
                 }
             }
             true
@@ -666,7 +666,7 @@ pub(crate) fn basic_standard() -> TokenStream {
         fn __get_candid_interface_tmp_hack() -> String {
             __export_service()
         }
-        
+
         #[pre_upgrade]
         fn pre_upgrade() {
             let owner = unsafe { OWNER };
@@ -828,14 +828,14 @@ pub(crate) fn basic_standard() -> TokenStream {
         }
 
         fn _calc_approve_fee() -> Nat {
-            return FEE.read().unwrap().lowest.clone();
+            return FEE.read().unwrap().minimum.clone();
         }
 
         fn _calc_transfer_fee(value: Nat) -> Nat {
             let r_fee = FEE.read().unwrap();
             let div_by: Nat = BigUint::from(10u32).pow(FEE_RATE_DECIMALS as u32).into();
             let calc_fee: Nat = value.mul(r_fee.rate.clone()).div(div_by);
-            cmp::max(r_fee.lowest.clone(), calc_fee)
+            cmp::max(r_fee.minimum.clone(), calc_fee)
         }
 
         fn _charge_approve_fee(payer: &TokenHolder, fee: Nat) -> Result<bool, String> {
@@ -930,7 +930,7 @@ pub(crate) fn basic_standard() -> TokenStream {
         fn _get_tx_index(tx: &TxRecord) -> Nat {
             match tx {
                 TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
-                TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone()
+                TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
             }
         }
 
@@ -1025,7 +1025,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 return Ok(last_storage_id);
             }
         }
-
+       
         fn _only_owner() {
             unsafe {
                 if OWNER != api::caller() {
@@ -1194,6 +1194,7 @@ pub(crate) fn basic_standard() -> TokenStream {
                 }
             }
         }
+
     ))
 }
 
@@ -1290,7 +1291,6 @@ pub(crate) fn standard_ext_mintable() -> TokenStream {
     TokenStream::from(quote!(
         #[update(name = "mint")]
         #[candid_method(update, rename = "mint")]
-
         async fn mint(to: String, value: Nat) -> TransactionResult {
             _only_owner();
 

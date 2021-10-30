@@ -1,6 +1,6 @@
 type CallData = record { method : text; args : vec nat8 };
-type Fee = record { rate : nat; lowest : nat };
-type MetaData = record { fee : Fee; decimals : nat8; name : text; total_supply : nat; symbol : text; };
+type Fee = record { rate : nat; minimum : nat };
+type MetaData = record { fee : Fee; decimals : nat8; name : text; totalSupply : nat; symbol : text; };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
 type TxRecordResult = variant { Ok : TxRecord; Err : text; Forward : principal; };
 type TxRecord = variant {
@@ -9,11 +9,11 @@ type TxRecord = variant {
 };
 type TokenHolder = variant { None; Account : text; Principal : principal };
 type TokenInfo = record {
-  allowance_size : nat;
-  fee_to : TokenHolder;
+  allowanceSize : nat;
+  feeTo : TokenHolder;
   owner : principal;
   cycles : nat64;
-  tx_count : nat;
+  txCount : nat;
   holders : nat;
   storages : vec principal;
 };

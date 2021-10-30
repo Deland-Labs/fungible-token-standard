@@ -6,6 +6,7 @@ pub struct MetaData {
     pub name: String,
     pub symbol: String,
     pub decimals: u8,
+    #[serde(rename = "totalSupply")]
     pub total_supply: Nat,
     pub fee: Fee,
 }

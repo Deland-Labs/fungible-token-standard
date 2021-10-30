@@ -11,13 +11,13 @@ build:
 .SILENT: install
 install: build
 	dfx canister --no-wallet  install dft_basic \
-	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat } , null)'
+	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { minimum = 1 : nat; rate = 0 : nat } , null)'
 
 .PHONY: upgrade
 .SILENT: upgrade
 upgrade: build
 	dfx canister --no-wallet  install dft_basic \
-	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { lowest = 1 : nat; rate = 0 : nat }, null)' \
+	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { minimum = 1 : nat; rate = 0 : nat }, null)' \
 	  --mode reinstall
  
 define test_token_impl
@@ -45,10 +45,10 @@ define test_token_impl
 	dfx canister call dft_basic extend  \
 	| grep '"OFFICIAL_SITE"; "http://test.com"' && echo 'PASS extend test'
 
-	dfx canister call dft_basic setFee '(record { lowest = 1 : nat; rate = 0 : nat })' \
+	dfx canister call dft_basic setFee '(record { minimum = 1 : nat; rate = 0 : nat })' \
 	| grep '(true)' && echo 'PASS set fee test'
 	dfx canister call dft_basic fee  \
-	| grep '(record { rate = 0 : nat; lowest = 1 : nat })' && echo 'PASS fee check 2'
+	| grep '(record { rate = 0 : nat; minimum = 1 : nat })' && echo 'PASS fee check 2'
 
 	dfx canister call dft_basic approve '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",3000000000000000000:nat,null)'
 	dfx canister call dft_basic allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
