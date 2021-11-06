@@ -14,6 +14,7 @@ use candid::Principal;
 use std::collections::HashMap;
 use std::string::String;
 
+pub type TransactionIndex = Nat;
 pub type TransactionId = String;
 pub type ExtendData = HashMap<String, String>;
 pub type Balances = HashMap<TokenHolder, Nat>;
@@ -25,7 +26,7 @@ pub use account_identifier::Subaccount;
 pub use account_identifier::SUB_ACCOUNT_ZERO;
 pub use call_data::CallData;
 pub use fee::Fee;
-pub use metadata::MetaData;
+pub use metadata::Metadata;
 pub use token_holder::TokenHolder;
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;

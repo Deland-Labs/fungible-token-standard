@@ -2,7 +2,7 @@ use super::Fee;
 use candid::{CandidType, Deserialize, Nat};
 
 #[derive(CandidType, Debug, Deserialize)]
-pub struct MetaData {
+pub struct Metadata {
     pub name: String,
     pub symbol: String,
     pub decimals: u8,

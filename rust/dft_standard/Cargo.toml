@@ -1,0 +1,12 @@
+[package]
+name = "dft_standard"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies] 
+dft_types = { path = "../dft_types" }
+dft_utils = { path = "../dft_utils" }
+ic-cdk = "0.3.2"
+candid = "0.7.4"
+serde = "1.0.127"
+serde_bytes = "0.11"

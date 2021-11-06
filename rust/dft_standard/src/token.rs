@@ -1,0 +1,633 @@
+use candid::{Nat, Principal};
+use dft_types::{message::*, *};
+use dft_utils::decode_tx_id;
+use std::collections::HashMap;
+const MAX_GET_TXS_SIZE: usize = 200;
+const FEE_RATE_DIV: u64 = 100_000_000;
+pub trait Token {
+    //set owner
+    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> Result<bool, String>;
+    //set fee
+    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> Result<bool, String>;
+    //set fee to
+    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> Result<bool, String>;
+    //get metadata
+    fn metadata(&self) -> Metadata;
+    //set extend info
+    fn set_extend_info(
+        &mut self,
+        caller: &Principal,
+        extend_info: HashMap<String, String>,
+    ) -> Result<bool, String>;
+    //set logo
+    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> Result<bool, String>;
+    //balance of
+    fn balance_of(&self, owner: &TokenHolder) -> Nat;
+    //allowance
+    fn allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> Nat;
+    //allowances of
+    fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, Nat)>;
+    //approve
+    fn approve(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        spender: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String>;
+    // transfer from
+    fn transfer_from(
+        &mut self,
+        caller: &Principal,
+        from: &TokenHolder,
+        spender: &TokenHolder,
+        to: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String>;
+    //transfer
+    fn transfer(
+        &mut self,
+        caller: &Principal,
+        from: &TokenHolder,
+        to: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String>;
+    //token info
+    fn token_info(&self) -> TokenInfo;
+    // transaction by index
+    fn transaction_by_index(&self, index: &Nat) -> TxRecordResult;
+    // transaction by id
+    fn transaction_by_id(&self, id: &String) -> TxRecordResult;
+    // last transactions
+    fn last_transactions(&self, count: usize) -> Result<Vec<TxRecord>, String>;
+}
+
+pub trait BurnableExtension {
+    //burn
+    fn burn(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String>;
+    //burn from
+    fn burn_from(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        spender: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String>;
+}
+
+pub trait MintableExtension {
+    //mint
+    fn mint(
+        &mut self,
+        caller: &Principal,
+        to: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String>;
+}
+
+#[derive(Debug)]
+pub struct TokenBasic {
+    // token id
+    pub token_id: Principal,
+    // owner
+    pub owner: Principal,
+    // fee to
+    pub fee_to: TokenHolder,
+    // storage canister ids
+    pub storage_canister_ids: HashMap<Nat, Principal>,
+    // next tx index
+    pub next_tx_index: Nat,
+    // tx store inside
+    pub txs: Vec<TxRecord>,
+    // balances
+    pub balances: HashMap<TokenHolder, Nat>,
+    // allowances
+    pub allowances: HashMap<TokenHolder, HashMap<TokenHolder, Nat>>,
+    // token's logo
+    pub logo: Option<Vec<u8>>,
+    // token's name
+    pub name: String,
+    // token's symbol
+    pub symbol: String,
+    // token's decimals
+    pub decimals: u8,
+    // token's total supply
+    pub total_supply: Nat,
+    // token's fee
+    pub fee: Fee,
+    // token's extend info : social media, description etc
+    pub extend_info: HashMap<String, String>,
+}
+
+impl Default for TokenBasic {
+    fn default() -> Self {
+        TokenBasic {
+            token_id: Principal::anonymous(),
+            owner: Principal::anonymous(),
+            fee_to: TokenHolder::new(Principal::anonymous(), None),
+            storage_canister_ids: HashMap::new(),
+            next_tx_index: Nat::from(0),
+            txs: Vec::new(),
+            balances: HashMap::new(),
+            allowances: HashMap::new(),
+            logo: None,
+            name: "".to_string(),
+            symbol: "".to_string(),
+            decimals: 0,
+            total_supply: Nat::from(0),
+            fee: Fee {
+                minimum: Nat::from(0),
+                rate: Nat::from(0),
+            },
+            extend_info: HashMap::new(),
+        }
+    }
+}
+
+impl TokenBasic {
+    // check if the caller is the owner
+    fn only_owner(&self, caller: &Principal) -> Result<(), String> {
+        if &self.owner != caller {
+            Err(MSG_ONLY_OWNER.to_string())
+        } else {
+            Ok(())
+        }
+    }
+    //generate new tx index
+    fn generate_new_tx_index(&mut self) -> Nat {
+        let rtn = self.next_tx_index.clone();
+        self.next_tx_index = rtn.clone() + 1;
+        rtn
+    }
+    //debit token holder's allowance
+    fn debit_allowance(
+        &mut self,
+        owner: &TokenHolder,
+        spender: &TokenHolder,
+        value: Nat,
+    ) -> Result<(), String> {
+        // get spenders allowance
+        let spender_allowance = self._allowance(owner, spender);
+        // check allowance
+        if spender_allowance < value {
+            return Err(MSG_INSUFFICIENT_BALANCE.to_string());
+        }
+        match self.allowances.get(&owner) {
+            Some(inner) => {
+                let mut temp = inner.clone();
+                if value == 0 {
+                    temp.remove(&spender);
+                    if temp.len() > 0 {
+                        self.allowances.insert(owner.clone(), temp);
+                    } else {
+                        self.allowances.remove(&owner);
+                    }
+                } else {
+                    temp.insert(spender.clone(), value.clone());
+                    self.allowances.insert(owner.clone(), temp);
+                }
+            }
+            None => {
+                if value.gt(&Nat::from(0)) {
+                    let mut inner = HashMap::new();
+                    inner.insert(spender.clone(), value.clone());
+                    self.allowances.insert(owner.clone(), inner);
+                }
+            }
+        };
+        Ok(())
+    }
+
+    //credit token spender's allowance
+    fn credit_allowance(&mut self, owner: &TokenHolder, spender: &TokenHolder, value: Nat) {
+        match self.allowances.get(&owner) {
+            Some(inner) => {
+                let mut temp = inner.clone();
+                if value == 0 {
+                    temp.remove(&spender);
+                    if temp.len() > 0 {
+                        self.allowances.insert(owner.clone(), temp);
+                    } else {
+                        self.allowances.remove(&owner);
+                    }
+                } else {
+                    temp.insert(spender.clone(), value.clone());
+                    self.allowances.insert(owner.clone(), temp);
+                }
+            }
+            None => {
+                if value.gt(&Nat::from(0)) {
+                    let mut inner = HashMap::new();
+                    inner.insert(spender.clone(), value.clone());
+                    self.allowances.insert(owner.clone(), inner);
+                }
+            }
+        };
+    }
+
+    // debit token holder's balance
+    fn debit_balance(&mut self, holder: &TokenHolder, value: Nat) -> Result<(), String> {
+        if self._balance_of(holder) < value {
+            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+        } else {
+            // calc new balance
+            let new_balance = self._balance_of(holder) - value;
+
+            if new_balance > Nat::from(0) {
+                self.balances.insert(holder.clone(), new_balance);
+            } else {
+                self.balances.remove(holder);
+            }
+
+            Ok(())
+        }
+    }
+    // credit token holder's balance
+    fn credit_balance(&mut self, holder: &TokenHolder, value: Nat) {
+        let new_balance = self._balance_of(holder) + value;
+        self.balances.insert(holder.clone(), new_balance);
+    }
+    //charge approve fee
+    fn charge_approve_fee(&mut self, approver: &TokenHolder) -> Result<Nat, String> {
+        // check the approver's balance
+        // if balance is not enough, return error
+        if self.balances.get(approver).unwrap_or(&Nat::from(0)) < &self.fee.minimum {
+            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+        } else {
+            // charge the approver's balance as approve fee
+            let fee = self.fee.minimum.clone();
+            let fee_to = self.fee_to.clone();
+            self.debit_balance(&approver, fee.clone())?;
+            self.credit_balance(&fee_to, fee.clone());
+            Ok(fee)
+        }
+    }
+
+    // chare transfer fee
+    fn charge_transfer_fee(
+        &mut self,
+        transfer_from: &TokenHolder,
+        transfer_value: &Nat,
+    ) -> Result<Nat, String> {
+        // calc the transfer fee: rate * value
+        // compare the transfer fee and minumum fee,get the max value
+        let rate_fee = self.fee.rate.clone() * transfer_value.clone();
+        let min_fee = self.fee.minimum.clone();
+        let fee = if rate_fee > min_fee {
+            rate_fee
+        } else {
+            min_fee
+        };
+
+        // check the transfer_from's balance
+        // if balance is not enough, return error
+        if self.balances.get(transfer_from).unwrap_or(&Nat::from(0)) < &fee {
+            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+        } else {
+            let fee_to = self.fee_to.clone();
+            self.debit_balance(&transfer_from, fee.clone())?;
+            self.credit_balance(&fee_to, fee.clone());
+            Ok(fee)
+        }
+    }
+    // calc transfer fee
+    fn calc_transfer_fee(&self, transfer_value: &Nat) -> Nat {
+        // calc the transfer fee: rate * value
+        // compare the transfer fee and minumum fee,get the max value
+        let fee = self.fee.rate.clone() * transfer_value.clone() / FEE_RATE_DIV;
+        let min_fee = self.fee.minimum.clone();
+        let max_fee = if fee > min_fee { fee } else { min_fee };
+        max_fee
+    }
+
+    pub fn get_tx_index(&self, tx: &TxRecord) -> Nat {
+        match tx {
+            TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
+            TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
+        }
+    }
+
+    fn _balance_of(&self, owner: &TokenHolder) -> Nat {
+        self.balances.get(owner).unwrap_or(&Nat::from(0)).clone()
+    }
+    fn _allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> Nat {
+        self.allowances
+            .get(owner)
+            .unwrap_or(&HashMap::new())
+            .get(spender)
+            .unwrap_or(&Nat::from(0))
+            .clone()
+    }
+    //transfer token
+    fn _transfer(
+        &mut self,
+        caller: &Principal,
+        from: &TokenHolder,
+        to: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String> {
+        // calc the transfer fee
+        let fee = self.calc_transfer_fee(&value);
+        //check the transfer_from's balance, if balance is not enough, return error
+        if self._balance_of(from) < value.clone() + fee.clone() {
+            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+        } else {
+            // charge the transfer fee
+            self.charge_transfer_fee(from, &value)?;
+            // debit the transfer_from's balance
+            self.debit_balance(from, value.clone())?;
+            // credit the transfer_to's balance
+            self.credit_balance(to, value.clone());
+            // add the transfer tx to txs
+            let tx_index = self.generate_new_tx_index();
+            let tx = TxRecord::Transfer(
+                tx_index.clone(),
+                caller.clone(),
+                from.clone(),
+                to.clone(),
+                value.clone(),
+                fee,
+                now,
+            );
+            self.txs.push(tx);
+            Ok(tx_index)
+        }
+    }
+    // _mint
+    pub fn _mint(
+        &mut self,
+        caller: &Principal,
+        to: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String> {
+        self.credit_balance(to, value.clone());
+        // increase the total supply
+        self.total_supply = self.total_supply.clone() + value.clone();
+        // add the mint tx to txs
+        let tx_index = self.generate_new_tx_index();
+        let tx = TxRecord::Transfer(
+            tx_index.clone(),
+            caller.clone(),
+            TokenHolder::None,
+            to.clone(),
+            value.clone(),
+            Nat::from(0),
+            now,
+        );
+        self.txs.push(tx);
+        Ok(tx_index)
+    }
+
+    // _burn
+    pub fn _burn(
+        &mut self,
+        caller: &Principal,
+        from: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String> {
+        // calc the transfer fee,if the fee smaller than minimum fee,return error
+        let fee = self.calc_transfer_fee(&value);
+        if fee < self.fee.minimum.clone() {
+            return Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
+        }
+        //check the burn from's balance, if balance is not enough, return error
+        if self._balance_of(from) < value.clone() {
+            return Err(MSG_INSUFFICIENT_BALANCE.to_string());
+        } else {
+            // burn does not charge the transfer fee
+            // debit the burn from's balance
+            self.debit_balance(from, value.clone())?;
+            // decrease the total supply
+            self.total_supply = self.total_supply.clone() - value.clone();
+            // add the burn tx to txs
+            let tx_index = self.generate_new_tx_index();
+            let tx = TxRecord::Transfer(
+                tx_index.clone(),
+                caller.clone(),
+                from.clone(),
+                TokenHolder::None,
+                value.clone(),
+                fee,
+                now,
+            );
+            self.txs.push(tx);
+            Ok(tx_index)
+        }
+    }
+}
+impl Token for TokenBasic {
+    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> Result<bool, String> {
+        self.only_owner(caller)?;
+        self.owner = owner;
+        Ok(true)
+    }
+
+    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> Result<bool, String> {
+        self.only_owner(caller)?;
+        self.fee = fee;
+        Ok(true)
+    }
+
+    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> Result<bool, String> {
+        self.only_owner(caller)?;
+        self.fee_to = fee_to;
+        Ok(true)
+    }
+
+    fn metadata(&self) -> Metadata {
+        Metadata {
+            name: self.name.clone(),
+            symbol: self.symbol.clone(),
+            decimals: self.decimals,
+            total_supply: self.total_supply.clone(),
+            fee: self.fee.clone(),
+        }
+    }
+
+    fn set_extend_info(
+        &mut self,
+        caller: &Principal,
+        extend_info: HashMap<String, String>,
+    ) -> Result<bool, String> {
+        self.only_owner(caller)?;
+        // filter extend_info which key in EXTEND_KEYS, then set to extend_info
+        let mut new_extend_info = HashMap::new();
+        for (key, value) in extend_info.iter() {
+            if EXTEND_KEYS.contains(&key.as_str()) {
+                new_extend_info.insert(key.clone(), value.clone());
+            }
+        }
+        self.extend_info = new_extend_info;
+        Ok(true)
+    }
+
+    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> Result<bool, String> {
+        self.only_owner(caller)?;
+        self.logo = Some(logo);
+        Ok(true)
+    }
+
+    fn balance_of(&self, holder: &TokenHolder) -> Nat {
+        self._balance_of(holder)
+    }
+
+    fn allowance(&self, holder: &TokenHolder, spender: &TokenHolder) -> Nat {
+        self._allowance(holder, spender)
+    }
+
+    fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, Nat)> {
+        match self.allowances.get(owner) {
+            Some(allowances) => allowances
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
+            None => Vec::new(),
+        }
+    }
+
+    fn approve(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        spender: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String> {
+        let approve_fee = self.charge_approve_fee(spender)?;
+        //credit the spender's allowance
+        self.credit_allowance(owner, spender, value.clone());
+        let tx_index = self.generate_new_tx_index();
+
+        let approve_tx = TxRecord::Approve(
+            tx_index.clone(),
+            caller.clone(),
+            owner.clone(),
+            spender.clone(),
+            value.clone(),
+            approve_fee,
+            now,
+        );
+        self.txs.push(approve_tx);
+        return Ok(tx_index);
+    }
+
+    fn transfer_from(
+        &mut self,
+        caller: &Principal,
+        from: &TokenHolder,
+        spender: &TokenHolder,
+        to: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String> {
+        let transfer_fee = self.calc_transfer_fee(&value);
+        // get spenders allowance
+        let spender_allowance = self._allowance(from, spender);
+        let decreased_allowance = value.clone() + transfer_fee.clone();
+        // check allowance
+        if spender_allowance < decreased_allowance.clone() {
+            return Err(MSG_INSUFFICIENT_BALANCE.to_string());
+        }
+        // debit the spender's allowance
+        self.debit_allowance(from, spender, decreased_allowance.clone())?;
+
+        return self._transfer(caller, from, to, value, now);
+    }
+
+    fn transfer(
+        &mut self,
+        caller: &Principal,
+        from: &TokenHolder,
+        to: &TokenHolder,
+        value: Nat,
+        now: u64,
+    ) -> Result<TransactionIndex, String> {
+        self._transfer(caller, from, to, value, now)
+    }
+
+    fn token_info(&self) -> TokenInfo {
+        //get the allowances size
+        let allowances_size = match self.allowances.len() {
+            0 => 0,
+            _ => self.allowances.values().map(|v| v.len()).sum(),
+        };
+
+        TokenInfo {
+            owner: self.owner.clone(),
+            holders: Nat::from(self.balances.len()),
+            allowance_size: Nat::from(allowances_size),
+            fee_to: self.fee_to.clone(),
+            tx_count: self.next_tx_index.clone() - 1,
+            cycles: 0,
+            storages: self
+                .storage_canister_ids
+                .values()
+                .map(|v| v.clone())
+                .collect(),
+        }
+    }
+
+    fn transaction_by_index(&self, index: &Nat) -> TxRecordResult {
+        let inner_start_tx_index = self.get_tx_index(&self.txs[0]);
+        let inner_end_tx_index = self.next_tx_index.clone() - 1;
+
+        // if index > inner_end_tx_index, return error
+        if index > &inner_end_tx_index {
+            return TxRecordResult::Err(MSG_INVALID_TX_INDEX.to_string());
+        }
+
+        // if the tx record exist in self.txs which has the same index,return it
+        // else find the key in self.storage_canister_ids which has the biggest value
+        // that less than index, get the value of the key ,return it
+        if index < &inner_start_tx_index {
+            let mut index_map = self.storage_canister_ids.clone();
+            index_map.retain(|k, _| k <= index);
+            let key = index_map.keys().last().unwrap();
+            let value = index_map.get(key).unwrap();
+            return TxRecordResult::Forward(*value);
+        }
+        if let Some(tx_record) = self.txs.iter().find(|tx| &self.get_tx_index(tx) == index) {
+            return TxRecordResult::Ok(tx_record.clone());
+        }
+        return TxRecordResult::Err(MSG_INVALID_TX_INDEX.to_string());
+    }
+
+    fn transaction_by_id(&self, id: &String) -> TxRecordResult {
+        match decode_tx_id(id.clone()) {
+            Ok((token_id, tx_index)) => {
+                if token_id != self.token_id {
+                    return TxRecordResult::Err(MSG_NOT_BELONG_DFT_TX_ID.to_string());
+                } else {
+                    self.transaction_by_index(&tx_index)
+                }
+            }
+            Err(_) => TxRecordResult::Err(MSG_INVALID_TX_ID.to_string()),
+        }
+    }
+
+    fn last_transactions(&self, count: usize) -> Result<Vec<TxRecord>, String> {
+        if count > MAX_GET_TXS_SIZE {
+            return Err(MSG_GET_LAST_TXS_SIZE_TOO_LARGE.to_string());
+        }
+        if self.txs.len() < count {
+            return Ok(self.txs.clone());
+        } else {
+            let start = self.txs.len() - count;
+            return Ok(self.txs[start..].to_vec());
+        }
+    }
+}
