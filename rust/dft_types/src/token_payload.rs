@@ -4,6 +4,7 @@ use std::string::String;
 
 #[derive(CandidType, Debug, Deserialize)]
 pub struct TokenPayload {
+    pub token_id: Principal,
     pub owner: Principal,
     pub fee_to: TokenHolder,
     pub meta: Metadata,

@@ -38,27 +38,27 @@ async fn canister_init(
     fee_: Fee,
     caller: Option<Principal>,
 ) {
-    api::print(format!("{}", name_));
     let real_caller = caller.unwrap_or_else(|| api::caller());
     let owner_holder = TokenHolder::new(real_caller, sub_account);
 
     let mut token = TOKEN.write().unwrap();
-
-    token.token_id = api::id();
-    token.owner = real_caller;
-    token.logo = logo_;
-    token.name = name_;
-    token.symbol = symbol_;
-    token.decimals = decimals_;
-    token.fee = fee_;
-    token.fee_to = owner_holder.clone();
+    token.initialize(
+        &real_caller,
+        api::id(),
+        logo_,
+        name_,
+        symbol_,
+        decimals_,
+        fee_,
+        owner_holder.clone(),
+    );
     let _ = token._mint(&real_caller, &owner_holder, total_supply_, api::time());
 }
 
 #[update(name = "owner")]
 #[candid_method(update, rename = "owner")]
 fn owner() -> Principal {
-    TOKEN.read().unwrap().owner
+    TOKEN.read().unwrap().owner()
 }
 
 #[update(name = "setOwner")]
@@ -70,31 +70,31 @@ fn set_owner(owner: Principal) -> Result<bool, String> {
 #[query(name = "name")]
 #[candid_method(query, rename = "name")]
 fn get_name() -> String {
-    TOKEN.read().unwrap().name.clone()
+    TOKEN.read().unwrap().name()
 }
 
 #[query(name = "symbol")]
 #[candid_method(query, rename = "symbol")]
 fn get_symbol() -> String {
-    TOKEN.read().unwrap().symbol.clone()
+    TOKEN.read().unwrap().symbol()
 }
 
 #[query(name = "decimals")]
 #[candid_method(query, rename = "decimals")]
 fn get_decimals() -> u8 {
-    TOKEN.read().unwrap().decimals
+    TOKEN.read().unwrap().decimals()
 }
 
 #[query(name = "totalSupply")]
 #[candid_method(query, rename = "totalSupply")]
 fn get_total_supply() -> Nat {
-    TOKEN.read().unwrap().total_supply.clone()
+    TOKEN.read().unwrap().total_supply()
 }
 
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
 fn get_fee_setting() -> Fee {
-    TOKEN.read().unwrap().fee.clone()
+    TOKEN.read().unwrap().fee()
 }
 
 #[query(name = "meta")]
@@ -105,12 +105,11 @@ fn get_meta_data() -> Metadata {
 
 #[query(name = "extendInfo")]
 #[candid_method(query, rename = "extendInfo")]
-fn get_extend_data() -> Vec<(String, String)> {
+fn get_extend_info() -> Vec<(String, String)> {
     TOKEN
         .read()
         .unwrap()
-        .extend_info
-        .clone()
+        .extend_info()    
         .into_iter()
         .map(|f| f)
         .collect()
@@ -133,7 +132,7 @@ fn set_extend_data(extend_data: Vec<(String, String)>) -> Result<bool, String> {
 #[query(name = "logo")]
 #[candid_method(query, rename = "logo")]
 fn logo() -> Vec<u8> {
-    TOKEN.read().unwrap().logo.clone().unwrap_or_else(|| vec![])
+    TOKEN.read().unwrap().logo()
 }
 
 #[update(name = "setLogo")]
@@ -367,44 +366,7 @@ fn __get_candid_interface_tmp_hack() -> String {
 
 #[pre_upgrade]
 fn pre_upgrade() {
-    let mut extend = Vec::new();
-    let mut balances = Vec::new();
-    let mut allowances = Vec::new();
-    let mut storage_canister_ids = Vec::new();
-    let mut txs = Vec::new();
-    let token = TOKEN.read().unwrap();
-    for (k, v) in token.extend_info.iter() {
-        extend.push((k.to_string(), v.to_string()));
-    }
-    for (k, v) in token.balances.iter() {
-        balances.push((k.clone(), v.clone()));
-    }
-    for (th, v) in token.allowances.iter() {
-        let mut allow_item = Vec::new();
-        for (sp, val) in v.iter() {
-            allow_item.push((sp.clone(), val.clone()));
-        }
-        allowances.push((th.clone(), allow_item));
-    }
-    for (k, v) in token.storage_canister_ids.iter() {
-        storage_canister_ids.push((k.clone(), *v));
-    }
-    for v in storage::get::<Txs>().iter() {
-        txs.push(v.clone());
-    }
-    let payload = TokenPayload {
-        owner: token.owner,
-        fee_to: token.fee_to.clone(),
-        meta: token.metadata(),
-        extend,
-        logo: token.logo.clone().unwrap_or_else(|| vec![]),
-        balances,
-        allowances,
-        tx_index_cursor: token.next_tx_index.clone(),
-        storage_canister_ids,
-        txs_inner: txs,
-    };
-    storage::stable_save((payload,)).unwrap();
+    storage::stable_save((TOKEN.read().unwrap().to_token_payload(),)).unwrap();
 }
 
 #[post_upgrade]
@@ -413,35 +375,7 @@ fn post_upgrade() {
     // https://docs.rs/ic-cdk/0.3.0/ic_cdk/storage/fn.stable_restore.html
     let (payload,): (TokenPayload,) = storage::stable_restore().unwrap();
     let mut token = TOKEN.write().unwrap();
-
-    token.token_id = api::id();
-    token.owner = payload.owner;
-    token.logo = Some(payload.logo);
-    token.name = payload.meta.name;
-    token.symbol = payload.meta.symbol;
-    token.decimals = payload.meta.decimals;
-    token.fee = payload.meta.fee;
-    token.fee_to = payload.fee_to;
-    for (k, v) in payload.extend {
-        token.extend_info.insert(k, v);
-    }
-    for (k, v) in payload.balances {
-        token.balances.insert(k, v);
-    }
-    for (k, v) in payload.allowances {
-        let mut inner = HashMap::new();
-        for (ik, iv) in v {
-            inner.insert(ik, iv);
-        }
-        token.allowances.insert(k, inner);
-    }
-    for (k, v) in payload.storage_canister_ids {
-        token.storage_canister_ids.insert(k, v);
-    }
-
-    for v in payload.txs_inner {
-        token.txs.push(v);
-    }
+    token.from_token_payload(payload);
 }
 
 // do something becore sending
@@ -522,26 +456,25 @@ async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result
 
 async fn exec_auto_scaling_strategy() -> Result<(), String> {
     let token = TOKEN.read().unwrap();
-    let frist_tx_index_inner = token.get_tx_index(&token.txs[0]);
+    let inner_txs = token.get_inner_txs();
+    let frist_tx_index_inner = token.get_tx_index(&inner_txs[0]);
     // When create auto-scaling storage ?
     // DFT's txs count > 2000
     // It's means when creating a test DFT, when the number of transactions is less than 2000, no storage will be created to save cycles
-    if token.txs.len() >= MAX_TXS_CACHE_IN_DFT * 2 {
+    if inner_txs.len() >= MAX_TXS_CACHE_IN_DFT * 2 {
         let storage_canister_id_res =
             get_or_create_available_storage_id(&frist_tx_index_inner).await;
 
         match storage_canister_id_res {
             Ok(storage_canister_id) => {
-                let should_save_txs = token.txs[0..MAX_TXS_CACHE_IN_DFT].to_vec();
+                let should_save_txs = inner_txs[0..MAX_TXS_CACHE_IN_DFT].to_vec();
                 //save the txs to auto-scaling storage
                 match api::call::call(storage_canister_id, "batchAppend", (should_save_txs,)).await
                 {
                     Ok((res,)) => {
                         if res {
                             let mut token = TOKEN.write().unwrap();
-                            (0..MAX_TXS_CACHE_IN_DFT).for_each(|_| {
-                                token.txs.remove(0);
-                            });
+                            (0..MAX_TXS_CACHE_IN_DFT).for_each(|_| token.remove_inner_txs(0));
                         }
                     }
                     Err((_, emsg)) => {
@@ -571,7 +504,7 @@ async fn exec_auto_scaling_strategy() -> Result<(), String> {
 async fn get_or_create_available_storage_id(tx_index: &Nat) -> Result<Principal, String> {
     let mut max_key = Nat::from(0);
     let mut last_storage_id = Principal::anonymous();
-    for (k, v) in &TOKEN.read().unwrap().storage_canister_ids {
+    for (k, v) in &TOKEN.read().unwrap().get_storage_canister_ids() {
         if k >= &max_key && last_storage_id != *v {
             max_key = k.clone();
             last_storage_id = v.clone();
@@ -639,8 +572,7 @@ async fn get_or_create_available_storage_id(tx_index: &Nat) -> Result<Principal,
                         TOKEN
                             .write()
                             .unwrap()
-                            .storage_canister_ids
-                            .insert(tx_index.clone(), cdr.canister_id);
+                            .add_storage_canister_ids(tx_index.clone(), cdr.canister_id);
                         return Ok(cdr.canister_id);
                     }
                     Err(emsg) => {

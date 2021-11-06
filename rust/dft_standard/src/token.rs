@@ -5,29 +5,41 @@ use std::collections::HashMap;
 const MAX_GET_TXS_SIZE: usize = 200;
 const FEE_RATE_DIV: u64 = 100_000_000;
 pub trait Token {
-    //set owner
+    // get/set owner
+    fn owner(&self) -> Principal;
     fn set_owner(&mut self, caller: &Principal, owner: Principal) -> Result<bool, String>;
-    //set fee
+    // name
+    fn name(&self) -> String;
+    // symbol
+    fn symbol(&self) -> String;
+    // decimals
+    fn decimals(&self) -> u8;
+    // total supply
+    fn total_supply(&self) -> Nat;
+    // get/set fee
+    fn fee(&self) -> Fee;
     fn set_fee(&mut self, caller: &Principal, fee: Fee) -> Result<bool, String>;
-    //set fee to
+    // set fee to
     fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> Result<bool, String>;
-    //get metadata
+    // get metadata
     fn metadata(&self) -> Metadata;
-    //set extend info
+    // get/set extend info
+    fn extend_info(&self) -> HashMap<String, String>;
     fn set_extend_info(
         &mut self,
         caller: &Principal,
         extend_info: HashMap<String, String>,
     ) -> Result<bool, String>;
-    //set logo
+    // get/set logo
+    fn logo(&self) -> Vec<u8>;
     fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> Result<bool, String>;
-    //balance of
+    // balance of
     fn balance_of(&self, owner: &TokenHolder) -> Nat;
-    //allowance
+    // allowance
     fn allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> Nat;
-    //allowances of
+    // allowances of
     fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, Nat)>;
-    //approve
+    // approve
     fn approve(
         &mut self,
         caller: &Principal,
@@ -46,7 +58,7 @@ pub trait Token {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String>;
-    //transfer
+    // transfer
     fn transfer(
         &mut self,
         caller: &Principal,
@@ -55,7 +67,7 @@ pub trait Token {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String>;
-    //token info
+    // token info
     fn token_info(&self) -> TokenInfo;
     // transaction by index
     fn transaction_by_index(&self, index: &Nat) -> TxRecordResult;
@@ -99,35 +111,35 @@ pub trait MintableExtension {
 #[derive(Debug)]
 pub struct TokenBasic {
     // token id
-    pub token_id: Principal,
+    token_id: Principal,
     // owner
-    pub owner: Principal,
+    owner: Principal,
     // fee to
-    pub fee_to: TokenHolder,
+    fee_to: TokenHolder,
     // storage canister ids
-    pub storage_canister_ids: HashMap<Nat, Principal>,
+    storage_canister_ids: HashMap<Nat, Principal>,
     // next tx index
-    pub next_tx_index: Nat,
+    next_tx_index: Nat,
     // tx store inside
-    pub txs: Vec<TxRecord>,
+    txs: Vec<TxRecord>,
     // balances
-    pub balances: HashMap<TokenHolder, Nat>,
+    balances: HashMap<TokenHolder, Nat>,
     // allowances
-    pub allowances: HashMap<TokenHolder, HashMap<TokenHolder, Nat>>,
+    allowances: HashMap<TokenHolder, HashMap<TokenHolder, Nat>>,
     // token's logo
-    pub logo: Option<Vec<u8>>,
+    logo: Option<Vec<u8>>,
     // token's name
-    pub name: String,
+    name: String,
     // token's symbol
-    pub symbol: String,
+    symbol: String,
     // token's decimals
-    pub decimals: u8,
+    decimals: u8,
     // token's total supply
-    pub total_supply: Nat,
+    total_supply: Nat,
     // token's fee
-    pub fee: Fee,
+    fee: Fee,
     // token's extend info : social media, description etc
-    pub extend_info: HashMap<String, String>,
+    extend_info: HashMap<String, String>,
 }
 
 impl Default for TokenBasic {
@@ -311,6 +323,22 @@ impl TokenBasic {
         max_fee
     }
 
+    pub fn get_inner_txs(&self) -> Vec<TxRecord> {
+        self.txs.clone()
+    }
+
+    pub fn get_storage_canister_ids(&self) -> HashMap<Nat, Principal> {
+        self.storage_canister_ids.clone()
+    }
+
+    pub fn add_storage_canister_ids(&mut self, tx_index_start: Nat, canister_id: Principal) {
+        self.storage_canister_ids
+            .insert(tx_index_start, canister_id);
+    }
+
+    pub fn remove_inner_txs(&mut self, index: usize) {
+        self.txs.remove(index);
+    }
     pub fn get_tx_index(&self, tx: &TxRecord) -> Nat {
         match tx {
             TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
@@ -429,11 +457,132 @@ impl TokenBasic {
         }
     }
 }
+
+//from/to TokenPayload
+impl TokenBasic {
+    // initialize
+    pub fn initialize(
+        &mut self,
+        owner: &Principal,
+        token_id: Principal,
+        logo: Option<Vec<u8>>,
+        name: String,
+        symbol: String,
+        decimals: u8,
+        fee: Fee,
+        fee_to: TokenHolder,
+    ) {
+        // set the parameters to token's prepoty
+        self.owner = owner.clone();
+        self.token_id = token_id.clone();
+        self.logo = logo;
+        self.name = name.clone();
+        self.symbol = symbol.clone();
+        self.decimals = decimals;
+        self.fee = fee;
+        self.fee_to = fee_to;
+    }
+    pub fn from_token_payload(&mut self, payload: TokenPayload) {
+        self.token_id = payload.token_id;
+        self.owner = payload.owner;
+        self.logo = Some(payload.logo);
+        self.name = payload.meta.name;
+        self.symbol = payload.meta.symbol;
+        self.decimals = payload.meta.decimals;
+        self.fee = payload.meta.fee;
+        self.fee_to = payload.fee_to;
+
+        for (k, v) in payload.extend {
+            self.extend_info.insert(k, v);
+        }
+        for (k, v) in payload.balances {
+            self.balances.insert(k, v);
+        }
+        for (k, v) in payload.allowances {
+            let mut inner = HashMap::new();
+            for (ik, iv) in v {
+                inner.insert(ik, iv);
+            }
+            self.allowances.insert(k, inner);
+        }
+        for (k, v) in payload.storage_canister_ids {
+            self.storage_canister_ids.insert(k, v);
+        }
+
+        for v in payload.txs_inner {
+            self.txs.push(v);
+        }
+    }
+    pub fn to_token_payload(&self) -> TokenPayload {
+        let mut extend = Vec::new();
+        let mut balances = Vec::new();
+        let mut allowances = Vec::new();
+        let mut storage_canister_ids = Vec::new();
+        let mut txs = Vec::new();
+        for (k, v) in self.extend_info.iter() {
+            extend.push((k.to_string(), v.to_string()));
+        }
+        for (k, v) in self.balances.iter() {
+            balances.push((k.clone(), v.clone()));
+        }
+        for (th, v) in self.allowances.iter() {
+            let mut allow_item = Vec::new();
+            for (sp, val) in v.iter() {
+                allow_item.push((sp.clone(), val.clone()));
+            }
+            allowances.push((th.clone(), allow_item));
+        }
+        for (k, v) in self.storage_canister_ids.iter() {
+            storage_canister_ids.push((k.clone(), *v));
+        }
+        for v in self.txs.iter() {
+            txs.push(v.clone());
+        }
+        TokenPayload {
+            token_id: self.token_id.clone(),
+            owner: self.owner,
+            fee_to: self.fee_to.clone(),
+            meta: self.metadata(),
+            extend,
+            logo: self.logo.clone().unwrap_or_else(|| vec![]),
+            balances,
+            allowances,
+            tx_index_cursor: self.next_tx_index.clone(),
+            storage_canister_ids,
+            txs_inner: txs,
+        }
+    }
+}
+
 impl Token for TokenBasic {
+    fn owner(&self) -> Principal {
+        self.owner.clone()
+    }
+
     fn set_owner(&mut self, caller: &Principal, owner: Principal) -> Result<bool, String> {
         self.only_owner(caller)?;
         self.owner = owner;
         Ok(true)
+    }
+
+    fn name(&self) -> String {
+        self.name.clone()
+    }
+
+    fn symbol(&self) -> String {
+        self.symbol.clone()
+    }
+
+    fn decimals(&self) -> u8 {
+        self.decimals.clone()
+    }
+
+    fn total_supply(&self) -> Nat {
+        self.total_supply.clone()
+    }
+
+    fn fee(&self) -> Fee {
+        self.fee.clone()
     }
 
     fn set_fee(&mut self, caller: &Principal, fee: Fee) -> Result<bool, String> {
@@ -458,6 +607,10 @@ impl Token for TokenBasic {
         }
     }
 
+    fn extend_info(&self) -> HashMap<String, String> {
+        self.extend_info.clone()
+    }
+
     fn set_extend_info(
         &mut self,
         caller: &Principal,
@@ -473,6 +626,10 @@ impl Token for TokenBasic {
         }
         self.extend_info = new_extend_info;
         Ok(true)
+    }
+
+    fn logo(&self) -> Vec<u8> {
+        self.logo.clone().unwrap_or_else(|| vec![])
     }
 
     fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> Result<bool, String> {
