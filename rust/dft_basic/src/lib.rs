@@ -109,7 +109,7 @@ fn get_extend_info() -> Vec<(String, String)> {
     TOKEN
         .read()
         .unwrap()
-        .extend_info()    
+        .extend_info()
         .into_iter()
         .map(|f| f)
         .collect()
@@ -199,7 +199,7 @@ async fn approve(
             }
             if let Some(data) = call_data {
                 // execute call
-                let execute_call_result = _execute_call(&spender_holder, data).await;
+                let execute_call_result = execute_call(&spender_holder, data).await;
                 if let Err(emsg) = execute_call_result {
                     // approve succeed ,bu call failed
                     errors.push(emsg.to_string());
@@ -238,22 +238,27 @@ async fn transfer_from(
     match from.parse::<TokenHolder>() {
         Ok(from_token_holder) => match to.parse::<TokenHolder>() {
             Ok(to_token_holder) => {
-                //TODO: should exec before-transfer check
+                // exec before-transfer check
+                before_token_sending(&from_token_holder, &to_token_holder, &value)?;
                 let tx_index = TOKEN.write().unwrap().transfer_from(
                     &caller,
                     &from_token_holder,
                     &spender,
                     &to_token_holder,
-                    value,
+                    value.clone(),
                     now,
                 )?;
                 let mut errors: Vec<String> = vec![];
-                //exec after-transfer check
+                // exec auto scaling strategy
                 match exec_auto_scaling_strategy().await {
                     Err(e) => errors.push(e.to_string()),
                     _ => {}
                 };
-                //TODO: should exec after-transfer notify
+                // exec after-transfer notify
+                match on_token_received(&from_token_holder, &to_token_holder, &value).await {
+                    Err(e) => errors.push(e.to_string()),
+                    _ => (),
+                };
                 TransactionResult::Ok(TransactionResponse {
                     txid: encode_tx_id(api::id(), tx_index),
                     error: if errors.len() > 0 { Some(errors) } else { None },
@@ -280,14 +285,17 @@ async fn transfer(
 
     match receiver_parse_result {
         Ok(receiver) => {
-            //TODO: should exec before-transfer check
+            //exec before-transfer check
+            before_token_sending(&transfer_from, &receiver, &value)?;
             let mut errors: Vec<String> = Vec::new();
             //transfer token
-            let tx_index =
-                TOKEN
-                    .write()
-                    .unwrap()
-                    .transfer(&caller, &transfer_from, &receiver, value, now)?;
+            let tx_index = TOKEN.write().unwrap().transfer(
+                &caller,
+                &transfer_from,
+                &receiver,
+                value.clone(),
+                now,
+            )?;
 
             //exec auto-scaling storage strategy
             match exec_auto_scaling_strategy().await {
@@ -296,12 +304,15 @@ async fn transfer(
                     errors.push(e.to_string());
                 }
             };
-            //TODO: should exec after-transfer notify
-
-            //execute call
+            // exec after-transfer notify
+            match on_token_received(&transfer_from, &receiver, &value).await {
+                Err(e) => errors.push(e.to_string()),
+                _ => (),
+            };
+            // execute call
             if let Some(_call_data) = call_data {
                 // execute call
-                let execute_call_result = _execute_call(&receiver, _call_data).await;
+                let execute_call_result = execute_call(&receiver, _call_data).await;
                 if let Err(emsg) = execute_call_result {
                     errors.push(emsg);
                 };
@@ -379,16 +390,16 @@ fn post_upgrade() {
 }
 
 // do something becore sending
-fn _on_token_sending(
-    #[warn(unused_variables)] _transfer_from: &TokenHolder,
-    #[warn(unused_variables)] _receiver: &TokenReceiver,
-    #[warn(unused_variables)] _value: &Nat,
+fn before_token_sending(
+    _transfer_from: &TokenHolder,
+    _receiver: &TokenReceiver,
+    _value: &Nat,
 ) -> Result<(), String> {
     Ok(())
 }
 
 // call it after transfer, notify receiver with (from,value)
-async fn _on_token_received(
+async fn on_token_received(
     transfer_from: &TransferFrom,
     receiver: &TokenReceiver,
     _value: &Nat,
@@ -433,7 +444,7 @@ async fn _on_token_received(
     Ok(true)
 }
 
-async fn _execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result<bool, String> {
+async fn execute_call(receiver: &TokenReceiver, _call_data: CallData) -> Result<bool, String> {
     if let TokenHolder::Principal(cid) = receiver {
         if is_canister(cid) {
             let call_result: Result<Vec<u8>, (api::call::RejectionCode, String)> =
