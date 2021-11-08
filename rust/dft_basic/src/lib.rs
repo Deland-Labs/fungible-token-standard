@@ -103,21 +103,21 @@ fn get_meta_data() -> Metadata {
     TOKEN.read().unwrap().metadata()
 }
 
-#[query(name = "extendInfo")]
-#[candid_method(query, rename = "extendInfo")]
-fn get_extend_info() -> Vec<(String, String)> {
+#[query(name = "desc")]
+#[candid_method(query, rename = "desc")]
+fn get_desc_info() -> Vec<(String, String)> {
     TOKEN
         .read()
         .unwrap()
-        .extend_info()
+        .desc()
         .into_iter()
         .map(|f| f)
         .collect()
 }
 
-#[update(name = "setExtendInfo")]
-#[candid_method(update, rename = "setExtendInfo")]
-fn set_extend_data(extend_data: Vec<(String, String)>) -> Result<bool, String> {
+#[update(name = "setDesc")]
+#[candid_method(update, rename = "setDesc")]
+fn set_desc_info(extend_data: Vec<(String, String)>) -> Result<bool, String> {
     // convert exntend data to hashmap
     let mut extend_info = HashMap::new();
     for (key, value) in extend_data {
@@ -126,7 +126,7 @@ fn set_extend_data(extend_data: Vec<(String, String)>) -> Result<bool, String> {
     TOKEN
         .write()
         .unwrap()
-        .set_extend_info(&api::caller(), extend_info)
+        .set_desc(&api::caller(), extend_info)
 }
 
 #[query(name = "logo")]
@@ -416,6 +416,7 @@ async fn on_token_received(
 
             if let Ok((did,)) = did_res {
                 let _support = is_support_interface(did, on_token_received_method_sig.to_string());
+               
                 if _support {
                     let _check_res: Result<(bool,), _> = api::call::call(
                         *cid,
@@ -423,8 +424,6 @@ async fn on_token_received(
                         (transfer_from, _value),
                     )
                     .await;
-
-                    ic_cdk::print("notify executed!");
 
                     match _check_res {
                         Ok((is_notify_succeed,)) => {

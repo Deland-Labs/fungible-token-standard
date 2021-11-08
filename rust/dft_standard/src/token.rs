@@ -5,6 +5,8 @@ use std::collections::HashMap;
 const MAX_GET_TXS_SIZE: usize = 200;
 const FEE_RATE_DIV: u64 = 100_000_000;
 pub trait Token {
+    // token id
+    fn id(&self) -> Principal;
     // get/set owner
     fn owner(&self) -> Principal;
     fn set_owner(&mut self, caller: &Principal, owner: Principal) -> Result<bool, String>;
@@ -23,12 +25,12 @@ pub trait Token {
     fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> Result<bool, String>;
     // get metadata
     fn metadata(&self) -> Metadata;
-    // get/set extend info
-    fn extend_info(&self) -> HashMap<String, String>;
-    fn set_extend_info(
+    // get/set desc info
+    fn desc(&self) -> HashMap<String, String>;
+    fn set_desc(
         &mut self,
         caller: &Principal,
-        extend_info: HashMap<String, String>,
+        descriptions: HashMap<String, String>,
     ) -> Result<bool, String>;
     // get/set logo
     fn logo(&self) -> Vec<u8>;
@@ -139,7 +141,7 @@ pub struct TokenBasic {
     // token's fee
     fee: Fee,
     // token's extend info : social media, description etc
-    extend_info: HashMap<String, String>,
+    desc: HashMap<String, String>,
 }
 
 impl Default for TokenBasic {
@@ -147,7 +149,7 @@ impl Default for TokenBasic {
         TokenBasic {
             token_id: Principal::anonymous(),
             owner: Principal::anonymous(),
-            fee_to: TokenHolder::new(Principal::anonymous(), None),
+            fee_to: TokenHolder::None,
             storage_canister_ids: HashMap::new(),
             next_tx_index: Nat::from(0),
             txs: Vec::new(),
@@ -162,7 +164,7 @@ impl Default for TokenBasic {
                 minimum: Nat::from(0),
                 rate: Nat::from(0),
             },
-            extend_info: HashMap::new(),
+            desc: HashMap::new(),
         }
     }
 }
@@ -195,6 +197,7 @@ impl TokenBasic {
         if spender_allowance < value {
             return Err(MSG_INSUFFICIENT_BALANCE.to_string());
         }
+        let new_spender_allowance = spender_allowance - value.clone();
         match self.allowances.get(&owner) {
             Some(inner) => {
                 let mut temp = inner.clone();
@@ -206,14 +209,14 @@ impl TokenBasic {
                         self.allowances.remove(&owner);
                     }
                 } else {
-                    temp.insert(spender.clone(), value.clone());
+                    temp.insert(spender.clone(), new_spender_allowance);
                     self.allowances.insert(owner.clone(), temp);
                 }
             }
             None => {
                 if value.gt(&Nat::from(0)) {
                     let mut inner = HashMap::new();
-                    inner.insert(spender.clone(), value.clone());
+                    inner.insert(spender.clone(), new_spender_allowance);
                     self.allowances.insert(owner.clone(), inner);
                 }
             }
@@ -493,7 +496,7 @@ impl TokenBasic {
         self.fee_to = payload.fee_to;
 
         for (k, v) in payload.extend {
-            self.extend_info.insert(k, v);
+            self.desc.insert(k, v);
         }
         for (k, v) in payload.balances {
             self.balances.insert(k, v);
@@ -519,7 +522,7 @@ impl TokenBasic {
         let mut allowances = Vec::new();
         let mut storage_canister_ids = Vec::new();
         let mut txs = Vec::new();
-        for (k, v) in self.extend_info.iter() {
+        for (k, v) in self.desc.iter() {
             extend.push((k.to_string(), v.to_string()));
         }
         for (k, v) in self.balances.iter() {
@@ -555,6 +558,10 @@ impl TokenBasic {
 }
 
 impl Token for TokenBasic {
+    fn id(&self) -> Principal {
+        self.token_id.clone()
+    }
+
     fn owner(&self) -> Principal {
         self.owner.clone()
     }
@@ -607,24 +614,23 @@ impl Token for TokenBasic {
         }
     }
 
-    fn extend_info(&self) -> HashMap<String, String> {
-        self.extend_info.clone()
+    fn desc(&self) -> HashMap<String, String> {
+        self.desc.clone()
     }
 
-    fn set_extend_info(
+    fn set_desc(
         &mut self,
         caller: &Principal,
-        extend_info: HashMap<String, String>,
+        descriptions: HashMap<String, String>,
     ) -> Result<bool, String> {
         self.only_owner(caller)?;
-        // filter extend_info which key in EXTEND_KEYS, then set to extend_info
-        let mut new_extend_info = HashMap::new();
-        for (key, value) in extend_info.iter() {
+        let mut new_descriptions = HashMap::new();
+        for (key, value) in descriptions.iter() {
             if EXTEND_KEYS.contains(&key.as_str()) {
-                new_extend_info.insert(key.clone(), value.clone());
+                new_descriptions.insert(key.clone(), value.clone());
             }
         }
-        self.extend_info = new_extend_info;
+        self.desc = descriptions;
         Ok(true)
     }
 
@@ -664,7 +670,7 @@ impl Token for TokenBasic {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String> {
-        let approve_fee = self.charge_approve_fee(spender)?;
+        let approve_fee = self.charge_approve_fee(owner)?;
         //credit the spender's allowance
         self.credit_allowance(owner, spender, value.clone());
         let tx_index = self.generate_new_tx_index();
