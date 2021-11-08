@@ -40,9 +40,9 @@ define test_token_impl
 	dfx canister call dft_basic balanceOf "$(owner_id)" \
 	| grep '99_999_999_000_000_000_000_000_000' && echo 'PASS balanceOf check'
 
-	dfx canister call dft_basic setExtendInfo '(vec {record {"OFFICIAL_SITE";"http://test.com";}})' \
+	dfx canister call dft_basic setDesc '(vec {record {"OFFICIAL_SITE";"http://test.com";}})' \
 	| grep '(variant { Ok = true })' && echo 'PASS updateExtend test'
-	dfx canister call dft_basic extendInfo  \
+	dfx canister call dft_basic desc  \
 	| grep '"OFFICIAL_SITE"; "http://test.com"' && echo 'PASS extend test'
 
 	dfx canister call dft_basic setFee '(record { minimum = 1 : nat; rate = 0 : nat })' \
