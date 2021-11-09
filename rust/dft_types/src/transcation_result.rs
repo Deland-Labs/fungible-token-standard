@@ -7,9 +7,4 @@ pub struct TransactionResponse {
     pub error: Option<Vec<String>>,
 }
 
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub enum TransactionResult {
-    //transfer succeed, but call failed & notify failed
-    Ok(TransactionResponse),
-    Err(String),
-}
+pub type TransactionResult = Result<TransactionResponse, String>;

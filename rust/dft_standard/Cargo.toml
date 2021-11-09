@@ -1,16 +1,12 @@
 [package]
-name = "dft_tx_storage"
+name = "dft_standard"
 version = "0.1.0"
 edition = "2018"
 
-[lib]
-crate-type = ["cdylib"]
-
-[dependencies]
+[dependencies] 
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
 ic-cdk = "0.3.2"
-ic-cdk-macros = "0.3.2"
 candid = "0.7.4"
 serde = "1.0.127"
-lazy_static = "1.4.0"
+serde_bytes = "0.11"

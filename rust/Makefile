@@ -40,13 +40,13 @@ define test_token_impl
 	dfx canister call dft_basic balanceOf "$(owner_id)" \
 	| grep '99_999_999_000_000_000_000_000_000' && echo 'PASS balanceOf check'
 
-	dfx canister call dft_basic setExtend '(vec {record {"OFFICIAL_SITE";"http://test.com";}})' \
-	| grep '(true)' && echo 'PASS updateExtend test'
-	dfx canister call dft_basic extend  \
+	dfx canister call dft_basic setDesc '(vec {record {"OFFICIAL_SITE";"http://test.com";}})' \
+	| grep '(variant { Ok = true })' && echo 'PASS updateExtend test'
+	dfx canister call dft_basic desc  \
 	| grep '"OFFICIAL_SITE"; "http://test.com"' && echo 'PASS extend test'
 
 	dfx canister call dft_basic setFee '(record { minimum = 1 : nat; rate = 0 : nat })' \
-	| grep '(true)' && echo 'PASS set fee test'
+	| grep '(variant { Ok = true })' && echo 'PASS set fee test'
 	dfx canister call dft_basic fee  \
 	| grep '(record { rate = 0 : nat; minimum = 1 : nat })' && echo 'PASS fee check 2'
 

@@ -2,10 +2,9 @@
 members = [
     "dft_basic",
     "dft_burnable",
-    "dft_derive",
     "dft_mintable",
     "dft_receiver",
-    "dft_source",
+    "dft_standard",
     "dft_types",
     "dft_utils",
     "dft_tx_storage"

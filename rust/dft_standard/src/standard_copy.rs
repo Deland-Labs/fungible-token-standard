@@ -131,9 +131,9 @@ fn get_fee_setting() -> Fee {
 
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
-fn get_meta_data() -> MetaData {
+fn get_meta_data() -> Metadata {
     unsafe {
-        let meta = MetaData {
+        let meta = Metadata {
             name: NAME.to_string(),
             symbol: SYMBOL.to_string(),
             decimals: DECIMALS,
