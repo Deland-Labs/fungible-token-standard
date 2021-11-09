@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "dft_basic",
+    "dft_burnable",
     "dft_receiver",
     "dft_standard",
     "dft_types",

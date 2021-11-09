@@ -8,7 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies] 
-dft_derive = { path = "../dft_derive" }
+dft_standard = { path = "../dft_standard" }
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
 ic-cdk = "0.3.2"

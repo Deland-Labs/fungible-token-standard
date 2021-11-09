@@ -9,6 +9,15 @@
       "candid": "dft_basic/src/basic.did",
       "wasm": "target/wasm32-unknown-unknown/release/dft_basic_opt.wasm"
     },
+    "dft_burnable": {
+      "type": "custom",
+      "build": [
+        "cargo build --target wasm32-unknown-unknown --package  dft_burnable --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_burnable.wasm -o target/wasm32-unknown-unknown/release/dft_burnable_opt.wasm"
+      ],
+      "candid": "dft_burnable/src/burnable.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft_burnable_opt.wasm"
+    },
     "dft_receiver": {
       "type": "custom",
       "build": [

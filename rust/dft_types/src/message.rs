@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+pub const MSG_NOT_ALLOW_ANONYMOUS: &str = "DFT: call it anonymous is not allow";
 pub const MSG_ONLY_OWNER: &str = "DFT: caller is not the owner";
 pub const MSG_INVALID_SPENDER: &str = "DFT: invalid spender";
 pub const MSG_INVALID_FROM: &str = "DFT: invalid format [from]";

@@ -4,7 +4,7 @@ use dft_utils::decode_tx_id;
 use std::collections::HashMap;
 const MAX_GET_TXS_SIZE: usize = 200;
 const FEE_RATE_DIV: u64 = 100_000_000;
-pub trait Token {
+pub trait TokenStandard {
     // token id
     fn id(&self) -> Principal;
     // get/set owner
@@ -77,26 +77,6 @@ pub trait Token {
     fn transaction_by_id(&self, id: &String) -> TxRecordResult;
     // last transactions
     fn last_transactions(&self, count: usize) -> Result<Vec<TxRecord>, String>;
-}
-
-pub trait BurnableExtension {
-    //burn
-    fn burn(
-        &mut self,
-        caller: &Principal,
-        owner: &TokenHolder,
-        value: Nat,
-        now: u64,
-    ) -> Result<TransactionIndex, String>;
-    //burn from
-    fn burn_from(
-        &mut self,
-        caller: &Principal,
-        owner: &TokenHolder,
-        spender: &TokenHolder,
-        value: Nat,
-        now: u64,
-    ) -> Result<TransactionIndex, String>;
 }
 
 pub trait MintableExtension {
@@ -185,7 +165,7 @@ impl TokenBasic {
         rtn
     }
     //debit token holder's allowance
-    fn debit_allowance(
+    pub fn debit_allowance(
         &mut self,
         owner: &TokenHolder,
         spender: &TokenHolder,
@@ -225,7 +205,7 @@ impl TokenBasic {
     }
 
     //credit token spender's allowance
-    fn credit_allowance(&mut self, owner: &TokenHolder, spender: &TokenHolder, value: Nat) {
+    pub fn credit_allowance(&mut self, owner: &TokenHolder, spender: &TokenHolder, value: Nat) {
         match self.allowances.get(&owner) {
             Some(inner) => {
                 let mut temp = inner.clone();
@@ -252,7 +232,7 @@ impl TokenBasic {
     }
 
     // debit token holder's balance
-    fn debit_balance(&mut self, holder: &TokenHolder, value: Nat) -> Result<(), String> {
+    pub fn debit_balance(&mut self, holder: &TokenHolder, value: Nat) -> Result<(), String> {
         if self._balance_of(holder) < value {
             Err(MSG_INSUFFICIENT_BALANCE.to_string())
         } else {
@@ -269,7 +249,7 @@ impl TokenBasic {
         }
     }
     // credit token holder's balance
-    fn credit_balance(&mut self, holder: &TokenHolder, value: Nat) {
+    pub fn credit_balance(&mut self, holder: &TokenHolder, value: Nat) {
         let new_balance = self._balance_of(holder) + value;
         self.balances.insert(holder.clone(), new_balance);
     }
@@ -557,7 +537,7 @@ impl TokenBasic {
     }
 }
 
-impl Token for TokenBasic {
+impl TokenStandard for TokenBasic {
     fn id(&self) -> Principal {
         self.token_id.clone()
     }
