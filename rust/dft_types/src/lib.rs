@@ -1,6 +1,6 @@
 mod account_identifier;
 mod call_data;
-mod extend_keys;
+mod desc_keys;
 mod fee;
 pub mod message;
 mod metadata;
@@ -30,7 +30,7 @@ pub use metadata::Metadata;
 pub use token_holder::TokenHolder;
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
-pub use extend_keys::EXTEND_KEYS;
+pub use desc_keys::DESC_KEYS;
 pub use token_info::TokenInfo;
 pub use token_payload::TokenPayload;
 pub use transcation_result::TransactionResponse;

@@ -19,7 +19,7 @@ const OPENCHAT: &str = "OPENCHAT";
 const DISTRIKT: &str = "DISTRIKT";
 const WEACT: &str = "WEACT";
 
-pub const EXTEND_KEYS: [&str; 19] = [
+pub const DESC_KEYS: [&str; 19] = [
     DSCVR,
     OPENCHAT,
     DISTRIKT,

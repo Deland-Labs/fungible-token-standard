@@ -109,7 +109,7 @@ pub struct TokenBasic {
     total_supply: Nat,
     // token's fee
     fee: Fee,
-    // token's extend info : social media, description etc
+    // token's desc info : social media, description etc
     desc: HashMap<String, String>,
 }
 
@@ -470,7 +470,7 @@ impl TokenBasic {
         self.fee = payload.meta.fee;
         self.fee_to = payload.fee_to;
 
-        for (k, v) in payload.extend {
+        for (k, v) in payload.desc {
             self.desc.insert(k, v);
         }
         for (k, v) in payload.balances {
@@ -492,13 +492,13 @@ impl TokenBasic {
         }
     }
     pub fn to_token_payload(&self) -> TokenPayload {
-        let mut extend = Vec::new();
+        let mut desc = Vec::new();
         let mut balances = Vec::new();
         let mut allowances = Vec::new();
         let mut storage_canister_ids = Vec::new();
         let mut txs = Vec::new();
         for (k, v) in self.desc.iter() {
-            extend.push((k.to_string(), v.to_string()));
+            desc.push((k.to_string(), v.to_string()));
         }
         for (k, v) in self.balances.iter() {
             balances.push((k.clone(), v.clone()));
@@ -521,7 +521,7 @@ impl TokenBasic {
             owner: self.owner,
             fee_to: self.fee_to.clone(),
             meta: self.metadata(),
-            extend,
+            desc,
             logo: self.logo.clone().unwrap_or_else(|| vec![]),
             balances,
             allowances,
@@ -600,7 +600,7 @@ impl TokenStandard for TokenBasic {
     ) -> Result<bool, String> {
         self.only_owner(caller)?;
         for (key, value) in descriptions.iter() {
-            if EXTEND_KEYS.contains(&key.as_str()) {
+            if DESC_KEYS.contains(&key.as_str()) {
                 self.desc.insert(key.clone(), value.clone());
             }
         }

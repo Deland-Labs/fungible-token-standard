@@ -118,13 +118,13 @@ fn get_desc_info() -> Vec<(String, String)> {
 
 #[update(name = "setDesc")]
 #[candid_method(update, rename = "setDesc")]
-fn set_desc_info(extend_data: Vec<(String, String)>) -> Result<bool, String> {
-    // convert exntend data to hashmap
-    let mut extend_info = HashMap::new();
-    for (key, value) in extend_data {
-        extend_info.insert(key, value);
+fn set_desc_info(desc_data: Vec<(String, String)>) -> Result<bool, String> {
+    // convert desc data to hashmap
+    let mut desc_info = HashMap::new();
+    for (key, value) in desc_data {
+        desc_info.insert(key, value);
     }
-    TOKEN.write().unwrap().set_desc(&api::caller(), extend_info)
+    TOKEN.write().unwrap().set_desc(&api::caller(), desc_info)
 }
 
 #[query(name = "logo")]

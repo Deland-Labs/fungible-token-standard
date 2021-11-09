@@ -43,7 +43,7 @@ define test_token_impl
 	dfx canister call dft_basic setDesc '(vec {record {"OFFICIAL_SITE";"http://test.com";}})' \
 	| grep '(variant { Ok = true })' && echo 'PASS updateExtend test'
 	dfx canister call dft_basic desc  \
-	| grep '"OFFICIAL_SITE"; "http://test.com"' && echo 'PASS extend test'
+	| grep '"OFFICIAL_SITE"; "http://test.com"' && echo 'PASS desc test'
 
 	dfx canister call dft_basic setFee '(record { minimum = 1 : nat; rate = 0 : nat })' \
 	| grep '(variant { Ok = true })' && echo 'PASS set fee test'

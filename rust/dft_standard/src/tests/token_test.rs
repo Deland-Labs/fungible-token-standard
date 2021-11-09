@@ -311,7 +311,7 @@ fn test_token_basic_set_desc() {
     assert!(res.is_ok(), "set_desc should be ok");
     assert_eq!(token.desc(), new_desc);
 
-    // try to add a new key in desc which is not exist in EXTEND_KEYS
+    // try to add a new key in desc which is not exist in DESC_KEYS
     let new_desc1: HashMap<String, String> = vec![(
         "TWITTER1".to_owned(),
         "https://twitter.com/DelandLabs1".to_owned(),
