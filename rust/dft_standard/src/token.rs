@@ -624,13 +624,11 @@ impl Token for TokenBasic {
         descriptions: HashMap<String, String>,
     ) -> Result<bool, String> {
         self.only_owner(caller)?;
-        let mut new_descriptions = HashMap::new();
         for (key, value) in descriptions.iter() {
             if EXTEND_KEYS.contains(&key.as_str()) {
-                new_descriptions.insert(key.clone(), value.clone());
+                self.desc.insert(key.clone(), value.clone());
             }
         }
-        self.desc = descriptions;
         Ok(true)
     }
 

@@ -301,6 +301,7 @@ fn test_token_basic_set_desc() {
         fee.clone(),
         fee_to,
     );
+
     let new_desc: HashMap<String, String> = vec![(
         "TWITTER".to_owned(),
         "https://twitter.com/DelandLabs".to_owned(),
@@ -310,7 +311,20 @@ fn test_token_basic_set_desc() {
     let res = token.set_desc(&owner, new_desc.clone());
     assert!(res.is_ok(), "set_desc should be ok");
     assert_eq!(token.desc(), new_desc);
+
+    // try to add a new key in desc which is not exist in EXTEND_KEYS
+    let new_desc1: HashMap<String, String> = vec![(
+        "TWITTER1".to_owned(),
+        "https://twitter.com/DelandLabs1".to_owned(),
+    )]
+    .into_iter()
+    .collect();
+    let res = token.set_desc(&owner, new_desc1.clone());
+    // the token's desc will not be changed
+    assert!(res.is_ok(), "set_desc should be succeed");
+    assert_eq!(token.desc(), new_desc);
 }
+
 // test token set_desc with invalid owner
 #[test]
 fn test_token_basic_set_desc_invalid_owner() {
@@ -507,6 +521,10 @@ fn test_token_basic_fee_calculation() {
             - transfer_val2.clone()
             - transfer_fee2
     );
+
+    // check total supply
+    let total_supply = token.total_supply();
+    assert_eq!(total_supply, mint_val.clone());
 }
 
 //test token approve
@@ -586,6 +604,9 @@ fn test_token_basic_approve() {
     let token_txs = token_payload.txs_inner;
     assert_eq!(token_txs.len(), 3);
     assert_eq!(token_payload.tx_index_cursor, 3);
+    // check total supply
+    let total_supply = token.total_supply();
+    assert_eq!(total_supply, mint_val.clone());
 }
 
 // test token approve/transfer_from
@@ -691,7 +712,7 @@ fn test_token_basic_transfer_from() {
     let from_balance = token.balance_of(&from_holder);
     assert_eq!(
         from_balance,
-        mint_val - transfer_from_val - fee.clone().minimum * 2
+        mint_val.clone() - transfer_from_val - fee.clone().minimum * 2
     );
     // check owner_holder balance
     let owner_balance = token.balance_of(&owner_holder);
@@ -701,6 +722,9 @@ fn test_token_basic_transfer_from() {
     let token_txs = token_payload.txs_inner;
     assert_eq!(token_txs.len(), 3);
     assert_eq!(token_payload.tx_index_cursor, 3);
+    // check total supply
+    let total_supply = token.total_supply();
+    assert_eq!(total_supply, mint_val);
 }
 
 // test token transfer
@@ -763,7 +787,7 @@ fn test_token_basic_transfer() {
     let from_balance = token.balance_of(&from_holder);
     assert_eq!(
         from_balance,
-        mint_val - transfer_val.clone() - fee.clone().minimum
+        mint_val.clone() - transfer_val.clone() - fee.clone().minimum
     );
     // check to_holder balance
     let to_balance = token.balance_of(&to_holder);
@@ -773,6 +797,9 @@ fn test_token_basic_transfer() {
     let token_txs = token_payload.txs_inner;
     assert_eq!(token_txs.len(), 2);
     assert_eq!(token_payload.tx_index_cursor, 2);
+    // check total supply
+    let total_supply = token.total_supply();
+    assert_eq!(total_supply, mint_val);
 }
 
 // test token _mint/_burn
@@ -814,6 +841,10 @@ fn test_token_basic_mint_burn() {
     let owner_balance = token.balance_of(&owner_holder);
     assert_eq!(owner_balance, mint_val);
 
+    // check total supply
+    let total_supply = token.total_supply();
+    assert_eq!(total_supply, mint_val);
+
     // transfer token from owner_holder to to_holder
     let burn_val = Nat::from(1000);
     let burn_res = token._burn(&caller_principal, &owner_holder, burn_val.clone(), now_u64);
@@ -821,5 +852,9 @@ fn test_token_basic_mint_burn() {
     // check burn_res is ok, and check owner_holder balance
     assert!(burn_res.is_ok(), "{:?}", burn_res.unwrap_err());
     let owner_balance = token.balance_of(&owner_holder);
-    assert_eq!(owner_balance, mint_val - burn_val);
+    assert_eq!(owner_balance, mint_val.clone() - burn_val.clone());
+
+    // check total supply
+    let total_supply = token.total_supply();
+    assert_eq!(total_supply, mint_val - burn_val);
 }
