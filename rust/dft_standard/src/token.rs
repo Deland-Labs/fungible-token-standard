@@ -297,9 +297,9 @@ impl TokenBasic {
     ) -> Result<Nat, String> {
         // calc the transfer fee: rate * value
         // compare the transfer fee and minumum fee,get the max value
-        let rate_fee = self.fee.rate.clone() * transfer_value.clone();
+        let rate_fee = self.fee.rate.clone() * transfer_value.clone() / FEE_RATE_DIV;
         let min_fee = self.fee.minimum.clone();
-        let fee = if rate_fee > min_fee {
+        let transfer_fee = if rate_fee > min_fee {
             rate_fee
         } else {
             min_fee
@@ -307,13 +307,13 @@ impl TokenBasic {
 
         // check the transfer_from's balance
         // if balance is not enough, return error
-        if self.balances.get(transfer_from).unwrap_or(&Nat::from(0)) < &fee {
+        if self.balances.get(transfer_from).unwrap_or(&Nat::from(0)) < &transfer_fee {
             Err(MSG_INSUFFICIENT_BALANCE.to_string())
         } else {
             let fee_to = self.fee_to.clone();
-            self.debit_balance(&transfer_from, fee.clone())?;
-            self.credit_balance(&fee_to, fee.clone());
-            Ok(fee)
+            self.debit_balance(&transfer_from, transfer_fee.clone())?;
+            self.credit_balance(&fee_to, transfer_fee.clone());
+            Ok(transfer_fee)
         }
     }
     // calc transfer fee
@@ -370,9 +370,9 @@ impl TokenBasic {
         now: u64,
     ) -> Result<TransactionIndex, String> {
         // calc the transfer fee
-        let fee = self.calc_transfer_fee(&value);
+        let transfer_fee = self.calc_transfer_fee(&value);
         //check the transfer_from's balance, if balance is not enough, return error
-        if self._balance_of(from) < value.clone() + fee.clone() {
+        if self._balance_of(from) < value.clone() + transfer_fee.clone() {
             Err(MSG_INSUFFICIENT_BALANCE.to_string())
         } else {
             // charge the transfer fee
@@ -389,7 +389,7 @@ impl TokenBasic {
                 from.clone(),
                 to.clone(),
                 value.clone(),
-                fee,
+                transfer_fee,
                 now,
             );
             self.txs.push(tx);
@@ -703,7 +703,7 @@ impl Token for TokenBasic {
         let decreased_allowance = value.clone() + transfer_fee.clone();
         // check allowance
         if spender_allowance < decreased_allowance.clone() {
-            return Err(MSG_INSUFFICIENT_BALANCE.to_string());
+            return Err(MSG_INSUFFICIENT_ALLOWANCE.to_string());
         }
         // debit the spender's allowance
         self.debit_allowance(from, spender, decreased_allowance.clone())?;
@@ -734,7 +734,7 @@ impl Token for TokenBasic {
             holders: Nat::from(self.balances.len()),
             allowance_size: Nat::from(allowances_size),
             fee_to: self.fee_to.clone(),
-            tx_count: self.next_tx_index.clone() - 1,
+            tx_count: self.next_tx_index.clone(),
             cycles: 0,
             storages: self
                 .storage_canister_ids
