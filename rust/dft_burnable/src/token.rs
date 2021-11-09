@@ -31,6 +31,7 @@ impl BurnableExtension for TokenBasic {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String> {
+        self.not_allow_anonymous(caller)?;
         self._burn(caller, owner, value, now)
     }
     fn burn_from(
@@ -41,6 +42,7 @@ impl BurnableExtension for TokenBasic {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String> {
+        self.not_allow_anonymous(caller)?;
         // debit spender's allowance
         self.debit_allowance(owner, spender, value.clone())?;
         self._burn(caller, owner, value, now)

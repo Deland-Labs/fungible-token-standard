@@ -150,13 +150,19 @@ impl Default for TokenBasic {
 }
 
 impl TokenBasic {
-    // check if the caller is the owner
-    fn only_owner(&self, caller: &Principal) -> Result<(), String> {
-        if &self.owner != caller {
-            Err(MSG_ONLY_OWNER.to_string())
-        } else {
-            Ok(())
+    // check if the caller is anonymous
+    pub fn not_allow_anonymous(&self, caller: &Principal) -> Result<(), String> {
+        if caller == &Principal::anonymous() {
+            return Err(MSG_NOT_ALLOW_ANONYMOUS.to_owned());
         }
+        Ok(())
+    }
+    // check if the caller is the owner
+    pub fn only_owner(&self, caller: &Principal) -> Result<(), String> {
+        if &self.owner != caller {
+            return Err(MSG_ONLY_OWNER.to_owned());
+        }
+        Ok(())
     }
     //generate new tx index
     fn generate_new_tx_index(&mut self) -> Nat {
@@ -648,6 +654,7 @@ impl TokenStandard for TokenBasic {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String> {
+        self.not_allow_anonymous(caller)?;
         let approve_fee = self.charge_approve_fee(owner)?;
         //credit the spender's allowance
         self.credit_allowance(owner, spender, value.clone());
@@ -675,6 +682,7 @@ impl TokenStandard for TokenBasic {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String> {
+        self.not_allow_anonymous(caller)?;
         let transfer_fee = self.calc_transfer_fee(&value);
         // get spenders allowance
         let spender_allowance = self._allowance(from, spender);
@@ -697,6 +705,7 @@ impl TokenStandard for TokenBasic {
         value: Nat,
         now: u64,
     ) -> Result<TransactionIndex, String> {
+        self.not_allow_anonymous(caller)?;
         self._transfer(caller, from, to, value, now)
     }
 

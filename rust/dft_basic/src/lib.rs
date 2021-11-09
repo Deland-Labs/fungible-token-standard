@@ -6,7 +6,7 @@ extern crate dft_utils;
 use candid::{candid_method, decode_args, encode_args};
 use dft_standard::{
     ic_management::*,
-    token::{Token, TokenBasic},
+    token::{TokenBasic, TokenStandard},
 };
 use dft_types::{message::*, *};
 use dft_utils::*;
@@ -123,10 +123,7 @@ fn set_desc_info(extend_data: Vec<(String, String)>) -> Result<bool, String> {
     for (key, value) in extend_data {
         extend_info.insert(key, value);
     }
-    TOKEN
-        .write()
-        .unwrap()
-        .set_desc(&api::caller(), extend_info)
+    TOKEN.write().unwrap().set_desc(&api::caller(), extend_info)
 }
 
 #[query(name = "logo")]
@@ -416,7 +413,7 @@ async fn on_token_received(
 
             if let Ok((did,)) = did_res {
                 let _support = is_support_interface(did, on_token_received_method_sig.to_string());
-               
+
                 if _support {
                     let _check_res: Result<(bool,), _> = api::call::call(
                         *cid,

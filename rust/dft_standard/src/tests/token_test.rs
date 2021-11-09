@@ -1,6 +1,5 @@
-#[cfg(test)]
-use crate::token::Token;
 use crate::token::TokenBasic;
+use crate::token::TokenStandard;
 use candid::Nat;
 use candid::Principal;
 use dft_types::*;
@@ -857,4 +856,76 @@ fn test_token_basic_mint_burn() {
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val - burn_val);
+}
+
+// test token approve/transfer_from/transfer anonymous call should fail
+#[test]
+fn test_token_basic_approve_transfer_from_transfer() {
+    //create TokenBasic with all parameters
+    let mut token = TokenBasic::default();
+    let caller_principal =
+        Principal::from_text("czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae")
+            .unwrap();
+    let from_principal =
+        Principal::from_text("b2zme-qgvk4-rgln6-mycul-7bgye-dbpyl-7rrvm-i2rzy-ybw5r-ncnd6-xqe")
+            .unwrap();
+    let to_principal =
+        Principal::from_text("b2zme-qgvk4-rgln6-mycul-7bgye-dbpyl-7rrvm-i2rzy-ybw5r-ncnd6-xqe")
+            .unwrap();
+    let owner_holder = TokenHolder::new(caller_principal, None);
+    let from_holder = TokenHolder::new(from_principal, None);
+    let to_holder = TokenHolder::new(to_principal, None);
+    let fee_to = owner_holder.clone();
+    let token_id = Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap();
+    let logo = vec![0x00, 0x01, 0x02, 0x03];
+    let fee = Fee {
+        minimum: Nat::from(1),
+        rate: Nat::from(0),
+    };
+    token.initialize(
+        &caller_principal,
+        token_id,
+        Some(logo.clone()),
+        "test_token".to_owned(),
+        "TEST".to_owned(),
+        18,
+        fee.clone(),
+        fee_to.clone(),
+    );
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_nanos();
+    let now_u64 = now as u64;
+    // apporve with anonymous should fail
+    let approve_val = Nat::from(1000);
+    let approve_res = token.approve(
+        &caller_principal,
+        &from_holder,
+        &to_holder,
+        approve_val.clone(),
+        now_u64,
+    );
+    assert!(approve_res.is_err());
+    // transfer_from with anonymous should fail
+    let transfer_from_val = Nat::from(1000);
+    let transfer_from_res = token.transfer_from(
+        &caller_principal,
+        &owner_holder,
+        &from_holder,
+        &to_holder,
+        transfer_from_val.clone(),
+        now_u64,
+    );
+    assert!(transfer_from_res.is_err());
+    // transfer with anonymous should fail
+    let transfer_val = Nat::from(1000);
+    let transfer_res = token.transfer(
+        &caller_principal,
+        &from_holder,
+        &to_holder,
+        transfer_val.clone(),
+        now_u64,
+    );
+    assert!(transfer_res.is_err());
 }
