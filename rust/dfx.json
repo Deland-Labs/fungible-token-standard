@@ -18,6 +18,15 @@
       "candid": "dft_burnable/src/burnable.did",
       "wasm": "target/wasm32-unknown-unknown/release/dft_burnable_opt.wasm"
     },
+    "dft_mintable": {
+      "type": "custom",
+      "build": [
+        "cargo build --target wasm32-unknown-unknown --package  dft_mintable --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_mintable.wasm -o target/wasm32-unknown-unknown/release/dft_mintable_opt.wasm"
+      ],
+      "candid": "dft_mintable/src/mintable.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft_mintable_opt.wasm"
+    },
     "dft_receiver": {
       "type": "custom",
       "build": [

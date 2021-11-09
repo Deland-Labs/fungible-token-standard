@@ -79,17 +79,6 @@ pub trait TokenStandard {
     fn last_transactions(&self, count: usize) -> Result<Vec<TxRecord>, String>;
 }
 
-pub trait MintableExtension {
-    //mint
-    fn mint(
-        &mut self,
-        caller: &Principal,
-        to: &TokenHolder,
-        value: Nat,
-        now: u64,
-    ) -> Result<TransactionIndex, String>;
-}
-
 #[derive(Debug)]
 pub struct TokenBasic {
     // token id
