@@ -24,7 +24,7 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   logo : () -> (vec nat8) query;
   meta : () -> (Metadata) query;
   name : () -> (text) query;
-  owner : () -> (principal);
+  owner : () -> (principal) query;
   setDesc : (vec record { text; text }) -> (ResultBool);
   setFee : (Fee) -> (ResultBool);
   setFeeTo : (text) -> (ResultBool);

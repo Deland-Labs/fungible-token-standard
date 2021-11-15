@@ -57,8 +57,8 @@ async fn canister_init(
     let _ = token._mint(&real_caller, &owner_holder, total_supply_, api::time());
 }
 
-#[update(name = "owner")]
-#[candid_method(update, rename = "owner")]
+#[update(query = "owner")]
+#[candid_method(query, rename = "owner")]
 fn owner() -> Principal {
     TOKEN.read().unwrap().owner()
 }

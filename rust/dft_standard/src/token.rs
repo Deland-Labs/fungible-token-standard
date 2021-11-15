@@ -148,6 +148,7 @@ impl TokenBasic {
     }
     // check if the caller is the owner
     pub fn only_owner(&self, caller: &Principal) -> Result<(), String> {
+        self.not_allow_anonymous(caller)?;
         if &self.owner != caller {
             return Err(MSG_ONLY_OWNER.to_owned());
         }
