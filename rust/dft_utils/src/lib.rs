@@ -38,7 +38,7 @@ fn test_is_support_interface() {
       storages : vec principal;
       feeTo : TokenHolder;
     };
-    type TransactionResponse = record { txid : text; error : opt vec text };
+    type TransactionResponse = record { tx_id : text; error : opt vec text };
     type TxRecord = variant {
       Approve : record {
         nat;

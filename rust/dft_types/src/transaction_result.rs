@@ -1,10 +1,10 @@
 use super::TransactionId;
 use candid::{CandidType, Deserialize};
+use crate::{ActorError};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TransactionResponse {
-    pub txid: TransactionId,
-    pub error: Option<Vec<String>>,
+    #[serde(rename="txId")]
+    pub tx_id: TransactionId,
+    pub error: Option<Vec<ActorError>>,
 }
-
-pub type TransactionResult = Result<TransactionResponse, String>;

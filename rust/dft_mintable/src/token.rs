@@ -10,10 +10,10 @@ pub trait MintableExtension {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String>;
+    ) -> CommonResult<TransactionIndex>;
 }
 
-// imple BurnableExtension for TokenBasic
+// impl MintableExtension for TokenBasic
 impl MintableExtension for TokenBasic {
     fn mint(
         &mut self,
@@ -21,7 +21,7 @@ impl MintableExtension for TokenBasic {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String> {
+    ) -> CommonResult<TransactionIndex> {
         self.only_owner(caller)?;
         self._mint(caller, to, value, now)
     }

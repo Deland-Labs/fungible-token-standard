@@ -1,15 +1,16 @@
 use candid::{Nat, Principal};
-use dft_types::{message::*, *};
+use dft_types::*;
 use dft_utils::decode_tx_id;
 use std::collections::HashMap;
-const MAX_GET_TXS_SIZE: usize = 200;
-const FEE_RATE_DIV: u64 = 100_000_000;
+use dft_types::constants::FEE_RATE_DIV;
+
 pub trait TokenStandard {
     // token id
     fn id(&self) -> Principal;
     // get/set owner
     fn owner(&self) -> Principal;
-    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> Result<bool, String>;
+    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> CommonResult<bool>;
+
     // name
     fn name(&self) -> String;
     // symbol
@@ -20,9 +21,9 @@ pub trait TokenStandard {
     fn total_supply(&self) -> Nat;
     // get/set fee
     fn fee(&self) -> Fee;
-    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> Result<bool, String>;
+    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> CommonResult<bool>;
     // set fee to
-    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> Result<bool, String>;
+    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> CommonResult<bool>;
     // get metadata
     fn metadata(&self) -> Metadata;
     // get/set desc info
@@ -31,10 +32,10 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
-    ) -> Result<bool, String>;
+    ) -> CommonResult<bool>;
     // get/set logo
     fn logo(&self) -> Vec<u8>;
-    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> Result<bool, String>;
+    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> CommonResult<bool>;
     // balance of
     fn balance_of(&self, owner: &TokenHolder) -> Nat;
     // allowance
@@ -49,7 +50,7 @@ pub trait TokenStandard {
         spender: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String>;
+    ) -> CommonResult<TransactionIndex>;
     // transfer from
     fn transfer_from(
         &mut self,
@@ -59,7 +60,7 @@ pub trait TokenStandard {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String>;
+    ) -> CommonResult<TransactionIndex>;
     // transfer
     fn transfer(
         &mut self,
@@ -68,15 +69,15 @@ pub trait TokenStandard {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String>;
+    ) -> CommonResult<TransactionIndex>;
     // token info
     fn token_info(&self) -> TokenInfo;
     // transaction by index
-    fn transaction_by_index(&self, index: &Nat) -> TxRecordResult;
+    fn transaction_by_index(&self, index: &Nat) -> CommonResult<TxRecord>;
     // transaction by id
-    fn transaction_by_id(&self, id: &String) -> TxRecordResult;
+    fn transaction_by_id(&self, id: &String) -> CommonResult<TxRecord>;
     // last transactions
-    fn last_transactions(&self, count: usize) -> Result<Vec<TxRecord>, String>;
+    fn last_transactions(&self, count: usize) -> CommonResult<Vec<TxRecord>>;
 }
 
 #[derive(Debug)]
@@ -140,17 +141,17 @@ impl Default for TokenBasic {
 
 impl TokenBasic {
     // check if the caller is anonymous
-    pub fn not_allow_anonymous(&self, caller: &Principal) -> Result<(), String> {
+    pub fn not_allow_anonymous(&self, caller: &Principal) -> CommonResult<()> {
         if caller == &Principal::anonymous() {
-            return Err(MSG_NOT_ALLOW_ANONYMOUS.to_owned());
+            return Err(DFTError::NotAllowAnonymous);
         }
         Ok(())
     }
     // check if the caller is the owner
-    pub fn only_owner(&self, caller: &Principal) -> Result<(), String> {
+    pub fn only_owner(&self, caller: &Principal) -> CommonResult<()> {
         self.not_allow_anonymous(caller)?;
         if &self.owner != caller {
-            return Err(MSG_ONLY_OWNER.to_owned());
+            return Err(DFTError::OnlyOwnerAllowCallIt);
         }
         Ok(())
     }
@@ -166,12 +167,12 @@ impl TokenBasic {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
-    ) -> Result<(), String> {
+    ) -> CommonResult<()> {
         // get spenders allowance
         let spender_allowance = self._allowance(owner, spender);
         // check allowance
         if spender_allowance < value {
-            return Err(MSG_INSUFFICIENT_BALANCE.to_string());
+            return Err(DFTError::InsufficientAllowance);
         }
         let new_spender_allowance = spender_allowance - value.clone();
         match self.allowances.get(&owner) {
@@ -228,9 +229,9 @@ impl TokenBasic {
     }
 
     // debit token holder's balance
-    pub fn debit_balance(&mut self, holder: &TokenHolder, value: Nat) -> Result<(), String> {
+    pub fn debit_balance(&mut self, holder: &TokenHolder, value: Nat) -> CommonResult<()> {
         if self._balance_of(holder) < value {
-            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+            Err(DFTError::InsufficientBalance)
         } else {
             // calc new balance
             let new_balance = self._balance_of(holder) - value;
@@ -250,11 +251,11 @@ impl TokenBasic {
         self.balances.insert(holder.clone(), new_balance);
     }
     //charge approve fee
-    fn charge_approve_fee(&mut self, approver: &TokenHolder) -> Result<Nat, String> {
+    fn charge_approve_fee(&mut self, approver: &TokenHolder) -> CommonResult<Nat> {
         // check the approver's balance
         // if balance is not enough, return error
         if self.balances.get(approver).unwrap_or(&Nat::from(0)) < &self.fee.minimum {
-            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+            Err(DFTError::InsufficientBalance)
         } else {
             // charge the approver's balance as approve fee
             let fee = self.fee.minimum.clone();
@@ -265,12 +266,12 @@ impl TokenBasic {
         }
     }
 
-    // chare transfer fee
+    // charge transfer fee
     fn charge_transfer_fee(
         &mut self,
         transfer_from: &TokenHolder,
         transfer_value: &Nat,
-    ) -> Result<Nat, String> {
+    ) -> CommonResult<Nat> {
         // calc the transfer fee: rate * value
         // compare the transfer fee and minumum fee,get the max value
         let rate_fee = self.fee.rate.clone() * transfer_value.clone() / FEE_RATE_DIV;
@@ -284,7 +285,7 @@ impl TokenBasic {
         // check the transfer_from's balance
         // if balance is not enough, return error
         if self.balances.get(transfer_from).unwrap_or(&Nat::from(0)) < &transfer_fee {
-            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+            Err(DFTError::InsufficientBalance)
         } else {
             let fee_to = self.fee_to.clone();
             self.debit_balance(&transfer_from, transfer_fee.clone())?;
@@ -322,6 +323,10 @@ impl TokenBasic {
         match tx {
             TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
             TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
+            _ => {
+                assert!(false);
+                Nat::from(0)
+            }
         }
     }
 
@@ -344,12 +349,12 @@ impl TokenBasic {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String> {
+    ) -> CommonResult<TransactionIndex> {
         // calc the transfer fee
         let transfer_fee = self.calc_transfer_fee(&value);
         //check the transfer_from's balance, if balance is not enough, return error
         if self._balance_of(from) < value.clone() + transfer_fee.clone() {
-            Err(MSG_INSUFFICIENT_BALANCE.to_string())
+            Err(DFTError::InsufficientBalance)
         } else {
             // charge the transfer fee
             self.charge_transfer_fee(from, &value)?;
@@ -379,7 +384,7 @@ impl TokenBasic {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String> {
+    ) -> CommonResult<TransactionIndex> {
         self.credit_balance(to, value.clone());
         // increase the total supply
         self.total_supply = self.total_supply.clone() + value.clone();
@@ -405,18 +410,18 @@ impl TokenBasic {
         from: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String> {
+    ) -> CommonResult<TransactionIndex> {
         // calc the transfer fee,if the fee smaller than minimum fee,return error
         let fee = self.calc_transfer_fee(&value);
         if fee < self.fee.minimum.clone() {
-            return Err(MSG_BURN_VALUE_TOO_SMALL.to_string());
+            return Err(DFTError::BurnValueTooSmall);
         }
-        //check the burn from's balance, if balance is not enough, return error
+        //check the burn from holder's balance, if balance is not enough, return error
         if self._balance_of(from) < value.clone() {
-            return Err(MSG_INSUFFICIENT_BALANCE.to_string());
+            return Err(DFTError::InsufficientBalance);
         } else {
             // burn does not charge the transfer fee
-            // debit the burn from's balance
+            // debit the burn from holder's balance
             self.debit_balance(from, value.clone())?;
             // decrease the total supply
             self.total_supply = self.total_supply.clone() - value.clone();
@@ -461,7 +466,7 @@ impl TokenBasic {
         self.fee = fee;
         self.fee_to = fee_to;
     }
-    pub fn from_token_payload(&mut self, payload: TokenPayload) {
+    pub fn load_from_token_payload(&mut self, payload: TokenPayload) {
         self.token_id = payload.token_id;
         self.owner = payload.owner;
         self.logo = Some(payload.logo);
@@ -542,7 +547,7 @@ impl TokenStandard for TokenBasic {
         self.owner.clone()
     }
 
-    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> Result<bool, String> {
+    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.owner = owner;
         Ok(true)
@@ -568,13 +573,13 @@ impl TokenStandard for TokenBasic {
         self.fee.clone()
     }
 
-    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> Result<bool, String> {
+    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.fee = fee;
         Ok(true)
     }
 
-    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> Result<bool, String> {
+    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.fee_to = fee_to;
         Ok(true)
@@ -598,7 +603,7 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
-    ) -> Result<bool, String> {
+    ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         for (key, value) in descriptions.iter() {
             if DESC_KEYS.contains(&key.as_str()) {
@@ -612,7 +617,7 @@ impl TokenStandard for TokenBasic {
         self.logo.clone().unwrap_or_else(|| vec![])
     }
 
-    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> Result<bool, String> {
+    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.logo = Some(logo);
         Ok(true)
@@ -643,7 +648,7 @@ impl TokenStandard for TokenBasic {
         spender: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String> {
+    ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
         let approve_fee = self.charge_approve_fee(owner)?;
         //credit the spender's allowance
@@ -671,7 +676,7 @@ impl TokenStandard for TokenBasic {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String> {
+    ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
         let transfer_fee = self.calc_transfer_fee(&value);
         // get spenders allowance
@@ -679,7 +684,7 @@ impl TokenStandard for TokenBasic {
         let decreased_allowance = value.clone() + transfer_fee.clone();
         // check allowance
         if spender_allowance < decreased_allowance.clone() {
-            return Err(MSG_INSUFFICIENT_ALLOWANCE.to_string());
+            return Err(DFTError::InsufficientAllowance);
         }
         // debit the spender's allowance
         self.debit_allowance(from, spender, decreased_allowance.clone())?;
@@ -694,7 +699,7 @@ impl TokenStandard for TokenBasic {
         to: &TokenHolder,
         value: Nat,
         now: u64,
-    ) -> Result<TransactionIndex, String> {
+    ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
         self._transfer(caller, from, to, value, now)
     }
@@ -721,13 +726,13 @@ impl TokenStandard for TokenBasic {
         }
     }
 
-    fn transaction_by_index(&self, index: &Nat) -> TxRecordResult {
+    fn transaction_by_index(&self, index: &Nat) -> CommonResult<TxRecord> {
         let inner_start_tx_index = self.get_tx_index(&self.txs[0]);
         let inner_end_tx_index = self.next_tx_index.clone() - 1;
 
         // if index > inner_end_tx_index, return error
         if index > &inner_end_tx_index {
-            return TxRecordResult::Err(MSG_INVALID_TX_INDEX.to_string());
+            return Err(DFTError::InvalidTxIndex);
         }
 
         // if the tx record exist in self.txs which has the same index,return it
@@ -738,36 +743,36 @@ impl TokenStandard for TokenBasic {
             index_map.retain(|k, _| k <= index);
             let key = index_map.keys().last().unwrap();
             let value = index_map.get(key).unwrap();
-            return TxRecordResult::Forward(*value);
+            return Ok(TxRecord::Forward(*value));
         }
         if let Some(tx_record) = self.txs.iter().find(|tx| &self.get_tx_index(tx) == index) {
-            return TxRecordResult::Ok(tx_record.clone());
+            return Ok(tx_record.clone());
         }
-        return TxRecordResult::Err(MSG_INVALID_TX_INDEX.to_string());
+        return Err(DFTError::InvalidTxIndex);
     }
 
-    fn transaction_by_id(&self, id: &String) -> TxRecordResult {
+    fn transaction_by_id(&self, id: &String) -> CommonResult<TxRecord> {
         match decode_tx_id(id.clone()) {
             Ok((token_id, tx_index)) => {
                 if token_id != self.token_id {
-                    return TxRecordResult::Err(MSG_NOT_BELONG_DFT_TX_ID.to_string());
+                    return Err(DFTError::TxIdNotBelongToCurrentDft);
                 } else {
                     self.transaction_by_index(&tx_index)
                 }
             }
-            Err(_) => TxRecordResult::Err(MSG_INVALID_TX_ID.to_string()),
+            Err(_) => Err(DFTError::InvalidTxId),
         }
     }
 
-    fn last_transactions(&self, count: usize) -> Result<Vec<TxRecord>, String> {
-        if count > MAX_GET_TXS_SIZE {
-            return Err(MSG_GET_LAST_TXS_SIZE_TOO_LARGE.to_string());
-        }
+    fn last_transactions(&self, count: usize) -> CommonResult<Vec<TxRecord>> {
+        // max return count is 100
+        let count = if count > 100 { 100 } else { count };
+
         if self.txs.len() < count {
-            return Ok(self.txs.clone());
+            Ok(self.txs.clone())
         } else {
             let start = self.txs.len() - count;
-            return Ok(self.txs[start..].to_vec());
+            Ok(self.txs[start..].to_vec())
         }
     }
 }

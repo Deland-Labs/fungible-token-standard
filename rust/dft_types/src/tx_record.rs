@@ -6,17 +6,8 @@ pub enum TxRecord {
     // tx_index, caller, owner, spender, value, fee, timestamp
     Approve(Nat, Principal, TokenHolder, TokenReceiver, Nat, Nat, u64),
     // tx_index, caller, from, to, value, fee, timestamp
-    Transfer(Nat, Principal, TokenHolder, TokenReceiver, Nat, Nat, u64)
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub enum TxRecordResult {
-    // Return tx record if exist in the DFT cache txs
-    Ok(TxRecord),
-    // If not storage in DFT cache txs, return the storage canister id
+    Transfer(Nat, Principal, TokenHolder, TokenReceiver, Nat, Nat, u64),
     Forward(Principal),
-    // Such as out of tx index or tx id not exist
-    Err(String),
 }
 
 #[test]

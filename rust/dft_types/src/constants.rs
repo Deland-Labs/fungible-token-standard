@@ -1,0 +1,6 @@
+pub const MAX_TXS_CACHE_IN_DFT: usize = 1000;
+// 4G
+pub const MAX_HEAP_MEMORY_SIZE: u32 = 4294967295u32;
+// 2T
+pub const CYCLES_PER_AUTO_SCALING: u64 = 2000_000_000_000;
+pub const FEE_RATE_DIV: u64 = 100_000_000;
