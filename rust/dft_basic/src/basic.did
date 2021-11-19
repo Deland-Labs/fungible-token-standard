@@ -1,10 +1,10 @@
-type ActorError = record { code : nat32; message : text };
+type Error = record { code : nat32; message : text };
 type CallData = record { method : text; args : vec nat8 };
 type Fee = record { rate : nat; minimum : nat };
 type Metadata = record {  fee : Fee;  decimals : nat8;  name : text;  totalSupply : nat;  symbol : text;};
-type TransactionResult = variant { Ok : TransactionResponse; Err : ActorError };
-type TxRecordsResult = variant { Ok : vec TxRecord; Err : ActorError };
-type CommonResult = variant { Ok : bool; Err : ActorError };
+type TransactionResult = variant { Ok : TransactionResponse; Err : Error };
+type TxRecordsResult = variant { Ok : vec TxRecord; Err : Error };
+type CommonResult = variant { Ok : bool; Err : Error };
 type TokenHolder = variant { None; Account : text; Principal : principal };
 type TokenInfo = record {
   owner : principal; allowanceSize : nat;
@@ -12,12 +12,12 @@ type TokenInfo = record {
   holders : nat; storages : vec principal;
   feeTo : TokenHolder;
 };
-type TransactionResponse = record { txId : text; error : opt vec ActorError };
+type TransactionResponse = record { txId : text; error : opt vec Error };
 type TxRecord = variant {
   Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; };
   Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64;  };
 };
-type TxRecordResult = variant {Ok : TxRecord;  Err : ActorError;  Forward : principal; };
+type TxRecordResult = variant {Ok : TxRecord;  Err : Error;  Forward : principal; };
 service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {
   allowance : (text, text) -> (nat) query;
   allowancesOf : (text) -> (vec record { TokenHolder; nat }) query;
