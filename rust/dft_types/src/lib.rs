@@ -39,7 +39,7 @@ pub use desc_keys::DESC_KEYS;
 pub use token_info::TokenInfo;
 pub use token_payload::TokenPayload;
 pub use transaction_result::TransactionResponse;
-pub use tx_record::TxRecord;
+pub use tx_record::*;
 pub use errors::*;
 
 #[test]

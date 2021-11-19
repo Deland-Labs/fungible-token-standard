@@ -73,9 +73,9 @@ pub trait TokenStandard {
     // token info
     fn token_info(&self) -> TokenInfo;
     // transaction by index
-    fn transaction_by_index(&self, index: &Nat) -> CommonResult<TxRecord>;
+    fn transaction_by_index(&self, index: &Nat) -> TxRecordCommonResult;
     // transaction by id
-    fn transaction_by_id(&self, id: &String) -> CommonResult<TxRecord>;
+    fn transaction_by_id(&self, id: &String) -> TxRecordCommonResult;
     // last transactions
     fn last_transactions(&self, count: usize) -> CommonResult<Vec<TxRecord>>;
 }
@@ -726,13 +726,13 @@ impl TokenStandard for TokenBasic {
         }
     }
 
-    fn transaction_by_index(&self, index: &Nat) -> CommonResult<TxRecord> {
+    fn transaction_by_index(&self, index: &Nat) -> TxRecordCommonResult {
         let inner_start_tx_index = self.get_tx_index(&self.txs[0]);
         let inner_end_tx_index = self.next_tx_index.clone() - 1;
 
         // if index > inner_end_tx_index, return error
         if index > &inner_end_tx_index {
-            return Err(DFTError::InvalidTxIndex);
+            return TxRecordCommonResult::Err(DFTError::InvalidTxIndex);
         }
 
         // if the tx record exist in self.txs which has the same index,return it
@@ -743,24 +743,24 @@ impl TokenStandard for TokenBasic {
             index_map.retain(|k, _| k <= index);
             let key = index_map.keys().last().unwrap();
             let value = index_map.get(key).unwrap();
-            return Ok(TxRecord::Forward(*value));
+            return TxRecordCommonResult::Forward(*value);
         }
         if let Some(tx_record) = self.txs.iter().find(|tx| &self.get_tx_index(tx) == index) {
-            return Ok(tx_record.clone());
+            return TxRecordCommonResult::Ok(tx_record.clone());
         }
-        return Err(DFTError::InvalidTxIndex);
+        return TxRecordCommonResult::Err(DFTError::InvalidTxIndex);
     }
 
-    fn transaction_by_id(&self, id: &String) -> CommonResult<TxRecord> {
+    fn transaction_by_id(&self, id: &String) -> TxRecordCommonResult {
         match decode_tx_id(id.clone()) {
             Ok((token_id, tx_index)) => {
                 if token_id != self.token_id {
-                    return Err(DFTError::TxIdNotBelongToCurrentDft);
+                    return TxRecordCommonResult::Err(DFTError::TxIdNotBelongToCurrentDft);
                 } else {
-                    self.transaction_by_index(&tx_index)
+                    return self.transaction_by_index(&tx_index);
                 }
             }
-            Err(_) => Err(DFTError::InvalidTxId),
+            Err(_) => TxRecordCommonResult::Err(DFTError::InvalidTxId),
         }
     }
 

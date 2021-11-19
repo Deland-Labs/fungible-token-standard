@@ -395,10 +395,10 @@ fn get_token_info() -> TokenInfo {
 
 #[query(name = "transactionByIndex")]
 #[candid_method(query, rename = "transactionByIndex")]
-fn transaction_by_index(tx_index: Nat) -> ActorResult<TxRecord> {
+fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
     TOKEN.with(|token| {
         let token = token.borrow();
-        to_actor_result(token.transaction_by_index(&tx_index))
+        token.transaction_by_index(&tx_index).into()
     })
 }
 
@@ -413,10 +413,10 @@ fn last_transactions(count: usize) -> ActorResult<Vec<TxRecord>> {
 
 #[query(name = "transactionById")]
 #[candid_method(query, rename = "transactionById")]
-fn transaction_by_id(tx_id: String) -> ActorResult<TxRecord> {
+fn transaction_by_id(tx_id: String) -> TxRecordResult {
     TOKEN.with(|token| {
         let token = token.borrow();
-        to_actor_result(token.transaction_by_id(&tx_id))
+        token.transaction_by_id(&tx_id).into()
     })
 }
 

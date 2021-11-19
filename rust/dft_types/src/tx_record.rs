@@ -1,5 +1,6 @@
 use super::{TokenHolder, TokenReceiver};
 use candid::{CandidType, Deserialize, Nat, Principal};
+use crate::{ActorError, DFTError};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub enum TxRecord {
@@ -7,7 +8,37 @@ pub enum TxRecord {
     Approve(Nat, Principal, TokenHolder, TokenReceiver, Nat, Nat, u64),
     // tx_index, caller, from, to, value, fee, timestamp
     Transfer(Nat, Principal, TokenHolder, TokenReceiver, Nat, Nat, u64),
+}
+
+#[derive(CandidType, Debug, Clone, Deserialize)]
+pub enum TxRecordCommonResult {
+    // Return tx record if exist in the DFT cache txs
+    Ok(TxRecord),
+    // If not storage in DFT cache txs, return the storage canister id
     Forward(Principal),
+    // Such as out of tx index or tx id not exist
+    Err(DFTError),
+}
+
+#[derive(CandidType, Debug, Clone, Deserialize)]
+pub enum TxRecordResult {
+    // Return tx record if exist in the DFT cache txs
+    Ok(TxRecord),
+    // If not storage in DFT cache txs, return the storage canister id
+    Forward(Principal),
+    // Such as out of tx index or tx id not exist
+    Err(ActorError),
+}
+
+impl From<TxRecordCommonResult> for TxRecordResult
+{
+    fn from(r: TxRecordCommonResult) -> Self {
+        match r {
+            TxRecordCommonResult::Ok(tx) => TxRecordResult::Ok(tx),
+            TxRecordCommonResult::Forward(p) => TxRecordResult::Forward(p),
+            TxRecordCommonResult::Err(e) => TxRecordResult::Err(e.into()),
+        }
+    }
 }
 
 #[test]
