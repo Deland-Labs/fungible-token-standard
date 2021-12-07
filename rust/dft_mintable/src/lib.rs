@@ -488,8 +488,8 @@ async fn on_token_received(
     _value: &Nat,
 ) -> ActorResult<bool> {
     let get_did_method_name = "__get_candid_interface_tmp_hack";
-    let on_token_received_method_name = "on_token_received";
-    let on_token_received_method_sig = "on_token_received:(TransferFrom,nat)->(bool)query";
+    let on_token_received_method_name = "onTokenReceived";
+    let on_token_received_method_sig = "onTokenReceived:(TransferFrom,nat)->(bool)query";
 
     // check receiver
     if let TokenHolder::Principal(cid) = receiver {
