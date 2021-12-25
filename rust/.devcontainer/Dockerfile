@@ -1,0 +1,1 @@
+FROM docker.io/kentsday/dfx_rust:bullseye
