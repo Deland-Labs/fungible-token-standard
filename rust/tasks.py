@@ -48,10 +48,14 @@ def package(ctx):
 
     # check file size of each wasm file must be less than 2MB
     print("Checking file size of each wasm file must be less than 2MB")
-    check_file_size = False
+    check_file_size = True
     if (check_file_size):
         for canister_name in canisters_names:
+            opt_wasm_file = f"{release_base_dir}/{canister_name}_opt.wasm"
             wasm_file = f"{release_base_dir}/{canister_name}.wasm"
+            if (os.path.isfile(opt_wasm_file)):
+                # replace file with opt file
+                shutil.copyfile(opt_wasm_file, wasm_file)
             # get file size
             file_size = ctx.run(f"stat -c %s {wasm_file}", hide=True).stdout.strip()
             # print file size in MB
