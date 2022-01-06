@@ -2,6 +2,19 @@ import json
 import os
 
 from invoke import task
+import shutil;
+import os;
+
+canister_ids_dir = "canister_ids"
+package_dir = "package"
+
+
+def get_envs():
+    # get file names
+    file_names = os.listdir(canister_ids_dir)
+    # get file names without extension
+    envs = [os.path.splitext(file_name)[0] for file_name in file_names]
+    return envs
 
 
 @task
@@ -22,18 +35,13 @@ def package(ctx):
     canister_dids = {canister_name: canister_node['candid'] for canister_name, canister_node in canisters_node.items()}
     print(canister_dids)
 
-    package_dir = "package"
     # reset package dir
     ctx.run(f"rm -rf {package_dir}")
     # create package dir
     ctx.run(f"mkdir {package_dir}")
 
-    canister_ids_dir = "canister_ids"
 
-    # get file names
-    file_names = os.listdir(canister_ids_dir)
-    # get file names without extension
-    envs = [os.path.splitext(file_name)[0] for file_name in file_names]
+    envs = get_envs()
     print(envs)
 
     release_base_dir = "target/wasm32-unknown-unknown/release"
@@ -104,3 +112,14 @@ def package(ctx):
         # write dfx_json to dfx.json
         with open(f"{package_dir}/{env}/dfx.json", 'w') as f:
             json.dump(dfx_json, f, indent=2)
+
+
+@task(package)
+def package_zip(ctx):
+    # create zip file for each env
+    envs = get_envs()
+    
+    for env in envs:
+        # create zip file with shutil
+        shutil.make_archive(f"{package_dir}/{env}", 'zip', f"{package_dir}/{env}")
+        print(f"{package_dir}/{env}.zip created")
