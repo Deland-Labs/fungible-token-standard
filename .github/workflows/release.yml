@@ -1,0 +1,56 @@
+name: publish
+
+on:
+  push:
+    branches:
+      - publish
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: docker.io/kentsday/dfx_rust:bullseye
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET 5.0 for gittools
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: "5.0.x"
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.9.11
+        with:
+          versionSpec: 5.x
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.9.11
+        with:
+          useConfigFile: true
+
+      - name: install canister
+        run: |
+          cd $GITHUB_WORKSPACE/rust
+          dfx start --host 0.0.0.0:8000 --background
+          dfx canister create --all
+      - name: create package
+        run: |
+          cd $GITHUB_WORKSPACE/rust
+          pipenv install
+          pipenv run invoke package-zip
+      - name: Archive artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          path: |
+            rust/package/local.zip
+      - name: Create Release
+        uses: tix-factory/release-manager@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          mode: uploadReleaseAsset
+          filePath: ./rust/package/local.zip
+          assetName: local-${{ steps.gitversion.outputs.MajorMinorPatch }}.zip
+          tag: v${{ steps.gitversion.outputs.MajorMinorPatch }}
