@@ -1,14 +1,15 @@
 extern crate dft_types;
 extern crate dft_utils;
-use crate::state::TOKEN;
+
 use candid::encode_args;
-use dft_standard::ic_management::*;
+use dft_standard::{ic_management::*};
 use dft_types::constants::{CYCLES_PER_AUTO_SCALING, MAX_HEAP_MEMORY_SIZE, MAX_TXS_CACHE_IN_DFT};
 use dft_types::*;
 use ic_cdk::{
     api,
     export::{candid::Nat, Principal},
 };
+use crate::state::TOKEN;
 
 pub(crate) async fn exec_auto_scaling_strategy() -> ActorResult<()> {
     let inner_txs: Vec<TxRecord> = TOKEN.with(|token| {
