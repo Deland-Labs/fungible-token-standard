@@ -1,6 +1,8 @@
-mod state;
-mod basic;
 mod auto_scaling_storage;
-mod http;
+mod basic;
 mod burnable;
+mod http;
+mod inspect;
+mod management;
+mod state;
 mod token;
