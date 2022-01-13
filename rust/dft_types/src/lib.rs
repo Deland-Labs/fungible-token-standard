@@ -10,6 +10,7 @@ mod token_payload;
 mod transaction_result;
 mod tx_record;
 pub mod constants;
+mod http;
 
 use candid::Nat;
 use candid::Principal;
@@ -41,6 +42,7 @@ pub use token_payload::TokenPayload;
 pub use transaction_result::TransactionResponse;
 pub use tx_record::*;
 pub use errors::*;
+pub use http::*;
 
 #[test]
 fn test_nat_size() {
