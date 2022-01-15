@@ -88,7 +88,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 
 static MAGIC_BYTES: [(&[u8], &str); 21] = [
     (b"\x89PNG\r\n\x1a\n", "image/png"),
-    (&[0xff, 0xd8, 0xff], "image/jpg"),
+    (&[0xff, 0xd8, 0xff], "image/jpeg"),
     (b"GIF89a", "image/gif"),
     (b"GIF87a", "image/gif"),
     (b"RIFF", "image/webp"), // TODO: better magic byte detection, see https://github.com/image-rs/image/issues/660
