@@ -16,7 +16,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 token.metadata()
             });
             // convert token_info to json
-            let token_info_json = format!("{{\nname : {}\n, symbol : {}\n, decimals : {}\n, totalSupply : {}\n, fee : {{minimum: {}, rate:{}}}\n}}",
+            let token_info_json = format!("{{\n  name : {},\n  symbol : {},\n  decimals : {},\n  totalSupply : {},\n  fee :\n  {{\n    minimum: {},\n    rate:{}\n  }}\n}}",
             token_info.name,
             token_info.symbol,
             token_info.decimals,
