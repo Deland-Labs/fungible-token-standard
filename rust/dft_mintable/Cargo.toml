@@ -12,7 +12,7 @@ dft_standard = { path = "../dft_standard" }
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
 ic-cdk = "0.3.3"
-ic-cdk-macros = "0.3.2"
+ic-cdk-macros = "0.3.3"
 hex = {version = "0.4.2", features = ["serde"] }
 crc32fast = "1.2.0"
 candid = "0.7.4"
