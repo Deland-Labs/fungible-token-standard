@@ -35,7 +35,8 @@ pub enum DFTError {
     StorageScalingFailed,
     #[error("DFT: call failed,detail: {detail:?}")]
     CallFailed { detail: String },
-
+    #[error("DFT: invalid type or format of logo")]
+    InvalidTypeOrFormatOfLogo,
     #[error("DFT_TX: invalid tx index")]
     InvalidTxIndex,
     #[error("DFT_TX: invalid tx id")]
@@ -64,11 +65,12 @@ impl DFTError {
             DFTError::BurnValueExceedsAllowance => 13,
             DFTError::NotificationFailed => 14,
             DFTError::StorageScalingFailed => 15,
-            DFTError::InvalidTxIndex => 16,
-            DFTError::InvalidTxId => 17,
-            DFTError::TxIdNotBelongToCurrentDft => 18,
-            DFTError::CallFailed { .. } => 19,
-            DFTError::Unknown { .. } => 10000,
+            DFTError::CallFailed { .. } => 16,
+            DFTError::InvalidTypeOrFormatOfLogo => 17,
+            DFTError::InvalidTxIndex => 18,
+            DFTError::InvalidTxId => 19,
+            DFTError::TxIdNotBelongToCurrentDft => 20,
+            DFTError::Unknown { .. } => 21,
         }
     }
 }

@@ -1,5 +1,6 @@
 extern crate dft_types;
 extern crate dft_utils;
+
 use crate::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use candid::{candid_method, decode_args};
 use dft_standard::token::TokenStandard;
@@ -15,7 +16,7 @@ use std::string::String;
 #[init]
 async fn canister_init(
     sub_account: Option<Subaccount>,
-    logo_: Option<Vec<u8>>,
+    logo_: String, // base64 encoded for logo image
     name_: String,
     symbol_: String,
     decimals_: u8,
@@ -25,7 +26,7 @@ async fn canister_init(
 ) {
     let real_caller = caller.unwrap_or_else(|| api::caller());
     let owner_holder = TokenHolder::new(real_caller, sub_account);
-
+    // convert logo to Option<Vec<u8>>
     // token initialize
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
@@ -122,7 +123,7 @@ fn get_desc_info() -> Vec<(String, String)> {
 
 #[query(name = "logo")]
 #[candid_method(query, rename = "logo")]
-fn logo() -> Vec<u8> {
+fn logo() -> String {
     TOKEN.with(|token| {
         let token = token.borrow();
         token.logo()
@@ -389,22 +390,22 @@ async fn on_token_received(
     // check receiver
     if let TokenHolder::Principal(cid) = receiver {
         if is_canister(cid) {
-            let did_res: Result<(String,), _> =
+            let did_res: Result<(String, ), _> =
                 api::call::call(*cid, get_did_method_name, ()).await;
 
-            if let Ok((did,)) = did_res {
+            if let Ok((did, )) = did_res {
                 let _support = is_support_interface(did, on_token_received_method_sig.to_string());
 
                 if _support {
-                    let _check_res: Result<(bool,), _> = api::call::call(
+                    let _check_res: Result<(bool, ), _> = api::call::call(
                         *cid,
                         on_token_received_method_name,
                         (transfer_from, _value),
                     )
-                    .await;
+                        .await;
 
                     match _check_res {
-                        Ok((is_notify_succeed,)) => {
+                        Ok((is_notify_succeed, )) => {
                             if !is_notify_succeed {
                                 return Err(DFTError::NotificationFailed.into());
                             } else {

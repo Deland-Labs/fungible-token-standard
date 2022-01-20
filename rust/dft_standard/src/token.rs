@@ -1,8 +1,8 @@
 use candid::{Nat, Principal};
-use dft_types::*;
-use dft_utils::decode_tx_id;
-use std::collections::HashMap;
 use dft_types::constants::FEE_RATE_DIV;
+use dft_types::*;
+use dft_utils::{decode_tx_id, get_logo_type};
+use std::collections::HashMap;
 
 pub trait TokenStandard {
     // token id
@@ -33,9 +33,9 @@ pub trait TokenStandard {
         caller: &Principal,
         descriptions: HashMap<String, String>,
     ) -> CommonResult<bool>;
-    // get/set logo
-    fn logo(&self) -> Vec<u8>;
-    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> CommonResult<bool>;
+    // get/set logo (base64)
+    fn logo(&self) -> String;
+    fn set_logo(&mut self, caller: &Principal, logo: String) -> CommonResult<bool>;
     // balance of
     fn balance_of(&self, owner: &TokenHolder) -> Nat;
     // allowance
@@ -80,7 +80,7 @@ pub trait TokenStandard {
     fn last_transactions(&self, count: usize) -> CommonResult<Vec<TxRecord>>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TokenBasic {
     // token id
     token_id: Principal,
@@ -98,8 +98,8 @@ pub struct TokenBasic {
     balances: HashMap<TokenHolder, Nat>,
     // allowances
     allowances: HashMap<TokenHolder, HashMap<TokenHolder, Nat>>,
-    // token's logo
-    logo: Option<Vec<u8>>,
+    // token's logo - base64 encoded
+    logo: String,
     // token's name
     name: String,
     // token's symbol
@@ -125,7 +125,7 @@ impl Default for TokenBasic {
             txs: Vec::new(),
             balances: HashMap::new(),
             allowances: HashMap::new(),
-            logo: None,
+            logo: "".to_string(),
             name: "".to_string(),
             symbol: "".to_string(),
             decimals: 0,
@@ -322,11 +322,8 @@ impl TokenBasic {
     pub fn get_tx_index(&self, tx: &TxRecord) -> Nat {
         match tx {
             TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
+            // TxRecord::Transfer
             TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
-            _ => {
-                assert!(false);
-                Nat::from(0)
-            }
         }
     }
 
@@ -449,14 +446,18 @@ impl TokenBasic {
         &mut self,
         owner: &Principal,
         token_id: Principal,
-        logo: Option<Vec<u8>>,
+        logo: String,
         name: String,
         symbol: String,
         decimals: u8,
         fee: Fee,
         fee_to: TokenHolder,
     ) {
-        // set the parameters to token's prepoty
+        // check logo type
+        get_logo_type(&logo)
+            .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)
+            .unwrap();
+        // set the parameters to token's properties
         self.owner = owner.clone();
         self.token_id = token_id.clone();
         self.logo = logo;
@@ -469,7 +470,7 @@ impl TokenBasic {
     pub fn load_from_token_payload(&mut self, payload: TokenPayload) {
         self.token_id = payload.token_id;
         self.owner = payload.owner;
-        self.logo = Some(payload.logo);
+        self.logo = payload.logo;
         self.name = payload.meta.name;
         self.symbol = payload.meta.symbol;
         self.decimals = payload.meta.decimals;
@@ -528,7 +529,7 @@ impl TokenBasic {
             fee_to: self.fee_to.clone(),
             meta: self.metadata(),
             desc,
-            logo: self.logo.clone().unwrap_or_else(|| vec![]),
+            logo: self.logo.clone(),
             balances,
             allowances,
             tx_index_cursor: self.next_tx_index.clone(),
@@ -612,14 +613,15 @@ impl TokenStandard for TokenBasic {
         }
         Ok(true)
     }
-
-    fn logo(&self) -> Vec<u8> {
-        self.logo.clone().unwrap_or_else(|| vec![])
+    // base64 encoded logo
+    fn logo(&self) -> String {
+        self.logo.clone()
     }
 
-    fn set_logo(&mut self, caller: &Principal, logo: Vec<u8>) -> CommonResult<bool> {
+    fn set_logo(&mut self, caller: &Principal, logo: String) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        self.logo = Some(logo);
+        get_logo_type(&logo).map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)?;
+        self.logo = logo;
         Ok(true)
     }
 

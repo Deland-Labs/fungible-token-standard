@@ -3,6 +3,7 @@ use candid::candid_method;
 use dft_standard::token::TokenStandard;
 use dft_types::{constants::FEE_RATE_DIV, HttpRequest, HttpResponse};
 use ic_cdk_macros::query;
+use dft_utils::get_logo_type;
 
 #[query]
 #[candid_method(query, rename = "http_request")]
@@ -17,13 +18,13 @@ fn http_request(req: HttpRequest) -> HttpResponse {
             });
             // convert token_info to json
             let token_info_json = format!("{{\n  name : \"{}\",\n  symbol : \"{}\",\n  decimals : {},\n  totalSupply : {},\n  fee :\n  {{\n    minimum: {},\n    rate:{}\n  }}\n}}",
-            token_info.name,
-            token_info.symbol,
-            token_info.decimals,
-            token_info.total_supply,
-            token_info.fee.minimum,
-            token_info.fee.rate*100/FEE_RATE_DIV
-        );
+                                          token_info.name,
+                                          token_info.symbol,
+                                          token_info.decimals,
+                                          token_info.total_supply,
+                                          token_info.fee.minimum,
+                                          token_info.fee.rate * 100 / FEE_RATE_DIV
+            );
             HttpResponse::ok(vec![], token_info_json.into_bytes())
         }
         "/logo" => {
@@ -31,26 +32,18 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 let token = token.borrow();
                 token.logo()
             });
+            let logo_bytes = if logo.len() == 0 { vec![] } else { base64::decode(logo.clone()).unwrap() };
             // if logo is empty, return 404
-            if logo.is_empty() {
+            if logo_bytes.is_empty() {
                 HttpResponse::not_found()
             } else {
-                // get the first byte of logo , if it is 0xFF, it means the logo is png, otherwise it is jpg
-
-                let mut logo_type = "";
-                for &(k, v) in MAGIC_BYTES.iter() {
-                    if logo.len() > k.len() {
-                        if &logo[0..k.len()] == k {
-                            logo_type = v;
-                            break;
-                        }
-                    }
-                }
+                // if logo is not empty, mean it is a valid image
+                let logo_type = get_logo_type(&logo).unwrap();
 
                 if logo_type.is_empty() {
                     HttpResponse::not_found()
                 } else {
-                    HttpResponse::ok(vec![("Content-Type".into(), logo_type.into())], logo)
+                    HttpResponse::ok(vec![("Content-Type".into(), logo_type.into())], logo_bytes)
                 }
             }
         }
@@ -85,27 +78,3 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         _ => HttpResponse::not_found(),
     }
 }
-
-static MAGIC_BYTES: [(&[u8], &str); 21] = [
-    (b"\x89PNG\r\n\x1a\n", "image/png"),
-    (&[0xff, 0xd8, 0xff], "image/jpeg"),
-    (b"GIF89a", "image/gif"),
-    (b"GIF87a", "image/gif"),
-    (b"RIFF", "image/webp"), // TODO: better magic byte detection, see https://github.com/image-rs/image/issues/660
-    (b"MM\x00*", "image/tiff"),
-    (b"II*\x00", "image/tiff"),
-    (b"DDS ", "image/vnd.ms-dds"),
-    (b"BM", "image/bmp"),
-    (&[0, 0, 1, 0], "image/ico"),
-    (b"#?RADIANCE", "image/x-hdr"),
-    (b"P1", "image/x-portable-bitmap"),
-    (b"P2", "image/x-portable-bitmap"),
-    (b"P3", "image/x-portable-bitmap"),
-    (b"P4", "image/x-portable-bitmap"),
-    (b"P5", "image/x-portable-bitmap"),
-    (b"P6", "image/x-portable-bitmap"),
-    (b"P7", "image/x-portable-bitmap"),
-    (b"farbfeld", "image/farbfeld"),
-    (b"\0\0\0 ftypavif", "image/avif"),
-    (b"\0\0\0\x1cftypavif", "image/avif"),
-];
