@@ -4,9 +4,10 @@ version = "0.1.0"
 edition = "2018"
 
 [dependencies] 
+ic-cdk = "0.3.3"
+ic-cdk-macros = "0.3.3"
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
-ic-cdk = "0.3.3"
 candid = "0.7.10"
 serde = "1.0.133"
 serde_bytes = "0.11"

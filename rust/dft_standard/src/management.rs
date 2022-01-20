@@ -1,8 +1,9 @@
 extern crate dft_types;
 extern crate dft_utils;
+
 use crate::state::TOKEN;
 use candid::candid_method;
-use dft_standard::token::TokenStandard;
+use crate::token::TokenStandard;
 use dft_types::*;
 use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
