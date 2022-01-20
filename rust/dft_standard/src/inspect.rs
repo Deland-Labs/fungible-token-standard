@@ -1,5 +1,6 @@
 extern crate dft_types;
 extern crate dft_utils;
+
 use candid::Nat;
 use crate::token::TokenStandard;
 use dft_types::*;
@@ -8,7 +9,7 @@ use ic_cdk_macros::inspect_message;
 
 use crate::state::TOKEN;
 
-static QUERY_METHODS: [&str; 16] = [
+static QUERY_METHODS: [&str; 17] = [
     "allowance",
     "allowancesOf",
     "balanceOf",
@@ -25,12 +26,14 @@ static QUERY_METHODS: [&str; 16] = [
     "lastTransactions",
     "transactionById",
     "transactionByIndex",
+    "__get_candid_interface_tmp_hack"
 ];
 
 static OWNER_METHODS: [&str; 6] = [
     "setDesc", "setFee", "setFeeTo", "setFeeTo", "setLogo", "setOwner",
 ];
 static HOLDER_METHODS: [&str; 3] = ["approve", "transfer", "burn"];
+
 //static SPENDER_METHODS: [&str; 3] = ["transferFrom", "burnFrom"];
 #[inspect_message]
 fn inspect_message() {
@@ -43,14 +46,12 @@ fn inspect_message() {
             let holder = match m {
                 "approve" => {
                     let (sub_account, _, _, _) =
-                        api::call::arg_data::<(Option<Subaccount>, String, Nat, Option<CallData>)>(
-                        );
+                        api::call::arg_data::<(Option<Subaccount>, String, Nat, Option<CallData>)>();
                     TokenHolder::new(caller, sub_account)
                 }
                 "transfer" => {
                     let (sub_account, _, _, _) =
-                        api::call::arg_data::<(Option<Subaccount>, String, Nat, Option<CallData>)>(
-                        );
+                        api::call::arg_data::<(Option<Subaccount>, String, Nat, Option<CallData>)>();
                     TokenHolder::new(caller, sub_account)
                 }
                 "burn" => {
