@@ -1,7 +1,7 @@
 extern crate dft_types;
 extern crate dft_utils;
 use candid::Nat;
-use dft_standard::token::TokenStandard;
+use crate::token::TokenStandard;
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::inspect_message;

@@ -1,15 +1,16 @@
 extern crate dft_types;
 extern crate dft_utils;
+
 use candid::candid_method;
 use dft_types::*;
 use dft_utils::*;
 use ic_cdk::{api, export::candid::Nat};
 use ic_cdk_macros::*;
 use std::string::String;
+use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
+use dft_standard::state::TOKEN;
 
-use crate::{
-    auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN, token::BurnableExtension,
-};
+use crate::token::BurnableExtension;
 
 #[update(name = "burnFrom")]
 #[candid_method(update, rename = "burnFrom")]

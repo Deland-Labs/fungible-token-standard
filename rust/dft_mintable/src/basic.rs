@@ -1,9 +1,9 @@
 extern crate dft_types;
 extern crate dft_utils;
 
-use crate::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use candid::{candid_method, decode_args};
 use dft_standard::token::TokenStandard;
+use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use dft_types::*;
 use dft_utils::*;
 use ic_cdk::{

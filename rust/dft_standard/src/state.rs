@@ -1,10 +1,11 @@
 extern crate dft_types;
 extern crate dft_utils;
-use dft_standard::token::TokenBasic;
+use crate::token::*;
 use dft_types::*;
 use ic_cdk::storage;
 use ic_cdk_macros::*;
 use std::cell::RefCell;
+
 
 thread_local! {
     pub static TOKEN: std::cell::RefCell<TokenBasic>  = RefCell::new(TokenBasic::default());
