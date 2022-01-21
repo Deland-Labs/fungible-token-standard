@@ -41,8 +41,10 @@ pub enum DFTError {
     InvalidTxIndex,
     #[error("DFT_TX: invalid tx id")]
     InvalidTxId,
-    #[error("DFT_TX: tx id not belong to the current dft")]
+    #[error("DFT_TX: tx id does not belong to current dft")]
     TxIdNotBelongToCurrentDft,
+    #[error("DFT_TX: only allow token canister call this function")]
+    OnlyAllowTokenCanisterCallThisFunction,
     #[error("Unknown error, detail: {detail:?}")]
     Unknown { detail: String },
 }
@@ -70,7 +72,9 @@ impl DFTError {
             DFTError::InvalidTxIndex => 18,
             DFTError::InvalidTxId => 19,
             DFTError::TxIdNotBelongToCurrentDft => 20,
-            DFTError::Unknown { .. } => 21,
+            DFTError::OnlyAllowTokenCanisterCallThisFunction => 21,
+
+            DFTError::Unknown { .. } => 10000,
         }
     }
 }

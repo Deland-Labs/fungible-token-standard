@@ -1,22 +1,9 @@
 use std::convert::TryInto;
 
-use candid::{candid_method, Nat};
+use candid::Nat;
 use candid::{CandidType, Deserialize, Principal};
 use dft_types::*;
 use dft_utils::decode_tx_id;
-use ic_cdk::{api, storage};
-use ic_cdk_macros::*;
-use std::sync::RwLock;
-
-static mut DFT_ID: Principal = Principal::anonymous();
-
-const MSG_OUT_OF_TX_INDEX_RANGE: &str = "DFT_TX_STORAGE: out of tx index range";
-const MSG_INVALID_TX_ID: &str = "DFT_TX_STORAGE: invalid tx id";
-const MSG_NOT_BELONG_DFT_TX_ID: &str = "DFT_TX_STORAGE: tx id not belong to the current dft";
-
-lazy_static! {
-    static ref DFT_TX_START_INDEX: RwLock<Nat> = RwLock::new(Nat::from(0));
-}
 
 #[derive(CandidType, Debug, Deserialize)]
 pub struct StorageInfo {
@@ -26,162 +13,379 @@ pub struct StorageInfo {
     pub cycles: u64,
 }
 
-#[derive(CandidType, Debug, Deserialize)]
-pub struct StoragePayload {
+#[derive(CandidType, Clone, Debug, Deserialize)]
+pub struct AutoScalingStorage {
     pub dft_id: Principal,
     pub tx_start_index: Nat,
     pub txs: Txs,
 }
 
-#[init]
-fn canister_init(dft_id: Principal, dft_tx_start_index: Nat) {
-    unsafe {
-        DFT_ID = dft_id;
-        *DFT_TX_START_INDEX.write().unwrap() = dft_tx_start_index.clone();
-    }
-    api::print(format!(
-        "dft is {} start index is {}",
-        dft_id, dft_tx_start_index
-    ));
-}
-
-#[update(name = "append")]
-#[candid_method(update, rename = "append")]
-fn append(tx: TxRecord) -> bool {
-    _only_allow_token_canister();
-    let txs_storage = storage::get_mut::<Txs>();
-    txs_storage.push(tx);
-    true
-}
-
-#[update(name = "batchAppend")]
-#[candid_method(update, rename = "batchAppend")]
-fn batch_append(txs: Vec<TxRecord>) -> bool {
-    _only_allow_token_canister();
-    let txs_storage = storage::get_mut::<Txs>();
-    txs_storage.extend(txs);
-    true
-}
-
-#[query(name = "transactionByIndex")]
-#[candid_method(query, rename = "transactionByIndex")]
-fn transaction_by_index(tx_index: Nat) -> Result<TxRecord, String> {
-    let txs = storage::get::<Txs>();
-    let rw_start_index = DFT_TX_START_INDEX.read().unwrap().clone();
-
-    if tx_index < rw_start_index || tx_index > (rw_start_index.clone() + txs.len() as u128) {
-        Err(MSG_OUT_OF_TX_INDEX_RANGE.to_string())
-    } else {
-        let inner_index: usize = (tx_index - rw_start_index).0.try_into().unwrap();
-        Ok(txs[inner_index].clone())
-    }
-}
-
-#[query(name = "transactions")]
-#[candid_method(query, rename = "transactions")]
-fn transactions(tx_start_index: Nat, size: usize) -> Result<Vec<TxRecord>, String> {
-    let txs = storage::get::<Txs>();
-    let mut ret: Vec<TxRecord> = Vec::new();
-    let rw_start_index = DFT_TX_START_INDEX.read().unwrap().clone();
-
-    if tx_start_index < rw_start_index
-        || tx_start_index > (rw_start_index.clone() + txs.len() as u128)
-    {
-        Err(MSG_OUT_OF_TX_INDEX_RANGE.to_string())
-    } else {
-        let max_index = txs.len();
-        let mut start_index: usize = (tx_start_index - rw_start_index.clone())
-            .0
-            .try_into()
-            .unwrap();
-        let end_index = start_index + size;
-        while start_index < end_index && start_index < max_index {
-            ret.push(txs[start_index].clone());
-            start_index = start_index + 1;
+impl Default for AutoScalingStorage {
+    fn default() -> Self {
+        AutoScalingStorage {
+            dft_id: Principal::anonymous(),
+            tx_start_index: Nat::from(0),
+            txs: Txs::new(),
         }
-        Ok(ret)
     }
 }
 
-#[query(name = "transactionById")]
-#[candid_method(query, rename = "transactionById")]
-fn get_transaction_by_id(tx_id: String) -> Result<TxRecord, String> {
-    let decode_res = decode_tx_id(tx_id);
-    match decode_res {
-        Ok((dft_id, tx_index)) => unsafe {
-            if dft_id != DFT_ID {
-                Err(MSG_NOT_BELONG_DFT_TX_ID.to_string())
-            } else {
-                transaction_by_index(tx_index)
+impl AutoScalingStorage {
+    // fn init
+    pub fn initialize(&mut self, dft_id: Principal, tx_start_index: Nat) {
+        self.dft_id = dft_id;
+        self.tx_start_index = tx_start_index;
+    }
+
+    // fn only allow token canister
+    fn _only_allow_token_canister(&self, caller: &Principal) -> CommonResult<()> {
+        if &self.dft_id != caller {
+            return Err(DFTError::OnlyAllowTokenCanisterCallThisFunction);
+        }
+        Ok(())
+    }
+
+    // fn append
+    pub fn append(&mut self, caller: &Principal, tx: TxRecord) -> CommonResult<bool> {
+        self._only_allow_token_canister(caller)?;
+        // check tx index
+        self._check_tx_index(&tx)?;
+        self.txs.push(tx);
+        Ok(true)
+    }
+
+    // fn batch_append
+    pub fn batch_append(&mut self, caller: &Principal, txs: Vec<TxRecord>) -> CommonResult<bool> {
+        self._only_allow_token_canister(caller)?;
+        // insert txs to self.txs, check the tx index first
+        for tx in &txs {
+            self._check_tx_index(tx)?;
+        }
+        self.txs.extend(txs);
+        Ok(true)
+    }
+
+    // check tx index
+    fn _check_tx_index(&self, tx: &TxRecord) -> CommonResult<()> {
+        let tx_index = match tx {
+            TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
+            // TxRecord::Transfer
+            TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
+        };
+        if tx_index < self.tx_start_index {
+            return Err(DFTError::InvalidTxIndex);
+        }
+        Ok(())
+    }
+
+    // fn get_tx_by_index
+    pub fn get_tx_by_index(&self, tx_index: Nat) -> CommonResult<TxRecord> {
+        if tx_index < self.tx_start_index
+            || tx_index > (self.tx_start_index.clone() + self.txs.len() as u128)
+        {
+            Err(DFTError::InvalidTxIndex)
+        } else {
+            let inner_index: usize = (tx_index - self.tx_start_index.clone())
+                .0
+                .try_into()
+                .unwrap();
+            Ok(self.txs[inner_index].clone())
+        }
+    }
+
+    // fn get_tx_by_id
+    pub fn get_tx_by_id(&self, tx_id: String) -> CommonResult<TxRecord> {
+        let decode_res = decode_tx_id(tx_id);
+        match decode_res {
+            Ok((dft_id, tx_index)) => {
+                if dft_id != self.dft_id {
+                    Err(DFTError::TxIdNotBelongToCurrentDft)
+                } else {
+                    self.get_tx_by_index(tx_index)
+                }
             }
-        },
-        Err(_) => Err(MSG_INVALID_TX_ID.to_string()),
-    }
-}
-
-#[query(name = "storageInfo")]
-#[candid_method(query, rename = "storageInfo")]
-fn storage_info() -> StorageInfo {
-    StorageInfo {
-        dft_id: unsafe { DFT_ID },
-        tx_start_index: DFT_TX_START_INDEX.read().unwrap().clone(),
-        txs_count: storage::get::<Txs>().len().into(),
-        cycles: api::canister_balance().into(),
-    }
-}
-
-candid::export_service!();
-
-#[query(name = "__get_candid_interface_tmp_hack")]
-#[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
-fn __get_candid_interface_tmp_hack() -> String {
-    __export_service()
-}
-
-#[pre_upgrade]
-fn pre_upgrade() {
-    let rw_start_index = DFT_TX_START_INDEX.read().unwrap().clone();
-    let dft_id = unsafe { DFT_ID };
-    let tx_start_index = rw_start_index;
-    let txs = storage::get::<Txs>();
-
-    let payload = StoragePayload {
-        dft_id,
-        tx_start_index,
-        txs: txs.to_vec(),
-    };
-    storage::stable_save((payload,)).unwrap();
-}
-
-#[post_upgrade]
-fn post_upgrade() {
-    // There can only be one value in stable memory, currently. otherwise, lifetime error.
-    // https://docs.rs/ic-cdk/0.3.0/ic_cdk/storage/fn.stable_restore.html
-    let (payload,): (StoragePayload,) = storage::stable_restore().unwrap();
-    unsafe {
-        DFT_ID = payload.dft_id;
-        *DFT_TX_START_INDEX.write().unwrap() = payload.tx_start_index;
-    }
-
-    let txs = storage::get_mut::<Txs>();
-    for k in payload.txs {
-        txs.push(k);
-    }
-}
-
-fn _only_allow_token_canister() {
-    unsafe {
-        if DFT_ID != api::caller() {
-            api::trap(format!("DFT_TX_STORAGE: only allow dft {}", DFT_ID.to_text()).as_str());
+            Err(_) => Err(DFTError::InvalidTxId),
         }
     }
+
+    // fn get_tx_by_index_range
+    pub fn get_tx_by_index_range(
+        &self,
+        tx_index_start: Nat,
+        size: usize,
+    ) -> CommonResult<Vec<TxRecord>> {
+        if tx_index_start < self.tx_start_index
+            || tx_index_start > (self.tx_start_index.clone() + self.txs.len() as u128)
+        {
+            Err(DFTError::InvalidTxIndex)
+        } else {
+            let inner_index_start: usize = (tx_index_start - self.tx_start_index.clone())
+                .0
+                .try_into()
+                .unwrap();
+            let inner_index_end = inner_index_start + size;
+            let inner_index_end = if inner_index_end > self.txs.len() {
+                self.txs.len()
+            } else {
+                inner_index_end
+            };
+
+            let mut res = Vec::new();
+            for i in inner_index_start..inner_index_end {
+                res.push(self.txs[i].clone());
+            }
+            Ok(res)
+        }
+    }
+
+    // fn get storage info
+    pub fn get_storage_info(&self) -> StorageInfo {
+        StorageInfo {
+            dft_id: self.dft_id.clone(),
+            tx_start_index: self.tx_start_index.clone(),
+            txs_count: self.txs.len().into(),
+            cycles: 0,
+        }
+    }
+
+    // fn restore
+    pub fn restore(&mut self, data: AutoScalingStorage) {
+        self.dft_id = data.dft_id;
+        self.tx_start_index = data.tx_start_index;
+        self.txs = data.txs;
+    }
 }
 
-#[test]
-fn check_nat_tyr_into_usize() {
-    let origin_val: usize = 4294967295;
-    let nat = Nat::from(4294967295u32);
-    let usize: usize = nat.0.try_into().unwrap();
+//test
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dft_utils::encode_tx_id;
+    use rstest::*;
 
-    assert_eq!(origin_val, usize, "can not convert nat to usize");
+    #[fixture]
+    fn test_token_id() -> Principal {
+        Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap()
+    }
+
+    #[fixture]
+    fn other_token_id() -> Principal {
+        Principal::from_text("rwlgt-iiaaa-aaaaa-aaaaa-cai").unwrap()
+    }
+
+    #[fixture]
+    fn test_start_index() -> Nat {
+        Nat::from(1234)
+    }
+
+    #[fixture]
+    fn next_tx_index(test_start_index: Nat) -> Nat {
+        test_start_index + 1
+    }
+
+    #[fixture]
+    fn now() -> u64 {
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        now as u64
+    }
+
+    #[fixture]
+    fn test_storage(test_token_id: Principal, test_start_index: Nat) -> AutoScalingStorage {
+        let mut storage = AutoScalingStorage::default();
+        storage.initialize(test_token_id, test_start_index);
+        storage
+    }
+
+    #[fixture]
+    fn test_tx_record(test_start_index: Nat, now: u64) -> TxRecord {
+        let caller =
+            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
+                .unwrap();
+        let from =
+            Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
+                .unwrap();
+        let to =
+            Principal::from_text("qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe")
+                .unwrap();
+        let from_holder = TokenHolder::new(from.clone(), None);
+        let to_holder = TokenHolder::new(to.clone(), None);
+        TxRecord::Transfer(
+            test_start_index,
+            caller,
+            from_holder,
+            to_holder,
+            Nat::from(1000),
+            Nat::from(1),
+            now,
+        )
+    }
+
+    #[fixture]
+    fn invalid_tx_record(test_start_index: Nat, now: u64) -> TxRecord {
+        let caller =
+            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
+                .unwrap();
+        let from =
+            Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
+                .unwrap();
+        let to =
+            Principal::from_text("qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe")
+                .unwrap();
+        let from_holder = TokenHolder::new(from.clone(), None);
+        let to_holder = TokenHolder::new(to.clone(), None);
+        TxRecord::Transfer(
+            test_start_index - 1,
+            caller,
+            from_holder,
+            to_holder,
+            Nat::from(1000),
+            Nat::from(1),
+            now,
+        )
+    }
+
+    #[fixture]
+    fn test_tx_records(test_start_index: Nat, now: u64) -> Vec<TxRecord> {
+        let caller =
+            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
+                .unwrap();
+        let from =
+            Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
+                .unwrap();
+        let to =
+            Principal::from_text("qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe")
+                .unwrap();
+        let from_holder = TokenHolder::new(from.clone(), None);
+        let to_holder = TokenHolder::new(to.clone(), None);
+        // generate 3 tx records
+        let mut tx_records = Vec::new();
+        for i in 0..3 {
+            tx_records.push(TxRecord::Transfer(
+                test_start_index.clone() + i,
+                caller,
+                from_holder.clone(),
+                to_holder.clone(),
+                Nat::from(1000),
+                Nat::from(1),
+                now,
+            ));
+        }
+
+        tx_records
+    }
+
+    #[fixture]
+    fn test_invalid_tx_records(test_start_index: Nat, now: u64) -> Vec<TxRecord> {
+        let caller =
+            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
+                .unwrap();
+        let from =
+            Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
+                .unwrap();
+        let to =
+            Principal::from_text("qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe")
+                .unwrap();
+        let from_holder = TokenHolder::new(from.clone(), None);
+        let to_holder = TokenHolder::new(to.clone(), None);
+        // generate 3 tx records
+        let mut tx_records = Vec::new();
+        for i in 0..3 {
+            let ti = if i == 2 {
+                test_start_index.clone() - 100
+            } else {
+                test_start_index.clone() + i
+            };
+
+            tx_records.push(TxRecord::Transfer(
+                ti,
+                caller,
+                from_holder.clone(),
+                to_holder.clone(),
+                Nat::from(1000),
+                Nat::from(1),
+                now,
+            ));
+        }
+
+        tx_records
+    }
+
+    // test append
+    #[rstest]
+    fn test_append(
+        test_storage: AutoScalingStorage,
+        test_token_id: Principal,
+        other_token_id: Principal,
+        test_tx_record: TxRecord,
+        invalid_tx_record: TxRecord,
+    ) {
+        let mut storage = test_storage.clone();
+        // append with other token id should fail
+        let res = storage.append(&other_token_id, test_tx_record.clone());
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err(),
+            DFTError::OnlyAllowTokenCanisterCallThisFunction
+        );
+        // append with invalid tx record should fail
+        let res = storage.append(&test_token_id, invalid_tx_record.clone());
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), DFTError::InvalidTxIndex);
+        // append with test token id should succeed
+        let res = storage.append(&test_token_id, test_tx_record.clone());
+        assert!(res.is_ok());
+        assert_eq!(storage.txs.len(), 1);
+        // test get tx by index
+        let res = storage.get_tx_by_index(test_tx_record.get_tx_index());
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), test_tx_record);
+        // test get tx by id
+        let tx_id = encode_tx_id(test_token_id, test_tx_record.get_tx_index());
+        let res = storage.get_tx_by_id(tx_id);
+        assert!(res.is_ok());
+        assert_eq!(res.unwrap(), test_tx_record);
+    }
+
+    // test batch_append
+    #[rstest]
+    fn test_batch_append(
+        test_storage: AutoScalingStorage,
+        test_token_id: Principal,
+        other_token_id: Principal,
+        test_tx_records: Vec<TxRecord>,
+        test_invalid_tx_records: Vec<TxRecord>,
+    ) {
+        let mut storage = test_storage.clone();
+        // append with other token id should fail
+        let res = storage.batch_append(&other_token_id, test_tx_records.clone());
+        assert!(res.is_err());
+        assert_eq!(
+            res.unwrap_err(),
+            DFTError::OnlyAllowTokenCanisterCallThisFunction
+        );
+        // append with invalid tx record should fail
+        let res = storage.batch_append(&test_token_id, test_invalid_tx_records);
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), DFTError::InvalidTxIndex);
+        // append with test token id should succeed
+        let res = storage.batch_append(&test_token_id, test_tx_records.clone());
+        assert!(res.is_ok());
+        assert_eq!(storage.txs.len(), test_tx_records.len());
+        // test get tx by index
+        for tx_record in &test_tx_records {
+            let res = storage.get_tx_by_index(tx_record.get_tx_index());
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap(), *tx_record);
+        }
+        // test get tx by id
+        for tx_record in &test_tx_records {
+            let tx_id = encode_tx_id(test_token_id, tx_record.get_tx_index());
+            let res = storage.get_tx_by_id(tx_id);
+            assert!(res.is_ok());
+            assert_eq!(res.unwrap(), *tx_record);
+        }
+    }
 }
