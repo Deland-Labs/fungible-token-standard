@@ -9,7 +9,7 @@ pub struct TokenPayload {
     pub fee_to: TokenHolder,
     pub meta: Metadata,
     pub desc: Vec<(String, String)>,
-    pub logo: String,
+    pub logo: Vec<u8>,
     pub balances: Vec<(TokenHolder, Nat)>,
     pub allowances: Vec<(TokenHolder, Vec<(TokenHolder, Nat)>)>,
     pub tx_index_cursor: Nat,

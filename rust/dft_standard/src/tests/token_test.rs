@@ -9,27 +9,25 @@ use std::io::Read;
 use std::ops::Mul;
 
 #[fixture]
-fn test_logo() -> String {
+fn test_logo() -> Vec<u8> {
     // read logo delandlabs.png as bytes
     let mut logo_bytes = Vec::new();
     std::fs::File::open("src/tests/deland-labs-old-logo.jpg")
         .unwrap()
         .read_to_end(&mut logo_bytes)
         .unwrap();
-    // convert bytes to base64 string
-    base64::encode(&logo_bytes)
+    logo_bytes
 }
 
 #[fixture]
-fn new_logo() -> String {
+fn new_logo() -> Vec<u8> {
     // read logo delandlabs.png as bytes
     let mut logo_bytes = Vec::new();
     std::fs::File::open("src/tests/deland-labs-new-logo.png")
         .unwrap()
         .read_to_end(&mut logo_bytes)
         .unwrap();
-    // convert bytes to base64 string
-    base64::encode(&logo_bytes)
+    logo_bytes
 }
 
 #[fixture]
@@ -96,7 +94,7 @@ fn test_token() -> TokenBasic {
     token.initialize(
         &test_owner(),
         test_token_id(),
-        test_logo(),
+        Some(test_logo()),
         test_name(),
         test_symbol(),
         test_decimals(),
@@ -135,7 +133,7 @@ fn test_token_basic_default_value() {
     // check token's owner is Principal::anonymous()
     assert_eq!(token.owner(), Principal::anonymous());
     // check token's logo is empty
-    let null_logo = "".to_string();
+    let null_logo: Vec<u8> = vec![];
     assert_eq!(token.logo(), null_logo);
     // check token's fee is 0
     let fee = token.fee();
@@ -148,7 +146,7 @@ fn test_token_basic_default_value() {
 
 #[rstest]
 #[should_panic]
-fn test_token_basic_logo_invalid_base64(
+fn test_token_basic_logo_invalid_image(
     test_owner: Principal,
     test_token_id: Principal,
     test_name: String,
@@ -158,17 +156,18 @@ fn test_token_basic_logo_invalid_base64(
 ) {
     let mut token = TokenBasic::default();
     let fee_to = TokenHolder::new(test_owner.clone(), None);
+
     token.initialize(
         &test_owner,
         test_token_id,
-        "invalid base64 str".to_string(),
+        Some(vec![0u8; 20]),
         test_name.clone(),
         test_symbol,
         test_decimals,
         test_fee,
         fee_to,
     );
-    // will panic if logo is a invalid base64 string
+    // will panic if logo is a unspported image type
     assert_eq!(token.name(), test_name);
 }
 
@@ -228,13 +227,13 @@ fn test_update_token_basic_set_fee_to(
 }
 
 #[rstest]
-fn test_token_basic_set_logo(test_token: TokenBasic, test_owner: Principal, new_logo: String) {
+fn test_token_basic_set_logo(test_token: TokenBasic, test_owner: Principal, new_logo: Vec<u8>) {
     let mut token = test_token.clone();
     // set logo by other caller will failed
-    let res = token.set_logo(&other_caller(), new_logo.clone());
+    let res = token.set_logo(&other_caller(), Some(new_logo.clone()));
     assert!(res.is_err(), "set_logo should be err");
     // set logo by owner will ok
-    let res = token.set_logo(&test_owner, new_logo.clone());
+    let res = token.set_logo(&test_owner, Some(new_logo.clone()));
     assert!(res.is_ok(), "set_logo should be ok");
     assert_eq!(token.logo(), new_logo);
 }
