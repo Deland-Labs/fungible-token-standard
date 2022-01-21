@@ -2,8 +2,8 @@ extern crate dft_types;
 extern crate dft_utils;
 
 use crate::state::TOKEN;
-use candid::candid_method;
 use crate::token::TokenStandard;
+use candid::candid_method;
 use dft_types::*;
 use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
@@ -21,7 +21,7 @@ fn set_owner(owner: Principal) -> ActorResult<bool> {
 
 #[update(name = "setLogo")]
 #[candid_method(update, rename = "setLogo")]
-fn set_logo(logo: String) -> ActorResult<bool> {
+fn set_logo(logo: Option<Vec<u8>>) -> ActorResult<bool> {
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
         to_actor_result(token.set_logo(&api::caller(), logo))

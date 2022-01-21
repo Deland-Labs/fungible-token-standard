@@ -16,7 +16,7 @@ use std::string::String;
 #[init]
 async fn canister_init(
     sub_account: Option<Subaccount>,
-    logo_: String, // base64 encoded for logo image
+    logo_: Option<Vec<u8>>, 
     name_: String,
     symbol_: String,
     decimals_: u8,
@@ -123,7 +123,7 @@ fn get_desc_info() -> Vec<(String, String)> {
 
 #[query(name = "logo")]
 #[candid_method(query, rename = "logo")]
-fn logo() -> String {
+fn logo() -> Vec<u8> {
     TOKEN.with(|token| {
         let token = token.borrow();
         token.logo()
@@ -390,22 +390,22 @@ async fn on_token_received(
     // check receiver
     if let TokenHolder::Principal(cid) = receiver {
         if is_canister(cid) {
-            let did_res: Result<(String, ), _> =
+            let did_res: Result<(String,), _> =
                 api::call::call(*cid, get_did_method_name, ()).await;
 
-            if let Ok((did, )) = did_res {
+            if let Ok((did,)) = did_res {
                 let _support = is_support_interface(did, on_token_received_method_sig.to_string());
 
                 if _support {
-                    let _check_res: Result<(bool, ), _> = api::call::call(
+                    let _check_res: Result<(bool,), _> = api::call::call(
                         *cid,
                         on_token_received_method_name,
                         (transfer_from, _value),
                     )
-                        .await;
+                    .await;
 
                     match _check_res {
-                        Ok((is_notify_succeed, )) => {
+                        Ok((is_notify_succeed,)) => {
                             if !is_notify_succeed {
                                 return Err(DFTError::NotificationFailed.into());
                             } else {
