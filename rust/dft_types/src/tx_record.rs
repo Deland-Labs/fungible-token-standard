@@ -2,12 +2,21 @@ use super::{TokenHolder, TokenReceiver};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use crate::{ActorError, DFTError};
 
-#[derive(CandidType, Debug, Clone, Deserialize)]
+#[derive(CandidType, Debug, Clone, Deserialize, Eq, PartialEq, Hash)]
 pub enum TxRecord {
     // tx_index, caller, owner, spender, value, fee, timestamp
     Approve(Nat, Principal, TokenHolder, TokenReceiver, Nat, Nat, u64),
     // tx_index, caller, from, to, value, fee, timestamp
     Transfer(Nat, Principal, TokenHolder, TokenReceiver, Nat, Nat, u64),
+}
+
+impl TxRecord {
+    pub fn get_tx_index(&self) -> Nat {
+        match self {
+            TxRecord::Approve(tx_index, _, _, _, _, _, _) => tx_index.clone(),
+            TxRecord::Transfer(tx_index, _, _, _, _, _, _) => tx_index.clone(),
+        }
+    }
 }
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
