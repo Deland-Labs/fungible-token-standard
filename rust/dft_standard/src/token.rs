@@ -72,6 +72,7 @@ pub trait TokenStandard {
     ) -> CommonResult<TransactionIndex>;
     // token info
     fn token_info(&self) -> TokenInfo;
+    fn token_metrics(&self) -> TokenMetrics;
     // transaction by index
     fn transaction_by_index(&self, index: &Nat) -> TxRecordCommonResult;
     // transaction by id
@@ -735,6 +736,19 @@ impl TokenStandard for TokenBasic {
                 .values()
                 .map(|v| v.clone())
                 .collect(),
+        }
+    }
+
+    fn token_metrics(&self) -> TokenMetrics {
+        let allowances_size = match self.allowances.len() {
+            0 => 0,
+            _ => self.allowances.values().map(|v| v.len()).sum(),
+        };
+        TokenMetrics {
+            holders: Nat::from(self.balances.len()),
+            total_tx_count: self.next_tx_index.clone(),
+            inner_tx_count: Nat::from(self.txs.len()),
+            allowance_size: Nat::from(allowances_size),
         }
     }
 

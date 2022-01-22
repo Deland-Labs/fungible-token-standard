@@ -1,23 +1,26 @@
 use crate::state::TOKEN;
-use candid::candid_method;
 use crate::token::TokenStandard;
+use candid::candid_method;
 use dft_types::{constants::FEE_RATE_DIV, HttpRequest, HttpResponse};
-use ic_cdk_macros::query;
 use dft_utils::get_logo_type;
+use ic_cdk_macros::query;
+use json_pretty::PrettyFormatter;
 
 #[query]
 #[candid_method(query, rename = "http_request")]
 fn http_request(req: HttpRequest) -> HttpResponse {
     let path = req.path().to_lowercase();
     ic_cdk::api::print(format!("path: {}", path));
+    let cycles = ic_cdk::api::canister_balance();
     match path.as_str() {
         "/" => {
-            let token_info = TOKEN.with(|token| {
+            let (token_info, metrics) = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.metadata()
+                (token.metadata(), token.token_metrics())
             });
             // convert token_info to json
-            let token_info_json = format!("{{\n  name : \"{}\",\n  symbol : \"{}\",\n  decimals : {},\n  totalSupply : {},\n  fee :\n  {{\n    minimum: {},\n    rate:{}\n  }}\n}}",
+            let token_info_json = format!(
+                "{{name : \"{}\",symbol : \"{}\",decimals : {},totalSupply : {},fee :{{minimum: {},rate:{}}}}}",
                                           token_info.name,
                                           token_info.symbol,
                                           token_info.decimals,
@@ -25,7 +28,19 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                                           token_info.fee.minimum,
                                           token_info.fee.rate * 100 / FEE_RATE_DIV
             );
-            HttpResponse::ok(vec![], token_info_json.into_bytes())
+
+            let metrics_json= format!(
+                "{{totalTxCount : {},innerTxCount : {},cycles : {},holders : {},allowanceSize : {}}}",
+                                          metrics.total_tx_count,
+                                          metrics.inner_tx_count,
+                                          cycles,
+                                          metrics.holders,
+                                          metrics.allowance_size,
+            );
+            let json = format!("{{token:{},metrics:{}}}", token_info_json, metrics_json);
+            let formatter = PrettyFormatter::from_str(json.as_str());
+            let result = formatter.pretty();
+            HttpResponse::ok(vec![], result.into_bytes())
         }
         "/logo" => {
             let logo = TOKEN.with(|token| {

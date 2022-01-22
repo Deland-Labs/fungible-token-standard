@@ -1,16 +1,17 @@
 mod account_identifier;
 mod call_data;
+pub mod constants;
 mod desc_keys;
-mod fee;
 mod errors;
+mod fee;
+mod http;
 mod metadata;
 mod token_holder;
 mod token_info;
+mod token_metrics;
 mod token_payload;
 mod transaction_result;
 mod tx_record;
-pub mod constants;
-mod http;
 
 use candid::Nat;
 use candid::Principal;
@@ -37,12 +38,13 @@ pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
 
 pub use desc_keys::DESC_KEYS;
+pub use errors::*;
+pub use http::*;
 pub use token_info::TokenInfo;
+pub use token_metrics::TokenMetrics;
 pub use token_payload::TokenPayload;
 pub use transaction_result::TransactionResponse;
 pub use tx_record::*;
-pub use errors::*;
-pub use http::*;
 
 #[test]
 fn test_nat_size() {
