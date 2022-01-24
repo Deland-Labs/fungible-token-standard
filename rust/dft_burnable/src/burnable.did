@@ -1,6 +1,6 @@
 type Error = record { code : nat32; message : text };
 type CallData = record { method : text; args : vec nat8 };
-type Fee = record { rate : nat; rate_decimals : nat; minimum : nat };
+type Fee = record { rate : nat; rate_decimals : nat8; minimum : nat };
 type Metadata = record {  fee : Fee;  decimals : nat8;  name : text;  totalSupply : nat;  symbol : text;};
 type TransactionResult = variant { Ok : TransactionResponse; Err : Error };
 type TxRecordsResult = variant { Ok : vec TxRecord; Err : Error };
