@@ -7,6 +7,7 @@ use rstest::*;
 use std::collections::HashMap;
 use std::io::Read;
 use std::ops::Mul;
+use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
 
 #[fixture]
 fn test_logo() -> Vec<u8> {
@@ -78,17 +79,28 @@ fn test_total_supply() -> u128 {
     100000000u128
 }
 
-// test fee
+// test fee 0 rate
 #[fixture]
-fn test_fee() -> Fee {
+fn test_fee_0_rate() -> Fee {
     Fee {
         minimum: Nat::from(1u64),
         rate: Nat::from(0),
+        rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
+    }
+}
+
+// test fee non 0 rate
+#[fixture]
+fn test_fee_non_0_rate() -> Fee {
+    Fee {
+        minimum: Nat::from(1u64),
+        rate: Nat::from(1u64),
+        rate_decimals: 2,
     }
 }
 
 #[fixture]
-fn test_token() -> TokenBasic {
+fn test_token_with_0_fee_rate() -> TokenBasic {
     let mut token = TokenBasic::default();
     let fee_to = TokenHolder::new(test_owner(), None);
     token.initialize(
@@ -98,7 +110,24 @@ fn test_token() -> TokenBasic {
         test_name(),
         test_symbol(),
         test_decimals(),
-        test_fee(),
+        test_fee_0_rate(),
+        fee_to,
+    );
+    token
+}
+
+#[fixture]
+fn test_token_with_non_0_fee_rate() -> TokenBasic {
+    let mut token = TokenBasic::default();
+    let fee_to = TokenHolder::new(test_owner(), None);
+    token.initialize(
+        &test_owner(),
+        test_token_id(),
+        Some(test_logo()),
+        test_name(),
+        test_symbol(),
+        test_decimals(),
+        test_fee_non_0_rate(),
         fee_to,
     );
     token
@@ -152,7 +181,7 @@ fn test_token_basic_logo_invalid_image(
     test_name: String,
     test_symbol: String,
     test_decimals: u8,
-    test_fee: Fee,
+    test_fee_0_rate: Fee,
 ) {
     let mut token = TokenBasic::default();
     let fee_to = TokenHolder::new(test_owner.clone(), None);
@@ -164,7 +193,7 @@ fn test_token_basic_logo_invalid_image(
         test_name.clone(),
         test_symbol,
         test_decimals,
-        test_fee,
+        test_fee_0_rate,
         fee_to,
     );
     // will panic if logo is a unspported image type
@@ -172,7 +201,8 @@ fn test_token_basic_logo_invalid_image(
 }
 
 #[rstest]
-fn test_token_basic_initialize_all_parameters(test_token: TokenBasic) {
+fn test_token_basic_initialize_all_parameters(test_token_with_0_fee_rate: TokenBasic) {
+    let test_token = test_token_with_0_fee_rate;
     assert_eq!(test_token.id(), test_token_id());
     assert_eq!(test_token.owner(), test_owner());
     assert_eq!(test_token.name(), test_name());
@@ -180,16 +210,19 @@ fn test_token_basic_initialize_all_parameters(test_token: TokenBasic) {
     assert_eq!(test_token.decimals(), test_decimals());
     assert_eq!(test_token.total_supply(), 0);
     assert_eq!(test_token.logo(), test_logo());
-    assert_eq!(test_token.fee(), test_fee());
+    assert_eq!(test_token.fee(), test_fee_0_rate());
 }
 
 //test token set_fee
 #[rstest]
-fn test_token_basic_set_fee(test_token: TokenBasic, test_owner: Principal) {
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
+fn test_token_basic_set_fee(#[case]test_token: TokenBasic, test_owner: Principal) {
     let mut token = test_token.clone();
     let new_fee = Fee {
         minimum: Nat::from(2),
         rate: Nat::from(0),
+        rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
     let res = token.set_fee(&test_owner, new_fee.clone());
     assert!(res.is_ok(), "set_fee should be ok");
@@ -198,11 +231,12 @@ fn test_token_basic_set_fee(test_token: TokenBasic, test_owner: Principal) {
 
 //test token set_fee with invalid owner
 #[rstest]
-fn test_token_basic_set_fee_invalid_owner(test_token: TokenBasic, other_caller: Principal) {
-    let mut token = test_token.clone();
+fn test_token_basic_set_fee_invalid_owner(test_token_with_0_fee_rate: TokenBasic, other_caller: Principal) {
+    let mut token = test_token_with_0_fee_rate.clone();
     let new_fee = Fee {
         minimum: Nat::from(2),
         rate: Nat::from(0),
+        rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
     let res = token.set_fee(&other_caller, new_fee.clone());
     assert!(res.is_err(), "set_fee should be err");
@@ -211,11 +245,11 @@ fn test_token_basic_set_fee_invalid_owner(test_token: TokenBasic, other_caller: 
 // test token set_fee_to
 #[rstest]
 fn test_update_token_basic_set_fee_to(
-    test_token: TokenBasic,
+    test_token_with_0_fee_rate: TokenBasic,
     test_owner: Principal,
     other_caller: Principal,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token_with_0_fee_rate.clone();
     let new_fee_to = TokenHolder::new(other_caller.clone(), None);
     // set fee_to by other caller will failed
     let res = token.set_fee_to(&other_caller, new_fee_to.clone());
@@ -227,8 +261,8 @@ fn test_update_token_basic_set_fee_to(
 }
 
 #[rstest]
-fn test_token_basic_set_logo(test_token: TokenBasic, test_owner: Principal, new_logo: Vec<u8>) {
-    let mut token = test_token.clone();
+fn test_token_basic_set_logo(test_token_with_0_fee_rate: TokenBasic, test_owner: Principal, new_logo: Vec<u8>) {
+    let mut token = test_token_with_0_fee_rate.clone();
     // set logo by other caller will failed
     let res = token.set_logo(&other_caller(), Some(new_logo.clone()));
     assert!(res.is_err(), "set_logo should be err");
@@ -239,14 +273,14 @@ fn test_token_basic_set_logo(test_token: TokenBasic, test_owner: Principal, new_
 }
 
 #[rstest]
-fn test_token_basic_set_desc(test_token: TokenBasic, test_owner: Principal) {
-    let mut token = test_token.clone();
+fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenBasic, test_owner: Principal) {
+    let mut token = test_token_with_0_fee_rate.clone();
     let new_desc: HashMap<String, String> = vec![(
         "TWITTER".to_owned(),
         "https://twitter.com/DelandLabs".to_owned(),
     )]
-    .into_iter()
-    .collect();
+        .into_iter()
+        .collect();
     // set desc by other caller will failed
     let res = token.set_desc(&other_caller(), new_desc.clone());
     assert!(res.is_err(), "set_desc should be err");
@@ -260,8 +294,8 @@ fn test_token_basic_set_desc(test_token: TokenBasic, test_owner: Principal) {
         "TWITTER1".to_owned(),
         "https://twitter.com/DelandLabs1".to_owned(),
     )]
-    .into_iter()
-    .collect();
+        .into_iter()
+        .collect();
     let res = token.set_desc(&test_owner, new_desc1.clone());
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");
@@ -269,8 +303,10 @@ fn test_token_basic_set_desc(test_token: TokenBasic, test_owner: Principal) {
 }
 
 #[rstest]
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_fee_calculation(
-    test_token: TokenBasic,
+    #[case]test_token: TokenBasic,
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
@@ -286,7 +322,7 @@ fn test_token_basic_fee_calculation(
     let fee = token.fee();
     // mint & approve
     let mint_val = Nat::from(10000);
-    let approve_val = Nat::from(1001);
+    let approve_val = Nat::from(1010);
     let _ = token._mint(&test_owner, &minter_holder, mint_val.clone(), now);
     let _ = token.approve(
         &test_minter,
@@ -348,7 +384,7 @@ fn test_token_basic_fee_calculation(
     );
     // check transfer_from fee charge
     let transfer_fee_charged = token.balance_of(&fee_to) - approve_fee_charged.clone();
-    let rate_fee = transfer_val.clone() * fee.rate.clone() / 100000000;
+    let rate_fee = transfer_val.clone() * fee.rate.clone() / 10u64.pow(fee.rate_decimals.into());
     let transfer_fee = if rate_fee > fee.minimum {
         rate_fee
     } else {
@@ -389,7 +425,7 @@ fn test_token_basic_fee_calculation(
     // check transfer_to fee charged
     let transfer_fee_charged2 =
         token.balance_of(&fee_to) - transfer_fee_charged.clone() - approve_fee_charged.clone();
-    let rate_fee2 = transfer_val2.clone() * fee.rate.clone() / 100000000;
+    let rate_fee2 = transfer_val2.clone() * fee.rate.clone() / 10u64.pow(fee.rate_decimals.into());
     let transfer_fee2 = if rate_fee2 > fee.minimum {
         rate_fee2
     } else {
@@ -415,8 +451,10 @@ fn test_token_basic_fee_calculation(
 
 //test token approve
 #[rstest]
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_approve(
-    test_token: TokenBasic,
+    #[case]test_token: TokenBasic,
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
@@ -478,8 +516,10 @@ fn test_token_basic_approve(
 }
 
 #[rstest]
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_transfer_from(
-    test_token: TokenBasic,
+    #[case]test_token: TokenBasic,
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
@@ -529,19 +569,27 @@ fn test_token_basic_transfer_from(
     // check allowance
     let allowance = token.allowance(&minter_holder, &spender_holder);
     let fee = token.fee();
+    let approve_fee = fee.clone().minimum;
+    let transfer_fee = transfer_from_val.clone() * fee.rate.clone() / 10u64.pow(fee.rate_decimals.into());
+    let transfer_fee = if transfer_fee > fee.minimum.clone() {
+        transfer_fee
+    } else {
+        fee.minimum.clone()
+    };
     assert_eq!(
         allowance,
-        approve_val - transfer_from_val.clone() - fee.clone().minimum
+        approve_val - transfer_from_val.clone() - transfer_fee.clone()
     );
     // check minter_holder balance
     let from_balance = token.balance_of(&minter_holder);
     assert_eq!(
         from_balance,
-        mint_val.clone() - transfer_from_val - fee.clone().minimum * 2
+        mint_val.clone() - transfer_from_val - approve_fee.clone() - transfer_fee.clone()
     );
     // check fee_to balance
     let fee_to_balance = token.balance_of(&fee_to);
-    assert_eq!(fee_to_balance, fee.clone().minimum * 2);
+    let total_fee = transfer_fee + approve_fee;
+    assert_eq!(fee_to_balance, total_fee);
     // check token's txs have 3 records
     let token_payload = token.to_token_payload();
     let token_txs = token_payload.txs_inner;
@@ -554,8 +602,10 @@ fn test_token_basic_transfer_from(
 
 // test token transfer
 #[rstest]
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_transfer(
-    test_token: TokenBasic,
+    #[case]test_token: TokenBasic,
     test_owner: Principal,
     test_minter: Principal,
     other_caller: Principal,
@@ -582,9 +632,15 @@ fn test_token_basic_transfer(
     assert!(transfer_res.is_ok(), "{:?}", transfer_res.unwrap_err());
     // check minter_holder balance
     let minter_holder_balance = token.balance_of(&minter_holder);
+    let transfer_fee = transfer_val.clone() * fee.rate.clone() / 10u64.pow(fee.rate_decimals.into());
+    let transfer_fee = if transfer_fee > fee.minimum.clone() {
+        transfer_fee
+    } else {
+        fee.minimum.clone()
+    };
     assert_eq!(
         minter_holder_balance,
-        mint_val.clone() - transfer_val.clone() - fee.clone().minimum
+        mint_val.clone() - transfer_val.clone() - transfer_fee
     );
     // check to_holder balance
     let to_balance = token.balance_of(&to_holder);
@@ -601,8 +657,10 @@ fn test_token_basic_transfer(
 
 // test token _mint/_burn
 #[rstest]
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_mint_burn(
-    test_token: TokenBasic,
+    #[case]test_token: TokenBasic,
     test_owner: Principal,
     test_minter: Principal,
     now: u64,
@@ -638,8 +696,10 @@ fn test_token_basic_mint_burn(
 
 // test token approve/transfer_from/transfer anonymous call should fail
 #[rstest]
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_approve_transfer_from_transfer(
-    test_token: TokenBasic,
+    #[case]test_token: TokenBasic,
     test_minter: Principal,
     test_spender: Principal,
     other_caller: Principal,
@@ -651,7 +711,7 @@ fn test_token_basic_approve_transfer_from_transfer(
     let to_holder = TokenHolder::new(other_caller.clone(), None);
     let anonymous_caller = Principal::anonymous();
 
-    // apporve with anonymous should fail
+    // approve with anonymous should fail
     let approve_val = Nat::from(1000);
     let approve_res = token.approve(
         &anonymous_caller,

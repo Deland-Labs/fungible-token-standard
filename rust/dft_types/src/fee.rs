@@ -6,4 +6,5 @@ use candid::{CandidType, Deserialize, Nat};
 pub struct Fee {
     pub minimum: Nat,
     pub rate: Nat,
+    pub rate_decimals: u8,
 }

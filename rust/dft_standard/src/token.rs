@@ -1,5 +1,4 @@
 use candid::{Nat, Principal};
-use dft_types::constants::FEE_RATE_DIV;
 use dft_types::*;
 use dft_utils::{decode_tx_id, get_logo_type};
 use std::collections::HashMap;
@@ -134,6 +133,7 @@ impl Default for TokenBasic {
             fee: Fee {
                 minimum: Nat::from(0),
                 rate: Nat::from(0),
+                rate_decimals: 0,
             },
             desc: HashMap::new(),
         }
@@ -275,7 +275,8 @@ impl TokenBasic {
     ) -> CommonResult<Nat> {
         // calc the transfer fee: rate * value
         // compare the transfer fee and minumum fee,get the max value
-        let rate_fee = self.fee.rate.clone() * transfer_value.clone() / FEE_RATE_DIV;
+        let rate_fee =
+            self.fee.rate.clone() * transfer_value.clone() / 10u64.pow(self.fee.rate_decimals.into());
         let min_fee = self.fee.minimum.clone();
         let transfer_fee = if rate_fee > min_fee {
             rate_fee
@@ -297,8 +298,8 @@ impl TokenBasic {
     // calc transfer fee
     fn calc_transfer_fee(&self, transfer_value: &Nat) -> Nat {
         // calc the transfer fee: rate * value
-        // compare the transfer fee and minumum fee,get the max value
-        let fee = self.fee.rate.clone() * transfer_value.clone() / FEE_RATE_DIV;
+        // compare the transfer fee and minimum fee,get the max value
+        let fee = self.fee.rate.clone() * transfer_value.clone() / 10u64.pow(self.fee.rate_decimals.into());
         let min_fee = self.fee.minimum.clone();
         let max_fee = if fee > min_fee { fee } else { min_fee };
         max_fee
