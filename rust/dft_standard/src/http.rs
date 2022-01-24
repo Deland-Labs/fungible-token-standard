@@ -1,7 +1,7 @@
 use crate::state::TOKEN;
 use crate::token::TokenStandard;
 use candid::candid_method;
-use dft_types::{constants::FEE_RATE_DIV, HttpRequest, HttpResponse};
+use dft_types::{HttpRequest, HttpResponse};
 use dft_utils::get_logo_type;
 use ic_cdk_macros::query;
 use json_pretty::PrettyFormatter;
@@ -21,21 +21,21 @@ fn http_request(req: HttpRequest) -> HttpResponse {
             // convert token_info to json
             let token_info_json = format!(
                 "{{name : \"{}\",symbol : \"{}\",decimals : {},totalSupply : {},fee :{{minimum: {},rate:{}}}}}",
-                                          token_info.name,
-                                          token_info.symbol,
-                                          token_info.decimals,
-                                          token_info.total_supply,
-                                          token_info.fee.minimum,
-                                          token_info.fee.rate * 100 / FEE_RATE_DIV
+                token_info.name,
+                token_info.symbol,
+                token_info.decimals,
+                token_info.total_supply,
+                token_info.fee.minimum,
+                format!("{} %", token_info.fee.rate * 100 / 10u64.pow(token_info.fee.rate_decimals.into()))
             );
 
-            let metrics_json= format!(
+            let metrics_json = format!(
                 "{{totalTxCount : {},innerTxCount : {},cycles : {},holders : {},allowanceSize : {}}}",
-                                          metrics.total_tx_count,
-                                          metrics.inner_tx_count,
-                                          cycles,
-                                          metrics.holders,
-                                          metrics.allowance_size,
+                metrics.total_tx_count,
+                metrics.inner_tx_count,
+                cycles,
+                metrics.holders,
+                metrics.allowance_size,
             );
             let json = format!("{{token:{},metrics:{}}}", token_info_json, metrics_json);
             let formatter = PrettyFormatter::from_str(json.as_str());
