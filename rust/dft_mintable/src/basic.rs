@@ -16,7 +16,7 @@ use std::string::String;
 #[init]
 async fn canister_init(
     sub_account: Option<Subaccount>,
-    logo_: Option<Vec<u8>>, 
+    logo_: Option<Vec<u8>>,
     name_: String,
     symbol_: String,
     decimals_: u8,
@@ -250,11 +250,6 @@ async fn transfer_from(
                     Err(e) => errors.push(e),
                     _ => {}
                 };
-                // exec after-transfer notify
-                match on_token_received(&from_token_holder, &to_token_holder, &value).await {
-                    Err(e) => errors.push(e),
-                    _ => (),
-                };
                 Ok(TransactionResponse {
                     tx_id: encode_tx_id(api::id(), tx_index),
                     error: if errors.len() > 0 { Some(errors) } else { None },
@@ -296,11 +291,6 @@ async fn transfer(
                 Err(e) => {
                     errors.push(e);
                 }
-            };
-            // exec after-transfer notify
-            match on_token_received(&transfer_from, &receiver, &value).await {
-                Err(e) => errors.push(e),
-                _ => (),
             };
             // execute call
             if let Some(_call_data) = call_data {
@@ -368,58 +358,13 @@ fn __get_candid_interface_tmp_hack() -> String {
     __export_service()
 }
 
-// do something becore sending
+// do something before sending
 fn before_token_sending(
     _transfer_from: &TokenHolder,
     _receiver: &TokenReceiver,
     _value: &Nat,
 ) -> ActorResult<()> {
     Ok(())
-}
-
-// call it after transfer, notify receiver with (from,value)
-async fn on_token_received(
-    transfer_from: &TransferFrom,
-    receiver: &TokenReceiver,
-    _value: &Nat,
-) -> ActorResult<bool> {
-    let get_did_method_name = "__get_candid_interface_tmp_hack";
-    let on_token_received_method_name = "onTokenReceived";
-    let on_token_received_method_sig = "onTokenReceived:(TransferFrom,nat)->(bool)query";
-
-    // check receiver
-    if let TokenHolder::Principal(cid) = receiver {
-        if is_canister(cid) {
-            let did_res: Result<(String,), _> =
-                api::call::call(*cid, get_did_method_name, ()).await;
-
-            if let Ok((did,)) = did_res {
-                let _support = is_support_interface(did, on_token_received_method_sig.to_string());
-
-                if _support {
-                    let _check_res: Result<(bool,), _> = api::call::call(
-                        *cid,
-                        on_token_received_method_name,
-                        (transfer_from, _value),
-                    )
-                    .await;
-
-                    match _check_res {
-                        Ok((is_notify_succeed,)) => {
-                            if !is_notify_succeed {
-                                return Err(DFTError::NotificationFailed.into());
-                            } else {
-                                return Ok(true);
-                            }
-                        }
-                        _ => return Err(DFTError::NotificationFailed.into()),
-                    }
-                }
-            }
-            return Err(DFTError::NotificationFailed.into());
-        }
-    }
-    Ok(true)
 }
 
 async fn execute_call(receiver: &TokenReceiver, _call_data: CallData) -> ActorResult<bool> {
