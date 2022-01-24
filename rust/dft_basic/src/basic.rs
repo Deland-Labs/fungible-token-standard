@@ -1,7 +1,7 @@
 extern crate dft_types;
 extern crate dft_utils;
 
-use candid::{candid_method, decode_args};
+use candid::candid_method;
 use dft_standard::token::TokenStandard;
 use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use dft_types::*;
@@ -16,7 +16,7 @@ use std::string::String;
 #[init]
 async fn canister_init(
     sub_account: Option<Subaccount>,
-    logo_: Option<Vec<u8>>, 
+    logo_: Option<Vec<u8>>,
     name_: String,
     symbol_: String,
     decimals_: u8,
@@ -167,7 +167,6 @@ async fn approve(
     owner_sub_account: Option<Subaccount>,
     spender: String,
     value: Nat,
-    call_data: Option<CallData>,
 ) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
     let owner_holder = TokenHolder::new(caller.clone(), owner_sub_account);
@@ -187,14 +186,6 @@ async fn approve(
                 }
             }
 
-            if let Some(data) = call_data {
-                // execute call
-                let execute_call_result = execute_call(&spender_holder, data).await;
-                if let Err(emsg) = execute_call_result {
-                    // approve succeed ,bu call failed
-                    errors.push(emsg);
-                }
-            };
             Ok(TransactionResponse {
                 tx_id: tx_id,
                 error: if errors.len() > 0 { Some(errors) } else { None },
@@ -267,7 +258,6 @@ async fn transfer(
     from_sub_account: Option<Subaccount>,
     to: String,
     value: Nat,
-    call_data: Option<CallData>,
 ) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
     let now = api::time();
@@ -292,14 +282,7 @@ async fn transfer(
                     errors.push(e);
                 }
             };
-            // execute call
-            if let Some(_call_data) = call_data {
-                // execute call
-                let execute_call_result = execute_call(&receiver, _call_data).await;
-                if let Err(emsg) = execute_call_result {
-                    errors.push(emsg);
-                };
-            }
+
             return Ok(TransactionResponse {
                 tx_id: encode_tx_id(api::id(), tx_index),
                 error: if errors.len() > 0 { Some(errors) } else { None },
@@ -365,25 +348,4 @@ fn before_token_sending(
     _value: &Nat,
 ) -> ActorResult<()> {
     Ok(())
-}
-
-async fn execute_call(receiver: &TokenReceiver, _call_data: CallData) -> ActorResult<bool> {
-    if let TokenHolder::Principal(cid) = receiver {
-        if is_canister(cid) {
-            let call_result: Result<Vec<u8>, (api::call::RejectionCode, String)> =
-                api::call::call_raw(*cid, &_call_data.method, _call_data.args, 0).await;
-            match call_result {
-                Ok(bytes) => {
-                    let r: (bool, String) = decode_args(&bytes).unwrap();
-                    if r.0 {
-                        return Ok(r.0);
-                    } else {
-                        return Err(DFTError::CallFailed { detail: r.1 }.into());
-                    }
-                }
-                Err(e) => return Err(DFTError::CallFailed { detail: e.1 }.into()),
-            };
-        }
-    }
-    Ok(true)
 }
