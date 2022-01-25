@@ -45,13 +45,13 @@ fn inspect_message() {
         m if HOLDER_METHODS.contains(&m) => {
             let holder = match m {
                 "approve" => {
-                    let (sub_account, _, _, _) =
-                        api::call::arg_data::<(Option<Subaccount>, String, Nat, Option<CallData>)>();
+                    let (sub_account, _, _) =
+                        api::call::arg_data::<(Option<Subaccount>, String, Nat)>();
                     TokenHolder::new(caller, sub_account)
                 }
                 "transfer" => {
-                    let (sub_account, _, _, _) =
-                        api::call::arg_data::<(Option<Subaccount>, String, Nat, Option<CallData>)>();
+                    let (sub_account, _, _) =
+                        api::call::arg_data::<(Option<Subaccount>, String, Nat)>();
                     TokenHolder::new(caller, sub_account)
                 }
                 "burn" => {

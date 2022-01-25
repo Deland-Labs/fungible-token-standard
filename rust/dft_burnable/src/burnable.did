@@ -1,5 +1,4 @@
 type Error = record { code : nat32; message : text };
-type CallData = record { method : text; args : vec nat8 };
 type Fee = record { rate : nat; rate_decimals : nat8; minimum : nat };
 type Metadata = record {  fee : Fee;  decimals : nat8;  name : text;  totalSupply : nat;  symbol : text;};
 type TransactionResult = variant { Ok : TransactionResponse; Err : Error };
@@ -21,7 +20,7 @@ type TxRecordResult = variant {Ok : TxRecord;  Err : Error;  Forward : principal
 service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {
   allowance : (text, text) -> (nat) query;
   allowancesOf : (text) -> (vec record { TokenHolder; nat }) query;
-  approve : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
+  approve : (opt vec nat8, text, nat) -> (TransactionResult);
   balanceOf : (text) -> (nat) query;
   decimals : () -> (nat8) query;
   desc : () -> (vec record { text; text }) query;
@@ -38,7 +37,7 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8)
   symbol : () -> (text) query;
   tokenInfo : () -> (TokenInfo) query;
   totalSupply : () -> (nat) query;
-  transfer : (opt vec nat8, text, nat, opt CallData) -> (TransactionResult);
+  transfer : (opt vec nat8, text, nat) -> (TransactionResult);
   transferFrom : (opt vec nat8, text, text, nat) -> (TransactionResult);
 
   lastTransactions : (nat64) -> (TxRecordsResult) query;

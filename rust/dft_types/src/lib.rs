@@ -1,5 +1,4 @@
 mod account_identifier;
-mod call_data;
 pub mod constants;
 mod desc_keys;
 mod errors;
@@ -29,7 +28,6 @@ pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, Nat>>;
 pub use account_identifier::AccountIdentifier;
 pub use account_identifier::Subaccount;
 pub use account_identifier::SUB_ACCOUNT_ZERO;
-pub use call_data::CallData;
 pub use fee::Fee;
 pub use metadata::Metadata;
 pub use token_holder::TokenHolder;
