@@ -539,6 +539,9 @@ impl TokenBasic {
             }
             self.allowances.insert(k, inner);
         }
+        for(k, v) in payload.nonces {
+            self.nonces.insert(k, v);
+        }
         for (k, v) in payload.storage_canister_ids {
             self.storage_canister_ids.insert(k, v);
         }
@@ -551,6 +554,7 @@ impl TokenBasic {
         let mut desc = Vec::new();
         let mut balances = Vec::new();
         let mut allowances = Vec::new();
+        let mut nonces = Vec::new();
         let mut storage_canister_ids = Vec::new();
         let mut txs = Vec::new();
         for (k, v) in self.desc.iter() {
@@ -566,6 +570,9 @@ impl TokenBasic {
             }
             allowances.push((th.clone(), allow_item));
         }
+        for (k, v) in self.nonces.iter() {
+            nonces.push((k.clone(), v.clone()));
+        } 
         for (k, v) in self.storage_canister_ids.iter() {
             storage_canister_ids.push((k.clone(), *v));
         }
@@ -581,6 +588,7 @@ impl TokenBasic {
             logo: self.logo.clone().unwrap_or_else(|| vec![]),
             balances,
             allowances,
+            nonces,
             tx_index_cursor: self.next_tx_index.clone(),
             storage_canister_ids,
             txs_inner: txs,
