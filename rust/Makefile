@@ -54,6 +54,8 @@ define test_token_impl
 	dfx canister call dft_basic allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
 	| grep '3_000_000_000_000_000_000' && echo 'PASS allowance check'
 
+  dfx canister call dft_basic nonceOf '(principal "$(owner_id)")' \
+	| grep '(3 : nat64)' && echo 'PASS nonce check'
 	dfx canister call dft_basic allowancesOf '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
 	| grep '3_000_000_000_000_000_000' && echo 'PASS allowancesOf check'
 	sleep 3

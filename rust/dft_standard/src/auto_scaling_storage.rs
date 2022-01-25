@@ -15,10 +15,7 @@ pub async fn exec_auto_scaling_strategy() -> ActorResult<()> {
         let token = token.borrow();
         token.get_inner_txs()
     });
-    let first_tx_index_inner: Nat = TOKEN.with(|token| {
-        let token = token.borrow();
-        token.get_tx_index(&inner_txs[0])
-    });
+    let first_tx_index_inner: Nat = inner_txs[0].get_tx_index();
 
     // When create auto-scaling storage ?
     // DFT's txs count > 2000

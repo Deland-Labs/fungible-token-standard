@@ -67,12 +67,7 @@ impl AutoScalingStorage {
 
     // check tx index
     fn _check_tx_index(&self, tx: &TxRecord) -> CommonResult<()> {
-        let tx_index = match tx {
-            TxRecord::Approve(ti, _, _, _, _, _, _) => ti.clone(),
-            // TxRecord::Transfer
-            TxRecord::Transfer(ti, _, _, _, _, _, _) => ti.clone(),
-        };
-        if tx_index < self.tx_start_index {
+        if tx.get_tx_index() < self.tx_start_index {
             return Err(DFTError::InvalidTxIndex);
         }
         Ok(())
@@ -219,6 +214,7 @@ mod tests {
             to_holder,
             Nat::from(1000),
             Nat::from(1),
+            1u64,
             now,
         )
     }
@@ -243,6 +239,7 @@ mod tests {
             to_holder,
             Nat::from(1000),
             Nat::from(1),
+            1u64,
             now,
         )
     }
@@ -270,6 +267,7 @@ mod tests {
                 to_holder.clone(),
                 Nat::from(1000),
                 Nat::from(1),
+                1u64,
                 now,
             ));
         }
@@ -306,6 +304,7 @@ mod tests {
                 to_holder.clone(),
                 Nat::from(1000),
                 Nat::from(1),
+                1u64,
                 now,
             ));
         }

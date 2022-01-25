@@ -40,7 +40,13 @@ async fn canister_init(
             fee_,
             owner_holder.clone(),
         );
-        let _ = token._mint(&real_caller, &owner_holder, total_supply_, api::time());
+        let _ = token._mint(
+            &real_caller,
+            &owner_holder,
+            total_supply_,
+            None,
+            api::time(),
+        );
     });
 }
 
@@ -143,6 +149,15 @@ fn balance_of(holder: String) -> Nat {
     }
 }
 
+#[query(name = "nonceOf")]
+#[candid_method(query, rename = "nonceOf")]
+fn nonce_of(principal: Principal) -> u64 {   
+    TOKEN.with(|token| {
+        let token = token.borrow();
+        token.nonce_of(&principal)
+    })
+}
+
 #[query(name = "allowance")]
 #[candid_method(query, rename = "allowance")]
 fn allowance(owner: String, spender: String) -> Nat {
@@ -167,6 +182,7 @@ async fn approve(
     owner_sub_account: Option<Subaccount>,
     spender: String,
     value: Nat,
+    nonce: Option<u64>,
 ) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
     let owner_holder = TokenHolder::new(caller.clone(), owner_sub_account);
@@ -174,7 +190,14 @@ async fn approve(
         Ok(spender_holder) => {
             let tx_index = TOKEN.with(|token| {
                 let mut token = token.borrow_mut();
-                token.approve(&caller, &owner_holder, &spender_holder, value, api::time())
+                token.approve(
+                    &caller,
+                    &owner_holder,
+                    &spender_holder,
+                    value,
+                    nonce,
+                    api::time(),
+                )
             })?;
             let tx_id = encode_tx_id(api::id(), tx_index);
 
@@ -214,6 +237,7 @@ async fn transfer_from(
     from: String,
     to: String,
     value: Nat,
+    nonce: Option<u64>,
 ) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
     let now = api::time();
@@ -232,6 +256,7 @@ async fn transfer_from(
                         &spender,
                         &to_token_holder,
                         value.clone(),
+                        nonce,
                         now,
                     )
                 })?;
@@ -258,6 +283,7 @@ async fn transfer(
     from_sub_account: Option<Subaccount>,
     to: String,
     value: Nat,
+    nonce: Option<u64>,
 ) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
     let now = api::time();
@@ -272,7 +298,14 @@ async fn transfer(
             //transfer token
             let tx_index = TOKEN.with(|token| {
                 let mut token = token.borrow_mut();
-                token.transfer(&caller, &transfer_from, &receiver, value.clone(), now)
+                token.transfer(
+                    &caller,
+                    &transfer_from,
+                    &receiver,
+                    value.clone(),
+                    nonce,
+                    now,
+                )
             })?;
 
             //exec auto-scaling storage strategy
