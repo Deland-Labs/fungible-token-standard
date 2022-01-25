@@ -2,13 +2,13 @@ extern crate dft_types;
 extern crate dft_utils;
 
 use candid::candid_method;
+use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
+use dft_standard::state::TOKEN;
 use dft_types::*;
 use dft_utils::*;
 use ic_cdk::{api, export::candid::Nat};
 use ic_cdk_macros::*;
 use std::string::String;
-use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
-use dft_standard::state::TOKEN;
 
 use crate::token::BurnableExtension;
 
@@ -18,6 +18,7 @@ async fn burn_from(
     from_sub_account: Option<Subaccount>,
     spender: String,
     value: Nat,
+    nonce: Option<u64>,
 ) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
     let token_holder_owner = TokenHolder::new(caller, from_sub_account);
@@ -32,6 +33,7 @@ async fn burn_from(
                     &token_holder_owner,
                     &holder,
                     value.clone(),
+                    nonce,
                     api::time(),
                 )
             })?;
@@ -51,23 +53,22 @@ async fn burn_from(
             })
         }
 
-        Err(_) => Err(DFTError::InvalidSpender.into())
+        Err(_) => Err(DFTError::InvalidSpender.into()),
     }
 }
 
 #[update(name = "burn")]
 #[candid_method(update, rename = "burn")]
-async fn burn(from_sub_account: Option<Subaccount>, value: Nat) -> ActorResult<TransactionResponse> {
+async fn burn(
+    from_sub_account: Option<Subaccount>,
+    value: Nat,
+    nonce: Option<u64>,
+) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
     let tx_index = TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        token.burn(
-            &caller,
-            &transfer_from,
-            value.clone(),
-            api::time(),
-        )
+        token.burn(&caller, &transfer_from, value.clone(), nonce, api::time())
     })?;
     let mut errors: Vec<ActorError> = vec![];
     //exec auto-scaling storage strategy

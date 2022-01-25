@@ -9,6 +9,7 @@ pub trait BurnableExtension {
         caller: &Principal,
         owner: &TokenHolder,
         value: Nat,
+        nonce: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex>;
     //burn from
@@ -18,6 +19,7 @@ pub trait BurnableExtension {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
+        nonce: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex>;
 }
@@ -29,10 +31,11 @@ impl BurnableExtension for TokenBasic {
         caller: &Principal,
         owner: &TokenHolder,
         value: Nat,
+        nonce: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
-        self._burn(caller, owner, value, now)
+        self._burn(caller, owner, value, nonce, now)
     }
     fn burn_from(
         &mut self,
@@ -40,11 +43,12 @@ impl BurnableExtension for TokenBasic {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
+        nonce: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
         // debit spender's allowance
         self.debit_allowance(owner, spender, value.clone())?;
-        self._burn(caller, owner, value, now)
+        self._burn(caller, owner, value, nonce, now)
     }
 }

@@ -15,6 +15,8 @@ pub enum DFTError {
     InvalidArgFormatTo,
     #[error("DFT: Invalid arg format [feeTo]")]
     InvalidArgFormatFeeTo,
+    #[error("DFT: nonce not match")]
+    NonceNotMatch,
     #[error("DFT: insufficient balance")]
     InsufficientBalance,
     #[error("DFT: insufficient allowance")]
@@ -33,8 +35,6 @@ pub enum DFTError {
     NotificationFailed,
     #[error("DFT: storage scaling failed")]
     StorageScalingFailed,
-    #[error("DFT: call failed,detail: {detail:?}")]
-    CallFailed { detail: String },
     #[error("DFT: invalid type or format of logo")]
     InvalidTypeOrFormatOfLogo,
     #[error("DFT_TX: invalid tx index")]
@@ -58,22 +58,21 @@ impl DFTError {
             DFTError::InvalidArgFormatFrom => 4,
             DFTError::InvalidArgFormatTo => 5,
             DFTError::InvalidArgFormatFeeTo => 6,
-            DFTError::InsufficientBalance => 7,
-            DFTError::InsufficientAllowance => 8,
-            DFTError::TransferAmountExceedsAllowance => 9,
-            DFTError::TransferAmountExceedsBalance => 10,
-            DFTError::BurnValueTooSmall => 11,
-            DFTError::BurnValueExceedsBalance => 12,
-            DFTError::BurnValueExceedsAllowance => 13,
-            DFTError::NotificationFailed => 14,
-            DFTError::StorageScalingFailed => 15,
-            DFTError::CallFailed { .. } => 16,
+            DFTError::NonceNotMatch => 7,
+            DFTError::InsufficientBalance => 8,
+            DFTError::InsufficientAllowance => 9,
+            DFTError::TransferAmountExceedsAllowance => 10,
+            DFTError::TransferAmountExceedsBalance => 11,
+            DFTError::BurnValueTooSmall => 12,
+            DFTError::BurnValueExceedsBalance => 13,
+            DFTError::BurnValueExceedsAllowance => 14,
+            DFTError::NotificationFailed => 15,
+            DFTError::StorageScalingFailed => 16, 
             DFTError::InvalidTypeOrFormatOfLogo => 17,
             DFTError::InvalidTxIndex => 18,
             DFTError::InvalidTxId => 19,
             DFTError::TxIdNotBelongToCurrentDft => 20,
             DFTError::OnlyAllowTokenCanisterCallThisFunction => 21,
-
             DFTError::Unknown { .. } => 10000,
         }
     }
