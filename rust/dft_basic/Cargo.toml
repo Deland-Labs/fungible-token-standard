@@ -16,7 +16,7 @@ ic-cdk-macros = "0.3.3"
 hex = {version = "0.4.3", features = ["serde"] }
 crc32fast = "1.3.1"
 candid = "0.7.10"
-serde = "1.0.133"
+serde = "1.0.135"
 serde_bytes = "0.11"
 sha2 = "0.10.1"
 num-bigint = "0.4.3"
