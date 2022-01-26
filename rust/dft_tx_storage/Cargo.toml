@@ -12,7 +12,7 @@ dft_utils = { path = "../dft_utils" }
 ic-cdk = "0.3.3"
 ic-cdk-macros = "0.3.3"
 candid = "0.7.10"
-serde = "1.0.135"
+serde = "1.0.136"
 
 [dev-dependencies]
 rstest = "0.12.0"
