@@ -709,25 +709,19 @@ fn test_token_basic_mint_burn(
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
-    // burn with wrong nonce should fail
+    // // burn with wrong nonce should fail
     let burn_val = Nat::from(1000);
-    let burn_res = token._burn(
-        &test_owner,
-        &minter_holder,
-        burn_val.clone(),
-        Some(3),
-        now + 1,
-    );
+    // let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 3, now + 1);
 
-    // check burn_res error message is NonceNotMatch
-    assert!(burn_res.is_err());
-    assert_eq!(
-        burn_res.err().unwrap().to_string(),
-        DFTError::NonceNotMatch.to_string()
-    );
+    // // check burn_res error message is NonceNotMatch
+    // assert!(burn_res.is_err());
+    // assert_eq!(
+    //     burn_res.err().unwrap().to_string(),
+    //     DFTError::NonceNotMatch.to_string()
+    // );
 
     // transfer token from minter_holder to to_holder
-    let burn_res = token._burn(&test_owner, &minter_holder, burn_val.clone(), Some(2), now);
+    let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 2, now);
 
     // check burn_res is ok, and check minter_holder balance
     assert!(burn_res.is_ok(), "{:?}", burn_res.unwrap_err());

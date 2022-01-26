@@ -183,7 +183,11 @@ impl TokenBasic {
     }
 
     // get verified nonce
-    fn get_verified_nonce(&mut self, caller: &Principal, nonce: Option<u64>) -> CommonResult<u64> {
+    pub fn get_verified_nonce(
+        &mut self,
+        caller: &Principal,
+        nonce: Option<u64>,
+    ) -> CommonResult<u64> {
         if let Some(n) = nonce {
             self.check_nonce(caller, n)?;
             self.nonces.insert(caller.clone(), n.clone());
@@ -375,7 +379,7 @@ impl TokenBasic {
     //transfer token
     fn _transfer(
         &mut self,
-        caller: &Principal,
+        caller: &TokenHolder,
         from: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
@@ -427,7 +431,7 @@ impl TokenBasic {
         let tx_index = self.generate_new_tx_index();
         let tx = TxRecord::Transfer(
             tx_index.clone(),
-            caller.clone(),
+            TokenHolder::new(caller.clone(), None),
             TokenHolder::None,
             to.clone(),
             value.clone(),
@@ -442,13 +446,12 @@ impl TokenBasic {
     // _burn
     pub fn _burn(
         &mut self,
-        caller: &Principal,
+        caller: &TokenHolder,
         from: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        nonce: u64,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
-        let nonce = self.get_verified_nonce(caller, nonce)?;
         // calc the transfer fee,if the fee smaller than minimum fee,return error
         let fee = self.calc_transfer_fee(&value);
         if fee < self.fee.minimum.clone() {
@@ -539,7 +542,7 @@ impl TokenBasic {
             }
             self.allowances.insert(k, inner);
         }
-        for(k, v) in payload.nonces {
+        for (k, v) in payload.nonces {
             self.nonces.insert(k, v);
         }
         for (k, v) in payload.storage_canister_ids {
@@ -572,7 +575,7 @@ impl TokenBasic {
         }
         for (k, v) in self.nonces.iter() {
             nonces.push((k.clone(), v.clone()));
-        } 
+        }
         for (k, v) in self.storage_canister_ids.iter() {
             storage_canister_ids.push((k.clone(), *v));
         }
@@ -725,7 +728,7 @@ impl TokenStandard for TokenBasic {
 
         let approve_tx = TxRecord::Approve(
             tx_index.clone(),
-            caller.clone(),
+            owner.clone(),
             owner.clone(),
             spender.clone(),
             value.clone(),
@@ -760,7 +763,7 @@ impl TokenStandard for TokenBasic {
         // debit the spender's allowance
         self.debit_allowance(from, spender, decreased_allowance.clone())?;
 
-        return self._transfer(caller, from, to, value, nonce, now);
+        return self._transfer(spender, from, to, value, nonce, now);
     }
 
     fn transfer(
@@ -774,7 +777,7 @@ impl TokenStandard for TokenBasic {
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
         let nonce = self.get_verified_nonce(caller, nonce)?;
-        self._transfer(caller, from, to, value, nonce, now)
+        self._transfer(&from, from, to, value, nonce, now)
     }
 
     fn token_info(&self) -> TokenInfo {

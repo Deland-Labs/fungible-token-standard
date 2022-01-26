@@ -7,7 +7,7 @@ pub enum TxRecord {
     // tx_index, caller, owner, spender, value, fee,nonce , timestamp
     Approve(
         Nat,
-        Principal,
+        TokenHolder,
         TokenHolder,
         TokenReceiver,
         Nat,
@@ -18,7 +18,7 @@ pub enum TxRecord {
     // tx_index, caller, from, to, value, fee, nonce, timestamp
     Transfer(
         Nat,
-        Principal,
+        TokenHolder,
         TokenHolder,
         TokenReceiver,
         Nat,

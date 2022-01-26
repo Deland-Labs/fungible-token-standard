@@ -16,22 +16,22 @@ use crate::token::BurnableExtension;
 #[candid_method(update, rename = "burnFrom")]
 async fn burn_from(
     from_sub_account: Option<Subaccount>,
-    spender: String,
+    owner: String,
     value: Nat,
     nonce: Option<u64>,
 ) -> ActorResult<TransactionResponse> {
     let caller = api::caller();
-    let token_holder_owner = TokenHolder::new(caller, from_sub_account);
-    let spender_parse_res = spender.parse::<TokenHolder>();
-    match spender_parse_res {
-        Ok(holder) => {
+    let spender = TokenHolder::new(caller, from_sub_account);
+    let owner_parse_res = owner.parse::<TokenHolder>();
+    match owner_parse_res {
+        Ok(owner_holder) => {
             // call token burn_from
             let tx_index = TOKEN.with(|token| {
                 let mut token = token.borrow_mut();
                 token.burn_from(
                     &caller,
-                    &token_holder_owner,
-                    &holder,
+                    &owner_holder,
+                    &spender,
                     value.clone(),
                     nonce,
                     api::time(),

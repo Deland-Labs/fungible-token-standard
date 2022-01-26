@@ -45,8 +45,8 @@ impl FromStr for TokenHolder {
 impl Display for TokenHolder {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> fmt::Result {
         let s = match &self {
-            TokenHolder::Account(_ai) => _ai.to_string(),
-            TokenHolder::Principal(_pid) => _pid.to_string(),
+            TokenHolder::Account(_ai) => _ai.to_hex(),
+            TokenHolder::Principal(_pid) => _pid.to_text(),
             TokenHolder::None => "".into(),
         };
         write!(f, "{}", s)
