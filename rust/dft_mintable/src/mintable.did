@@ -13,8 +13,8 @@ type TokenInfo = record {
 };
 type TransactionResponse = record { txId : text; error : opt vec Error };
 type TxRecord = variant {
-  Approve : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
-  Transfer : record { nat; principal; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
+  Approve : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
+  Transfer : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
 };
 type TxRecordResult = variant {Ok : TxRecord;  Err : Error;  Forward : principal; };
 service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {
