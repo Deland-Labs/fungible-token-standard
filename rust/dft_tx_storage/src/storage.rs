@@ -196,9 +196,6 @@ mod tests {
 
     #[fixture]
     fn test_tx_record(test_start_index: Nat, now: u64) -> TxRecord {
-        let caller =
-            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
-                .unwrap();
         let from =
             Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
                 .unwrap();
@@ -209,7 +206,7 @@ mod tests {
         let to_holder = TokenHolder::new(to.clone(), None);
         TxRecord::Transfer(
             test_start_index,
-            caller,
+            from_holder.clone(),
             from_holder,
             to_holder,
             Nat::from(1000),
@@ -221,9 +218,6 @@ mod tests {
 
     #[fixture]
     fn invalid_tx_record(test_start_index: Nat, now: u64) -> TxRecord {
-        let caller =
-            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
-                .unwrap();
         let from =
             Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
                 .unwrap();
@@ -234,7 +228,7 @@ mod tests {
         let to_holder = TokenHolder::new(to.clone(), None);
         TxRecord::Transfer(
             test_start_index - 1,
-            caller,
+            from_holder.clone(),
             from_holder,
             to_holder,
             Nat::from(1000),
@@ -246,9 +240,6 @@ mod tests {
 
     #[fixture]
     fn test_tx_records(test_start_index: Nat, now: u64) -> Vec<TxRecord> {
-        let caller =
-            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
-                .unwrap();
         let from =
             Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
                 .unwrap();
@@ -262,7 +253,7 @@ mod tests {
         for i in 0..3 {
             tx_records.push(TxRecord::Transfer(
                 test_start_index.clone() + i,
-                caller,
+                from_holder.clone(),
                 from_holder.clone(),
                 to_holder.clone(),
                 Nat::from(1000),
@@ -277,9 +268,6 @@ mod tests {
 
     #[fixture]
     fn test_invalid_tx_records(test_start_index: Nat, now: u64) -> Vec<TxRecord> {
-        let caller =
-            Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae")
-                .unwrap();
         let from =
             Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
                 .unwrap();
@@ -299,7 +287,7 @@ mod tests {
 
             tx_records.push(TxRecord::Transfer(
                 ti,
-                caller,
+                from_holder.clone(),
                 from_holder.clone(),
                 to_holder.clone(),
                 Nat::from(1000),

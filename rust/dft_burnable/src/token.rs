@@ -35,7 +35,8 @@ impl BurnableExtension for TokenBasic {
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
-        self._burn(caller, owner, value, nonce, now)
+        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self._burn(owner, owner, value, nonce, now)
     }
     fn burn_from(
         &mut self,
@@ -47,8 +48,9 @@ impl BurnableExtension for TokenBasic {
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
+        let nonce = self.get_verified_nonce(caller, nonce)?;
         // debit spender's allowance
         self.debit_allowance(owner, spender, value.clone())?;
-        self._burn(caller, owner, value, nonce, now)
+        self._burn(spender, owner, value, nonce, now)
     }
 }
