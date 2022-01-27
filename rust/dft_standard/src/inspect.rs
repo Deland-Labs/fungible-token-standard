@@ -1,8 +1,8 @@
 extern crate dft_types;
 extern crate dft_utils;
 
-use candid::Nat;
 use crate::token::TokenStandard;
+use candid::{Nat, Principal};
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::inspect_message;
@@ -26,7 +26,7 @@ static QUERY_METHODS: [&str; 17] = [
     "lastTransactions",
     "transactionById",
     "transactionByIndex",
-    "__get_candid_interface_tmp_hack"
+    "__get_candid_interface_tmp_hack",
 ];
 
 static OWNER_METHODS: [&str; 6] = [
@@ -58,7 +58,7 @@ fn inspect_message() {
                     let (sub_account, _) = api::call::arg_data::<(Option<Subaccount>, Nat)>();
                     TokenHolder::new(caller, sub_account)
                 }
-                // nover match this case
+                // never match this case
                 _ => TokenHolder::new(caller, None),
             };
 
@@ -66,9 +66,12 @@ fn inspect_message() {
             let balance = TOKEN.with(|token| token.borrow().balance_of(&holder));
             if balance > Nat::from(0) {
                 api::call::accept_message();
+            } else if caller == Principal::anonymous() {
+                let err: ActorError = DFTError::NotAllowAnonymous.into();
+                api::call::reject(format!("{:?}", err).as_str());
             } else {
-                ic_cdk::println!("inspect: caller's balance is 0; reject");
-                api::call::reject_message();
+                let err: ActorError = DFTError::InsufficientBalance.into();
+                api::call::reject(format!("{:?}", err).as_str());
             }
         }
         m if OWNER_METHODS.contains(&m) => {
@@ -77,11 +80,12 @@ fn inspect_message() {
             if caller == owner {
                 api::call::accept_message();
             } else {
-                ic_cdk::println!("inspect: caller is not owner; reject");
-                api::call::reject_message();
+                let err: ActorError = DFTError::OnlyOwnerAllowCallIt.into();
+                api::call::reject(format!("{:?}", err).as_str());
             }
         }
         _ => {
+            api::call::accept_message();
             ic_cdk::println!("inspect: method not checked; accept");
         }
     }
