@@ -22,15 +22,13 @@ async fn mint(to: String, value: Nat, nonce: Option<u64>) -> ActorResult<Transac
                 let mut token = token.borrow_mut();
                 token.mint(&api::caller(), &holder, value.clone(), nonce, api::time())
             })?;
-            let mut errors: Vec<ActorError> = Vec::new();
             // exec auto scaling strategy
-            match exec_auto_scaling_strategy().await {
-                Err(e) => errors.push(e),
-                _ => {}
-            };
             Ok(TransactionResponse {
                 tx_id: encode_tx_id(api::id(), tx_index),
-                error: if errors.len() > 0 { Some(errors) } else { None },
+                error: match exec_auto_scaling_strategy().await {
+                    Err(e) => Some(e),
+                    _ => None,
+                },
             })
         }
 

@@ -6,5 +6,5 @@ use crate::{ActorError};
 pub struct TransactionResponse {
     #[serde(rename="txId")]
     pub tx_id: TransactionId,
-    pub error: Option<Vec<ActorError>>,
+    pub error: Option<ActorError>,
 }

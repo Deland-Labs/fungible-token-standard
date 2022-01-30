@@ -4,19 +4,19 @@ all: build
 .PHONY: build
 .SILENT: build
 build:
-	dfx canister --no-wallet create --all
+	dfx canister create --all
 	dfx build
 
 .PHONY: install
 .SILENT: install
 install: build
-	dfx canister --no-wallet  install dft_basic \
+	dfx canister  install dft_basic \
 	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { minimum = 1 : nat; rate = 0 : nat; rate_decimals= 0:nat8 } , null)'
 
 .PHONY: upgrade
 .SILENT: upgrade
 upgrade: build
-	echo yes|dfx canister --no-wallet  install dft_basic \
+	echo yes|dfx canister  install dft_basic \
 	  --argument '(null ,null ,"Deland Token", "DLD", 18:nat8, 100000000000000000000000000:nat, record { minimum = 1 : nat; rate = 0 : nat; rate_decimals= 0:nat8 }, null)' \
 	  --mode reinstall
  
