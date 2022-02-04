@@ -5,7 +5,7 @@ edition = "2018"
 
 [dependencies] 
 ic-cdk = "0.4.0"
-ic-cdk-macros = "0.3.3"
+ic-cdk-macros = "0.4.0"
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
 candid = "0.7.10"
