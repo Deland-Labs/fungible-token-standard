@@ -151,7 +151,7 @@ fn balance_of(holder: String) -> Nat {
 
 #[query(name = "nonceOf")]
 #[candid_method(query, rename = "nonceOf")]
-fn nonce_of(principal: Principal) -> u64 {   
+fn nonce_of(principal: Principal) -> u64 {
     TOKEN.with(|token| {
         let token = token.borrow();
         token.nonce_of(&principal)
@@ -201,17 +201,12 @@ async fn approve(
             })?;
             let tx_id = encode_tx_id(api::id(), tx_index);
 
-            let mut errors: Vec<ActorError> = vec![];
-            match exec_auto_scaling_strategy().await {
-                Ok(_) => (),
-                Err(e) => {
-                    errors.push(e);
-                }
-            }
-
             Ok(TransactionResponse {
                 tx_id: tx_id,
-                error: if errors.len() > 0 { Some(errors) } else { None },
+                error: match exec_auto_scaling_strategy().await {
+                    Ok(_) => None,
+                    Err(e) => Some(e),
+                },
             })
         }
         Err(_) => Err(DFTError::InvalidSpender.into()),
@@ -260,15 +255,13 @@ async fn transfer_from(
                         now,
                     )
                 })?;
-                let mut errors: Vec<ActorError> = vec![];
                 // exec auto scaling strategy
-                match exec_auto_scaling_strategy().await {
-                    Err(e) => errors.push(e),
-                    _ => {}
-                };
                 Ok(TransactionResponse {
                     tx_id: encode_tx_id(api::id(), tx_index),
-                    error: if errors.len() > 0 { Some(errors) } else { None },
+                    error: match exec_auto_scaling_strategy().await {
+                        Err(e) => Some(e),
+                        _ => None,
+                    },
                 })
             }
             _ => Err(DFTError::InvalidArgFormatTo.into()),
@@ -294,7 +287,6 @@ async fn transfer(
         Ok(receiver) => {
             //exec before-transfer check
             before_token_sending(&transfer_from, &receiver, &value)?;
-            let mut errors: Vec<ActorError> = Vec::new();
             //transfer token
             let tx_index = TOKEN.with(|token| {
                 let mut token = token.borrow_mut();
@@ -309,16 +301,12 @@ async fn transfer(
             })?;
 
             //exec auto-scaling storage strategy
-            match exec_auto_scaling_strategy().await {
-                Ok(_) => (),
-                Err(e) => {
-                    errors.push(e);
-                }
-            };
-
             return Ok(TransactionResponse {
                 tx_id: encode_tx_id(api::id(), tx_index),
-                error: if errors.len() > 0 { Some(errors) } else { None },
+                error: match exec_auto_scaling_strategy().await {
+                    Ok(_) => None,
+                    Err(e) => Some(e),
+                },
             });
         }
         _ => Err(DFTError::InvalidArgFormatTo.into()),

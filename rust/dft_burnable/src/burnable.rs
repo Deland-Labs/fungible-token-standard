@@ -38,19 +38,14 @@ async fn burn_from(
                 )
             })?;
 
-            let mut errors: Vec<ActorError> = vec![];
-            //exec auto-scaling storage strategy
-            match exec_auto_scaling_strategy().await {
-                Ok(_) => (),
-                Err(e) => {
-                    errors.push(e);
-                }
-            };
-
-            Ok(TransactionResponse {
+            let result = Ok(TransactionResponse {
                 tx_id: encode_tx_id(api::id(), tx_index),
-                error: if errors.len() > 0 { Some(errors) } else { None },
-            })
+                error: match exec_auto_scaling_strategy().await {
+                    Ok(_) => None,
+                    Err(e) => Some(e),
+                },
+            });
+            result
         }
 
         Err(_) => Err(DFTError::InvalidSpender.into()),
@@ -70,17 +65,12 @@ async fn burn(
         let mut token = token.borrow_mut();
         token.burn(&caller, &transfer_from, value.clone(), nonce, api::time())
     })?;
-    let mut errors: Vec<ActorError> = vec![];
     //exec auto-scaling storage strategy
-    match exec_auto_scaling_strategy().await {
-        Ok(_) => (),
-        Err(e) => {
-            errors.push(e);
-        }
-    };
-
     Ok(TransactionResponse {
         tx_id: encode_tx_id(api::id(), tx_index),
-        error: if errors.len() > 0 { Some(errors) } else { None },
+        error: match exec_auto_scaling_strategy().await {
+            Ok(_) => None,
+            Err(e) => Some(e),
+        },
     })
 }

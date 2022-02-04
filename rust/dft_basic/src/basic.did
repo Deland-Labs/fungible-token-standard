@@ -11,7 +11,7 @@ type TokenInfo = record {
   holders : nat; storages : vec principal;
   feeTo : TokenHolder;
 };
-type TransactionResponse = record { txId : text; error : opt vec Error };
+type TransactionResponse = record { txId : text; error : opt Error };
 type TxRecord = variant {
   Approve : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
   Transfer : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
