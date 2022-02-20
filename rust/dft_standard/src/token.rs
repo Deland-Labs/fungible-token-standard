@@ -8,7 +8,13 @@ pub trait TokenStandard {
     fn id(&self) -> Principal;
     // get/set owner
     fn owner(&self) -> Principal;
-    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> CommonResult<bool>;
+    fn set_owner(
+        &mut self,
+        caller: &Principal,
+        owner: Principal,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool>;
 
     // name
     fn name(&self) -> String;
@@ -20,9 +26,21 @@ pub trait TokenStandard {
     fn total_supply(&self) -> Nat;
     // get/set fee
     fn fee(&self) -> Fee;
-    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> CommonResult<bool>;
+    fn set_fee(
+        &mut self,
+        caller: &Principal,
+        fee: Fee,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool>;
     // set fee to
-    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> CommonResult<bool>;
+    fn set_fee_to(
+        &mut self,
+        caller: &Principal,
+        fee_to: TokenHolder,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool>;
     // get metadata
     fn metadata(&self) -> Metadata;
     // get/set desc info
@@ -608,9 +626,25 @@ impl TokenStandard for TokenBasic {
         self.owner.clone()
     }
 
-    fn set_owner(&mut self, caller: &Principal, owner: Principal) -> CommonResult<bool> {
+    fn set_owner(
+        &mut self,
+        caller: &Principal,
+        owner: Principal,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.owner = owner;
+        // create OwnerModifyTx
+        let tx_index = self.generate_new_tx_index();
+        let tx = TxRecord::OwnerModify(
+            tx_index.clone(),
+            caller.clone(),
+            owner.clone(),
+            self.get_verified_nonce(caller, nonce)?,
+            now,
+        );
+        self.txs.push(tx);
         Ok(true)
     }
 
@@ -634,15 +668,47 @@ impl TokenStandard for TokenBasic {
         self.fee.clone()
     }
 
-    fn set_fee(&mut self, caller: &Principal, fee: Fee) -> CommonResult<bool> {
+    fn set_fee(
+        &mut self,
+        caller: &Principal,
+        fee: Fee,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        self.fee = fee;
+        self.fee = fee.clone();
+        // create FeeModifyTx
+        let tx_index = self.generate_new_tx_index();
+        let tx = TxRecord::FeeModify(
+            tx_index.clone(),
+            caller.clone(),
+            fee,
+            self.get_verified_nonce(caller, nonce)?,
+            now,
+        );
+        self.txs.push(tx);
         Ok(true)
     }
 
-    fn set_fee_to(&mut self, caller: &Principal, fee_to: TokenHolder) -> CommonResult<bool> {
+    fn set_fee_to(
+        &mut self,
+        caller: &Principal,
+        fee_to: TokenHolder,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        self.fee_to = fee_to;
+        self.fee_to = fee_to.clone();
+        // create FeeToModifyTx
+        let tx_index = self.generate_new_tx_index();
+        let tx = TxRecord::FeeToModify(
+            tx_index.clone(),
+            caller.clone(),
+            fee_to.clone(),
+            self.get_verified_nonce(caller, nonce)?,
+            now,
+        );
+        self.txs.push(tx);
         Ok(true)
     }
 

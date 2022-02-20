@@ -11,10 +11,10 @@ use std::{collections::HashMap, string::String};
 
 #[update(name = "setOwner")]
 #[candid_method(update, rename = "setOwner")]
-fn set_owner(owner: Principal) -> ActorResult<bool> {
+fn set_owner(owner: Principal, nonce: Option<u64>) -> ActorResult<bool> {
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        token.set_owner(&api::caller(), owner)?;
+        token.set_owner(&api::caller(), owner, nonce, api::time())?;
         Ok(true)
     })
 }
@@ -44,21 +44,21 @@ fn set_desc_info(desc_data: Vec<(String, String)>) -> ActorResult<bool> {
 
 #[update(name = "setFee")]
 #[candid_method(update, rename = "setFee")]
-fn set_fee(fee: Fee) -> ActorResult<bool> {
+fn set_fee(fee: Fee, nonce: Option<u64>) -> ActorResult<bool> {
     let caller = api::caller();
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        to_actor_result(token.set_fee(&caller, fee))
+        to_actor_result(token.set_fee(&caller, fee, nonce, api::time()))
     })
 }
 
 #[query(name = "setFeeTo")]
 #[candid_method(update, rename = "setFeeTo")]
-fn set_fee_to(fee_to: String) -> ActorResult<bool> {
+fn set_fee_to(fee_to: String, nonce: Option<u64>) -> ActorResult<bool> {
     match fee_to.parse::<TokenReceiver>() {
         Ok(holder) => TOKEN.with(|token| {
             let mut token = token.borrow_mut();
-            to_actor_result(token.set_fee_to(&api::caller(), holder))
+            to_actor_result(token.set_fee_to(&api::caller(), holder, nonce, api::time()))
         }),
         Err(_) => Err(DFTError::InvalidArgFormatFeeTo.into()),
     }
