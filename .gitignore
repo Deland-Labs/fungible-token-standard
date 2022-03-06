@@ -10,3 +10,5 @@
 # dfx temporary files
 .dfx/
 package
+node_modules
+/rust/identities.json

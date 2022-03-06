@@ -1,0 +1,10 @@
+{
+  "canisters": {
+  },
+  "envs": [
+    {
+      "name": "local",
+      "feature": "dev_canister"
+    }
+  ]
+}
