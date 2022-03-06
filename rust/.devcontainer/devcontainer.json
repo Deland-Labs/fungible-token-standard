@@ -32,6 +32,7 @@
     "serayuzgur.crates"
   ],
   "mounts": [
+    "target=${containerWorkspaceFolder}/node_modules,type=volume",
     "target=${containerWorkspaceFolder}/.dfx,type=volume",
     "target=${containerWorkspaceFolder}/target,type=volume"
   ]
