@@ -42,7 +42,7 @@ jobs:
           pipenv install
           pipenv run invoke package-zip
       - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: |
             rust/package/local.zip
