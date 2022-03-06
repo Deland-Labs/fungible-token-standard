@@ -13,12 +13,12 @@ jobs:
     container:
       image: docker.io/kentsday/dfx_rust:bullseye
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
       - name: Setup .NET 5.0 for gittools
-        uses: actions/setup-dotnet@v1
+        uses: actions/setup-dotnet@v2
         with:
           dotnet-version: "5.0.x"
       - name: Install GitVersion
@@ -42,7 +42,7 @@ jobs:
           pipenv install
           pipenv run invoke package-zip
       - name: Archive artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           path: |
             rust/package/local.zip
