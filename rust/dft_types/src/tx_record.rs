@@ -1,8 +1,8 @@
 use super::{TokenHolder, TokenReceiver};
-use crate::{ActorError, DFTError};
+use crate::{ActorError, DFTError, Fee};
 use candid::{CandidType, Deserialize, Nat, Principal};
 
-#[derive(CandidType, Debug, Clone, Deserialize, Eq, PartialEq, Hash)]
+#[derive(CandidType, Debug, Clone, Deserialize, Eq, PartialEq)]
 pub enum TxRecord {
     // tx_index, caller, owner, spender, value, fee,nonce , timestamp
     Approve(
@@ -26,6 +26,30 @@ pub enum TxRecord {
         u64,
         u64,
     ),
+    // tx_index, caller (owner), new fee setting, nonce, timestamp
+    FeeModify(
+        Nat,
+        Principal,
+        Fee,
+        u64,
+        u64,
+    ),
+     // tx_index, caller (owner), new owner, nonce, timestamp
+     OwnerModify(
+        Nat,
+        Principal,
+        Principal,
+        u64,
+        u64,
+    ),
+    // tx_index, caller (owner), new feeTo, nonce, timestamp
+    FeeToModify(
+        Nat,
+        Principal,
+        TokenHolder,
+        u64,
+        u64,
+    ),
 }
 
 impl TxRecord {
@@ -33,6 +57,9 @@ impl TxRecord {
         match self {
             TxRecord::Approve(tx_index, _, _, _, _, _, _, _) => tx_index.clone(),
             TxRecord::Transfer(tx_index, _, _, _, _, _, _, _) => tx_index.clone(),
+            TxRecord::FeeModify(tx_index, _, _, _, _) => tx_index.clone(),
+            TxRecord::OwnerModify(tx_index, _, _, _, _) => tx_index.clone(),
+            TxRecord::FeeToModify(tx_index, _, _, _, _) => tx_index.clone(),    
         }
     }
 }
