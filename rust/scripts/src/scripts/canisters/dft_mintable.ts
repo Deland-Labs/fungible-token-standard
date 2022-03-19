@@ -7,21 +7,21 @@ import BigNumber from "bignumber.js";
 import logger from "node-color-log";
 
 const build = () => {
-    canister.build("dft_basic");
+    canister.build("dft_mintable");
 }
 
 const reinstall_by_dfx = async (args: string) => {
-    await canister.reinstall("dft_basic", args);
+    await canister.reinstall("dft_mintable", args);
 }
 
 export const reinstall = async (options?: ReInstallOptions, initOption?: DFTInitOptions) => {
     if (options?.build) {
         build();
     }
-    const name = initOption?.name ?? "Test Basic Token";
-    const symbol = initOption?.symbol ?? "TBT";
-    const decimals = initOption?.decimals ?? 18;
-    const supply = new BigNumber(parseToCommon(initOption?.totalSupply ?? 100000000000000000000000000n)).toFixed();
+    const name = initOption?.name ?? "Mintable Token";
+    const symbol = initOption?.symbol ?? "MTT";
+    const decimals = initOption?.decimals ?? 12;
+    const supply = new BigNumber(parseToCommon(initOption?.totalSupply ?? 100000000000000000000n)).toFixed();
 
     const fee = initOption?.fee ?? {
         rate: 0n,

@@ -24,6 +24,7 @@
     "@types/node": "^16.11.21",
     "@types/shelljs": "^0.8.11",
     "archiver": "^5.3.0",
+    "bignumber.js": "^9.0.2",
     "btoa": "^1.2.1",
     "chai": "^4.3.6",
     "crc": "^4.0.0",

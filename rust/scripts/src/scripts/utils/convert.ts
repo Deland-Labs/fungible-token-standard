@@ -4,6 +4,7 @@ import {Buffer} from "buffer";
 // @ts-ignore (no type definitions for crc are available)
 import crc from "crc";
 import {SubAccount} from "./types";
+import logger from "node-color-log";
 
 
 export const principalToAccountIDInBytes = (
@@ -115,4 +116,21 @@ export const toICPe8s = (source: string): bigint => {
         // convert to bigint
         return BigInt(str);
     }
+}
+
+export const parseRawTableToJsonArray = (rawTable) => {
+    let optionArray: Array<any> = [];
+    let columNames = rawTable[0];
+    // foreach row
+    for (let i = 1; i < rawTable.length; i++) {
+        let row = rawTable[i];
+        // foreach column, parse to a json object
+        let options = {};
+        for (let j = 0; j < columNames.length; j++) {
+            options[columNames[j]] = row[j];
+        }
+        optionArray.push(options);
+    }
+
+    return optionArray;
 }

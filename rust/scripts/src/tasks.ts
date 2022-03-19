@@ -1,26 +1,52 @@
 import "./scripts/setup"
-import {reinstall as reinstall_dft_basic} from "./scripts/canisters/dft_basic";
+import {reinstall as reinstallDFTBasic} from "./scripts/canisters/dft_basic";
+import {reinstall as reinstallDFTBasic2} from "./scripts/canisters/dft_basic2";
+import {reinstall as reinstallDFTBurnable} from "./scripts/canisters/dft_burnable";
+import {reinstall as reinstallDFTMintable} from "./scripts/canisters/dft_mintable";
+import {reinstall as reinstallDFTReceiver} from "./scripts/canisters/dft_receiver";
+import {reinstall as reinstallDFTTxStorage} from "./scripts/canisters/dft_tx_storage";
 
 
 export const reinstall_all = async (options?: CanisterReinstallOptions) => {
     // recode time of cost
     const start = Date.now();
+    const jobs = Array<Promise<void>>();
+    // dft basic
+    if (options && options.canisters?.dft_basic) {
+        jobs.push(reinstallDFTBasic({
+            ...options,
+        }, options.canisters.dft_basic.initOptions));
+    }
+    // dft basic 2
+    if (options && options.canisters?.dft_basic2) {
+        jobs.push(reinstallDFTBasic2({...options,},
+            options.canisters.dft_basic2.initOptions));
+    }
+    // dft burnable
+    if (options && options.canisters?.dft_burnable) {
+        jobs.push(reinstallDFTBurnable({...options,},
+            options.canisters.dft_burnable.initOptions));
+    }
+    // dft mintable
+    if (options && options.canisters?.dft_mintable) {
+        jobs.push(reinstallDFTMintable({...options,},
+            options.canisters.dft_mintable.initOptions));
+    }
+    // dft receiver
+    if (options && options.canisters?.dft_receiver) {
+        jobs.push(reinstallDFTReceiver({...options}));
+    }
 
+    // dfx tx storage
+    if (options && options.canisters?.dft_tx_storage) {
+        jobs.push(reinstallDFTTxStorage({...options,}));
+    }
     if (options && options.one_by_one) {
-        if (options && options.canisters?.dft_basic) {
-            await reinstall_dft_basic({
-                ...options,
-            });
+        for (const task of jobs) {
+            await task;
         }
     } else {
         console.info("reinstall all in parallel");
-        let jobs: Promise<void>[] = [];
-        if (options && options.canisters?.dft_basic) {
-            jobs.push(reinstall_dft_basic({
-                ...options,
-            }));
-        }
-
         await Promise.all(jobs);
     }
 
@@ -30,12 +56,38 @@ export const reinstall_all = async (options?: CanisterReinstallOptions) => {
     await new Promise((resolve) => setTimeout(resolve, 3000));
 }
 
+export interface Fee {
+    minimum: number,
+    rate: number,
+    rate_decimals: number
+}
+
+export interface DFTInitOptions {
+    name: string;
+    symbol: string;
+    decimals: bigint;
+    totalSupply: bigint;
+    fee: Fee;
+    desc: Array<[string, string]>;
+    owner: string;
+}
+
+export interface CommonInstallOptions {
+    reinstall: boolean;
+}
+
+
+export interface DFTInstallOptions extends CommonInstallOptions {
+    initOptions: DFTInitOptions;
+}
+
 export interface CanisterReinstallOptionsCanisters {
-    dft_basic?: boolean;
-    dft_burnable?: boolean;
-    dft_mintable?: boolean;
-    dft_receiver?: boolean;
-    dft_tx_storage?: boolean;
+    dft_basic?: DFTInstallOptions;
+    dft_basic2?: DFTInstallOptions;
+    dft_burnable?: DFTInstallOptions;
+    dft_mintable?: DFTInstallOptions;
+    dft_receiver?: CommonInstallOptions;
+    dft_tx_storage?: CommonInstallOptions;
 }
 
 export interface CanisterReinstallOptions {

@@ -1,7 +1,7 @@
 import {canister} from "~/utils";
 
 (async () => {
-    await canister.create_all();
+    await canister.createAll();
     canister.build_all();
 })();
 
