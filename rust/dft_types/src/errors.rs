@@ -95,10 +95,3 @@ pub struct ActorError {
 
 pub type CommonResult<T> = anyhow::Result<T, DFTError>;
 pub type ActorResult<T> = Result<T, ActorError>;
-
-pub fn to_actor_result<T>(result: CommonResult<T>) -> ActorResult<T> {
-    match result {
-        Ok(value) => Ok(value),
-        Err(error) => Err(error.into()),
-    }
-}

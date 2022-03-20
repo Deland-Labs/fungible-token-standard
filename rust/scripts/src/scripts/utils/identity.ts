@@ -50,7 +50,7 @@ export interface IdentityInfo {
     agentOptions: agentOptions;
 }
 
-export const IDENTITIES = ["dft_main", "dft_miner", "dft_user1", "dft_user2", "dft_user3", "dft_receiver"];
+export const IDENTITIES = ["dft_main", "dft_miner", "dft_user1", "dft_user2", "dft_user3", "dft_receiver", "dft_fee_charger"];
 export const DEFAULT_IDENTITY = IDENTITIES[0];
 export const createIdentities = () => {
     IDENTITIES.forEach(new_dfx_identity);

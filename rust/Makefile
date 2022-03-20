@@ -45,17 +45,21 @@ define test_token_impl
 	dfx canister call dft_basic desc  \
 	| grep '"OFFICIAL_SITE"; "http://test.com"' && echo 'PASS desc test'
 
-	dfx canister call dft_basic setFee '(record { minimum = 1 : nat; rate = 0 : nat ; rate_decimals = 0 : nat8; })' \
+	dfx canister call dft_basic setFee '(record { minimum = 1 : nat; rate = 0 : nat ; rate_decimals = 0 : nat8; }, null)' \
 	| grep '(variant { Ok = true })' && echo 'PASS set fee test'
 	dfx canister call dft_basic fee  \
 	| grep '(record { rate = 0 : nat; minimum = 1 : nat; rate_decimals = 0 : nat8 })' && echo 'PASS fee check 2'
 
+    dfx canister call dft_basic setFeeTo '("4dbzh-slas7-elrt3-2rejw-cspha-raodx-nmzfe-6kpja-a6sqn-c6t3j-hae", null)' \
+	| grep '(variant { Ok = true })' && echo 'PASS set fee to test'
+	dfx canister call dft_basic tokenInfo \
+	| grep '"4dbzh-slas7-elrt3-2rejw-cspha-raodx-nmzfe-6kpja-a6sqn-c6t3j-hae"' && echo 'PASS setFeeTo check'
 	dfx canister call dft_basic approve '(null,"rrkah-fqaaa-aaaaa-aaaaq-cai",3000000000000000000:nat,null)'
 	dfx canister call dft_basic allowance '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \
 	| grep '3_000_000_000_000_000_000' && echo 'PASS allowance check'
 
   dfx canister call dft_basic nonceOf '(principal "$(owner_id)")' \
-	| grep '(4 : nat64)' && echo 'PASS nonce check'
+	| grep '(5 : nat64)' && echo 'PASS nonce check'
 	dfx canister call dft_basic transactionByIndex '(1 : nat)' \
 	| grep '1_000_000_000_000_000_000 : nat;' && echo 'PASS transactionByIndex check'
 	dfx canister call dft_basic allowancesOf '("$(owner_id)","rrkah-fqaaa-aaaaa-aaaaq-cai")' \

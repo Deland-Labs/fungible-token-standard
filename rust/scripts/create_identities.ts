@@ -7,8 +7,8 @@ import fs from "fs";
 import logger from "node-color-log";
 
 createIdentities();
-logger.debug("Identities created, identities.json written to disk");
-
+// identities.json written to disk
+logger.debug("Identities created");
 
 canister.createAll();
 addMainAsController()

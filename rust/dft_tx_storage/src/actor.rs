@@ -1,6 +1,6 @@
 use crate::state::STORAGE;
 use crate::storage::StorageInfo;
-use candid::Principal;
+use candid::{Principal};
 use candid::{candid_method, Nat};
 use dft_types::*;
 use ic_cdk::api;
@@ -11,58 +11,51 @@ fn canister_init(dft_id: Principal, dft_tx_start_index: Nat) {
     STORAGE.with(|storage| {
         let mut storage = storage.borrow_mut();
         storage.initialize(dft_id.clone(), dft_tx_start_index.clone());
-        api::print(format!(
-            "dft is {} start index is {}",
-            dft_id, dft_tx_start_index
-        ));
     });
 }
 
 #[update(name = "append")]
 #[candid_method(update, rename = "append")]
-fn append(tx: TxRecord) -> ActorResult<bool> {
+fn append(tx: TxRecord) -> BooleanResult {
     STORAGE.with(|storage| {
         let mut storage = storage.borrow_mut();
-        to_actor_result(storage.append(&api::caller(), tx))
+        storage.append(&api::caller(), tx).into()
     })
 }
 
 #[update(name = "batchAppend")]
 #[candid_method(update, rename = "batchAppend")]
-fn batch_append(txs: Vec<TxRecord>) -> ActorResult<bool> {
+fn batch_append(txs: Vec<TxRecord>) -> BooleanResult {
     STORAGE.with(|storage| {
         let mut storage = storage.borrow_mut();
-        to_actor_result(storage.batch_append(&api::caller(), txs))
+        storage.batch_append(&api::caller(), txs).into()
     })
 }
 
 #[query(name = "transactionByIndex")]
 #[candid_method(query, rename = "transactionByIndex")]
-fn transaction_by_index(tx_index: Nat) -> ActorResult<TxRecord> {
+fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
-        let tx = storage.get_tx_by_index(tx_index);
-        to_actor_result(tx)
+        storage.get_tx_by_index(tx_index).into()
     })
 }
 
 #[query(name = "transactions")]
 #[candid_method(query, rename = "transactions")]
-fn transactions(tx_start_index: Nat, size: usize) -> ActorResult<Vec<TxRecord>> {
+fn transactions(tx_start_index: Nat, size: usize) -> TxRecordListResult {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
-        let txs = storage.get_tx_by_index_range(tx_start_index, size);
-        to_actor_result(txs)
+        storage.get_tx_by_index_range(tx_start_index, size).into()
     })
 }
 
 #[query(name = "transactionById")]
 #[candid_method(query, rename = "transactionById")]
-fn get_transaction_by_id(tx_id: String) -> ActorResult<TxRecord> {
+fn get_transaction_by_id(tx_id: String) -> TxRecordResult {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
-        let tx = storage.get_tx_by_id(tx_id);
-        to_actor_result(tx)
+        storage.get_tx_by_id(tx_id).into()
     })
 }
 

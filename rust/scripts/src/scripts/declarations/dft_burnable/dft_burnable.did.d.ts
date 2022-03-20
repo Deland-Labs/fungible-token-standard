@@ -1,5 +1,7 @@
 import type { Principal } from '@dfinity/principal';
 export interface ActorError { 'code' : number, 'message' : string }
+export type BooleanResult = { 'Ok' : boolean } |
+  { 'Err' : ActorError };
 export interface Fee {
   'rate' : bigint,
   'minimum' : bigint,
@@ -12,10 +14,6 @@ export interface Metadata {
   'totalSupply' : bigint,
   'symbol' : string,
 }
-export type Result = { 'Ok' : TransactionResponse } |
-  { 'Err' : ActorError };
-export type Result_1 = { 'Ok' : Array<TxRecord> } |
-  { 'Err' : ActorError };
 export type TokenHolder = { 'None' : null } |
   { 'Account' : string } |
   { 'Principal' : Principal };
@@ -32,6 +30,8 @@ export interface TransactionResponse {
   'txId' : string,
   'error' : [] | [ActorError],
 }
+export type TransactionResult = { 'Ok' : TransactionResponse } |
+  { 'Err' : ActorError };
 export type TxRecord = {
     'FeeToModify' : [bigint, Principal, TokenHolder, bigint, bigint]
   } |
@@ -61,6 +61,8 @@ export type TxRecord = {
     ]
   } |
   { 'OwnerModify' : [bigint, Principal, Principal, bigint, bigint] };
+export type TxRecordListResult = { 'Ok' : Array<TxRecord> } |
+  { 'Err' : ActorError };
 export type TxRecordResult = { 'Ok' : TxRecord } |
   { 'Err' : ActorError } |
   { 'Forward' : Principal };
@@ -72,17 +74,24 @@ export interface _SERVICE {
       arg_1: string,
       arg_2: bigint,
       arg_3: [] | [bigint],
-    ) => Promise<Result>,
+    ) => Promise<TransactionResult>,
   'balanceOf' : (arg_0: string) => Promise<bigint>,
   'decimals' : () => Promise<number>,
   'desc' : () => Promise<Array<[string, string]>>,
   'fee' : () => Promise<Fee>,
-  'lastTransactions' : (arg_0: bigint) => Promise<Result_1>,
+  'lastTransactions' : (arg_0: bigint) => Promise<TxRecordListResult>,
   'logo' : () => Promise<Array<number>>,
   'meta' : () => Promise<Metadata>,
   'name' : () => Promise<string>,
   'nonceOf' : (arg_0: Principal) => Promise<bigint>,
   'owner' : () => Promise<Principal>,
+  'setDesc' : (arg_0: Array<[string, string]>) => Promise<BooleanResult>,
+  'setFee' : (arg_0: Fee, arg_1: [] | [bigint]) => Promise<BooleanResult>,
+  'setFeeTo' : (arg_0: string, arg_1: [] | [bigint]) => Promise<BooleanResult>,
+  'setLogo' : (arg_0: [] | [Array<number>]) => Promise<BooleanResult>,
+  'setOwner' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
+      BooleanResult
+    >,
   'symbol' : () => Promise<string>,
   'tokenInfo' : () => Promise<TokenInfo>,
   'totalSupply' : () => Promise<bigint>,
@@ -93,12 +102,12 @@ export interface _SERVICE {
       arg_1: string,
       arg_2: bigint,
       arg_3: [] | [bigint],
-    ) => Promise<Result>,
+    ) => Promise<TransactionResult>,
   'transferFrom' : (
       arg_0: [] | [Array<number>],
       arg_1: string,
       arg_2: string,
       arg_3: bigint,
       arg_4: [] | [bigint],
-    ) => Promise<Result>,
+    ) => Promise<TransactionResult>,
 }

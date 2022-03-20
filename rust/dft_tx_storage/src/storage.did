@@ -1,17 +1,49 @@
-type StorageInfo = record { dft_id : principal; tx_start_index : nat; txs_count : nat; cycles : nat64; };
-type TxRecordResult = variant { Ok : TxRecord; Err : text };
-type TxRecordsResult = variant { Ok : vec TxRecord; Err : text };
+type ActorError = record { code : nat32; message : text };
+type BooleanResult = variant { Ok : bool; Err : ActorError };
+type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
+type StorageInfo = record {
+  dft_id : principal;
+  tx_start_index : nat;
+  txs_count : nat;
+  cycles : nat64;
+};
 type TokenHolder = variant { None; Account : text; Principal : principal };
 type TxRecord = variant {
-  Approve : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
-  Transfer : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
+  FeeToModify : record { nat; principal; TokenHolder; nat64; nat64 };
+  Approve : record {
+    nat;
+    TokenHolder;
+    TokenHolder;
+    TokenHolder;
+    nat;
+    nat;
+    nat64;
+    nat64;
+  };
+  FeeModify : record { nat; principal; Fee; nat64; nat64 };
+  Transfer : record {
+    nat;
+    TokenHolder;
+    TokenHolder;
+    TokenHolder;
+    nat;
+    nat;
+    nat64;
+    nat64;
+  };
+  OwnerModify : record { nat; principal; principal; nat64; nat64 };
+};
+type TxRecordListResult = variant { Ok : vec TxRecord; Err : ActorError };
+type TxRecordResult = variant {
+  Ok : TxRecord;
+  Err : ActorError;
+  Forward : principal;
 };
 service : (principal, nat) -> {  
-  append : (TxRecord) -> (bool);
-  batchAppend : (vec TxRecord) -> (bool);
-  cyclesBalance : () -> (nat) query;
+  append : (TxRecord) -> (BooleanResult);
+  batchAppend : (vec TxRecord) -> (BooleanResult);
+  storageInfo : () -> (StorageInfo) query;
   transactionById : (text) -> (TxRecordResult) query;
   transactionByIndex : (nat) -> (TxRecordResult) query;
-  transactions : (nat, nat64) -> (TxRecordsResult) query;
-  storageInfo : () -> (StorageInfo) query;
+  transactions : (nat, nat64) -> (TxRecordListResult) query;
 }

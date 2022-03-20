@@ -47,25 +47,33 @@ export const idlFactory = ({ IDL }) => {
     ),
   });
   const ActorError = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
-  const Result = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ActorError });
+  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ActorError });
   const StorageInfo = IDL.Record({
     'dft_id' : IDL.Principal,
     'tx_start_index' : IDL.Nat,
     'txs_count' : IDL.Nat,
     'cycles' : IDL.Nat64,
   });
-  const Result_1 = IDL.Variant({ 'Ok' : TxRecord, 'Err' : ActorError });
-  const Result_2 = IDL.Variant({
+  const TxRecordResult = IDL.Variant({
+    'Ok' : TxRecord,
+    'Err' : ActorError,
+    'Forward' : IDL.Principal,
+  });
+  const TxRecordListResult = IDL.Variant({
     'Ok' : IDL.Vec(TxRecord),
     'Err' : ActorError,
   });
   return IDL.Service({
-    'append' : IDL.Func([TxRecord], [Result], []),
-    'batchAppend' : IDL.Func([IDL.Vec(TxRecord)], [Result], []),
+    'append' : IDL.Func([TxRecord], [BooleanResult], []),
+    'batchAppend' : IDL.Func([IDL.Vec(TxRecord)], [BooleanResult], []),
     'storageInfo' : IDL.Func([], [StorageInfo], ['query']),
-    'transactionById' : IDL.Func([IDL.Text], [Result_1], ['query']),
-    'transactionByIndex' : IDL.Func([IDL.Nat], [Result_1], ['query']),
-    'transactions' : IDL.Func([IDL.Nat, IDL.Nat64], [Result_2], ['query']),
+    'transactionById' : IDL.Func([IDL.Text], [TxRecordResult], ['query']),
+    'transactionByIndex' : IDL.Func([IDL.Nat], [TxRecordResult], ['query']),
+    'transactions' : IDL.Func(
+        [IDL.Nat, IDL.Nat64],
+        [TxRecordListResult],
+        ['query'],
+      ),
   });
 };
 export const init = ({ IDL }) => { return []; };

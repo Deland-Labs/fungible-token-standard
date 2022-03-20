@@ -9,7 +9,7 @@ export const idlFactory = ({ IDL }) => {
     'txId' : IDL.Text,
     'error' : IDL.Opt(ActorError),
   });
-  const Result = IDL.Variant({
+  const TransactionResult = IDL.Variant({
     'Ok' : TransactionResponse,
     'Err' : ActorError,
   });
@@ -55,7 +55,7 @@ export const idlFactory = ({ IDL }) => {
       IDL.Nat64,
     ),
   });
-  const Result_1 = IDL.Variant({
+  const TxRecordListResult = IDL.Variant({
     'Ok' : IDL.Vec(TxRecord),
     'Err' : ActorError,
   });
@@ -66,6 +66,7 @@ export const idlFactory = ({ IDL }) => {
     'totalSupply' : IDL.Nat,
     'symbol' : IDL.Text,
   });
+  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ActorError });
   const TokenInfo = IDL.Record({
     'owner' : IDL.Principal,
     'allowanceSize' : IDL.Nat,
@@ -89,19 +90,32 @@ export const idlFactory = ({ IDL }) => {
       ),
     'approve' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],
-        [Result],
+        [TransactionResult],
         [],
       ),
     'balanceOf' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
     'decimals' : IDL.Func([], [IDL.Nat8], ['query']),
     'desc' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))], ['query']),
     'fee' : IDL.Func([], [Fee], ['query']),
-    'lastTransactions' : IDL.Func([IDL.Nat64], [Result_1], ['query']),
+    'lastTransactions' : IDL.Func([IDL.Nat64], [TxRecordListResult], ['query']),
     'logo' : IDL.Func([], [IDL.Vec(IDL.Nat8)], ['query']),
     'meta' : IDL.Func([], [Metadata], ['query']),
     'name' : IDL.Func([], [IDL.Text], ['query']),
     'nonceOf' : IDL.Func([IDL.Principal], [IDL.Nat64], ['query']),
     'owner' : IDL.Func([], [IDL.Principal], ['query']),
+    'setDesc' : IDL.Func(
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
+        [BooleanResult],
+        [],
+      ),
+    'setFee' : IDL.Func([Fee, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
+    'setFeeTo' : IDL.Func([IDL.Text, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
+    'setLogo' : IDL.Func([IDL.Opt(IDL.Vec(IDL.Nat8))], [BooleanResult], []),
+    'setOwner' : IDL.Func(
+        [IDL.Principal, IDL.Opt(IDL.Nat64)],
+        [BooleanResult],
+        [],
+      ),
     'symbol' : IDL.Func([], [IDL.Text], ['query']),
     'tokenInfo' : IDL.Func([], [TokenInfo], ['query']),
     'totalSupply' : IDL.Func([], [IDL.Nat], ['query']),
@@ -109,7 +123,7 @@ export const idlFactory = ({ IDL }) => {
     'transactionByIndex' : IDL.Func([IDL.Nat], [TxRecordResult], ['query']),
     'transfer' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],
-        [Result],
+        [TransactionResult],
         [],
       ),
     'transferFrom' : IDL.Func(
@@ -120,7 +134,7 @@ export const idlFactory = ({ IDL }) => {
           IDL.Nat,
           IDL.Opt(IDL.Nat64),
         ],
-        [Result],
+        [TransactionResult],
         [],
       ),
   });

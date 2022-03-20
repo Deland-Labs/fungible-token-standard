@@ -217,14 +217,14 @@ fn test_token_basic_initialize_all_parameters(test_token_with_0_fee_rate: TokenB
 #[rstest]
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
-fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principal) {
+fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principal,now: u64) {
     let mut token = test_token.clone();
     let new_fee = Fee {
         minimum: Nat::from(2),
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
-    let res = token.set_fee(&test_owner, new_fee.clone());
+    let res = token.set_fee(&test_owner, new_fee.clone(),None,now);
     assert!(res.is_ok(), "set_fee should be ok");
     assert_eq!(token.fee(), new_fee);
 }
@@ -234,6 +234,7 @@ fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principa
 fn test_token_basic_set_fee_invalid_owner(
     test_token_with_0_fee_rate: TokenBasic,
     other_caller: Principal,
+    now:u64
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
     let new_fee = Fee {
@@ -241,7 +242,7 @@ fn test_token_basic_set_fee_invalid_owner(
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
-    let res = token.set_fee(&other_caller, new_fee.clone());
+    let res = token.set_fee(&other_caller, new_fee.clone(),None,now);
     assert!(res.is_err(), "set_fee should be err");
 }
 
@@ -251,14 +252,15 @@ fn test_update_token_basic_set_fee_to(
     test_token_with_0_fee_rate: TokenBasic,
     test_owner: Principal,
     other_caller: Principal,
+    now: u64,
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
     let new_fee_to = TokenHolder::new(other_caller.clone(), None);
     // set fee_to by other caller will failed
-    let res = token.set_fee_to(&other_caller, new_fee_to.clone());
+    let res = token.set_fee_to(&other_caller, new_fee_to.clone(),None,now);
     assert!(res.is_err(), "set_fee_to should be err");
     // set fee_to by owner will ok
-    let res = token.set_fee_to(&test_owner, new_fee_to.clone());
+    let res = token.set_fee_to(&test_owner, new_fee_to.clone(),None,now);
     assert!(res.is_ok(), "set_fee_to should be ok");
     assert_eq!(token.token_info().fee_to, new_fee_to);
 }
