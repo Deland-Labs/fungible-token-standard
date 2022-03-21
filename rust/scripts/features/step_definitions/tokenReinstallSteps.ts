@@ -82,6 +82,39 @@ Given(/^transfer tokens from "([^"]*)" to these users$/, async function (user, a
     }
 });
 
+Given(/^transfer token from "([^"]*)" to these users$/, async function (user, args) {
+    const optionArray = parseRawTableToJsonArray(args.rawTable);
+    for (let i = 0; i < optionArray.length; i++) {
+        const option = optionArray[i];
+        let dftActor = createDFTBasicActor(user);
+        switch (option.token) {
+            case "dft_basic":
+                dftActor = createDFTBasicActor(user);
+                break;
+            case "dft_basic2":
+                dftActor = createDFTBasic2Actor(user);
+                break;
+            case "dft_burnable":
+                dftActor = createDFTBurnableActor(user);
+                break;
+            case "dft_mintable":
+                dftActor = createDFTMintableActor(user);
+                break;
+            default:
+                break;
+        }
+        if (dftActor && option) {
+            const decimals = await dftActor.decimals();
+            const to = identityFactory.getPrincipal(option.user)!.toText();
+            const amountBN = parseToOrigin(option.amount, decimals);
+            const res = await dftActor.transfer([], to, amountBN, []);
+            assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
+            assert.equal(await dftActor.balanceOf(to), amountBN);
+        }
+
+    }
+});
+
 Given(/^owner "([^"]*)" set "([^"]*)" as fee_to$/, async function (owner, feeTo) {
     logger.debug(`owner: ${owner}, feeTo: ${feeTo}`);
     const dftBasic = createDFTBasicActor(owner);
@@ -95,7 +128,7 @@ Given(/^owner "([^"]*)" set "([^"]*)" as fee_to$/, async function (owner, feeTo)
         const dftActor = dftActors[i];
         if (dftActor) {
             // set fee_to
-            const res = await dftActor.setFeeTo(feeToPrincipal,[]);
+            const res = await dftActor.setFeeTo(feeToPrincipal, []);
             assert.isTrue('Ok' in res, `set fee_to failed: ${JSON.stringify(res)}`);
             const result = await dftBasic.tokenInfo();
             assert.isTrue('Principal' in result.feeTo, `tokenInfo failed: ${JSON.stringify(result)}`);
