@@ -109,3 +109,54 @@ When(/^(.*) transfer from (.*) to (.*),(.*) (.*)$/, async function (spender, own
     assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
 
 });
+Then(/^"([^"]*)" transfer "([^"]*)" from "([^"]*)" to "([^"]*)" "([^"]*)" will failed$/, async function (spender, token, owner, to, amount) {
+    const ownerPrincipal = identityFactory.getPrincipal(owner)!.toText();
+    const toPrincipal = identityFactory.getPrincipal(to)!.toText();
+    let actor = createDFTBasicActor(owner);
+    switch (token) {
+        case "dft_basic":
+            actor = createDFTBasicActor(spender);
+            break;
+        case "dft_basic2":
+            actor = createDFTBasic2Actor(spender);
+            break;
+        case "dft_burnable":
+            actor = createDFTBurnableActor(spender);
+            break;
+        case "dft_mintable":
+            actor = createDFTMintableActor(spender);
+            break;
+        default:
+            break;
+    }
+    const decimals = await actor.decimals();
+    const amountBN = parseToOrigin(amount, decimals);
+    const res = await actor.transferFrom([], ownerPrincipal, toPrincipal, amountBN, []);
+    assert.isTrue('Err' in res, `transfer failed: ${JSON.stringify(res)}`);
+});
+
+Then(/^"([^"]*)" transfer "([^"]*)" from "([^"]*)" to "([^"]*)" "([^"]*)" will success$/, async function (spender, token, owner, to, amount) {
+    const ownerPrincipal = identityFactory.getPrincipal(owner)!.toText();
+    const toPrincipal = identityFactory.getPrincipal(to)!.toText();
+    let actor = createDFTBasicActor(owner);
+    switch (token) {
+        case "dft_basic":
+            actor = createDFTBasicActor(spender);
+            break;
+        case "dft_basic2":
+            actor = createDFTBasic2Actor(spender);
+            break;
+        case "dft_burnable":
+            actor = createDFTBurnableActor(spender);
+            break;
+        case "dft_mintable":
+            actor = createDFTMintableActor(spender);
+            break;
+        default:
+            break;
+    }
+    const decimals = await actor.decimals();
+    const amountBN = parseToOrigin(amount, decimals);
+    const res = await actor.transferFrom([], ownerPrincipal, toPrincipal, amountBN, []);
+    assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
+});

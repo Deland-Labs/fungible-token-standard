@@ -1,4 +1,3 @@
-@dev
 Feature: token transfer
 
   Background:
@@ -27,10 +26,25 @@ Feature: token transfer
     Then Check the <token> balance of <owner> should be <amountOwner>
     And Check the <token> balance of <spender> should be <amountSpender>
     And Check the <token> balance of <receiver> should be <amountReceiver>
-    And Check that the transfer fees of <token> by <diff> charged fee is <fee>,fee to is <fee_to>
+    And Check that the transfer fees of <token> by <diff> charged fee is <fee>,fee to is <feeTo>
     Examples:
-      | spender   | owner     | receiver     | fee_to          | diff | token        | amountOwner | amountSpender | amountReceiver | fee     |
+      | spender   | owner     | receiver     | feeTo           | diff | token        | amountOwner | amountSpender | amountReceiver | fee     |
       | dft_user1 | dft_miner | dft_receiver | dft_fee_charger | 100  | dft_basic    | 99899.98    | 0             | 100            | 0.03    |
       | dft_user2 | dft_user1 | dft_receiver | dft_fee_charger | 100  | dft_basic2   | 99899.989   | 0             | 100            | 10.011  |
       | dft_user3 | dft_user2 | dft_receiver | dft_fee_charger | 100  | dft_burnable | 99897.8     | 0             | 100            | 2002.2  |
       | dft_miner | dft_user3 | dft_receiver | dft_fee_charger | 100  | dft_mintable | 99889.7     | 0             | 100            | 10010.3 |
+
+  Scenario:Approve from the owner to a spender
+    When "dft_miner" approve "dft_basic" to "dft_user1", "1"
+    Then Check the "dft_basic" allowance of "dft_miner" "dft_user1" should be "1"
+    Then "dft_miner" approve "dft_basic" to "dft_user1", "5"
+    And Check the "dft_basic" allowance of "dft_miner" "dft_user1" should be "5"
+
+  Scenario:Approve not enough for transfer
+    When "dft_miner" approve "dft_basic" to "dft_user1", "100"
+    Then "dft_user1" transfer "dft_basic" from "dft_miner" to "dft_user2" "100" will failed
+    When "dft_miner" approve "dft_basic" to "dft_user1", "100.1"
+    Then "dft_user1" transfer "dft_basic" from "dft_miner" to "dft_user2" "100" will success
+    And Check the "dft_basic" allowance of "dft_miner" "dft_user1" should be "0.09"
+    And Check the dft_basic balance of dft_user1 should be 0
+    And Check the dft_basic balance of dft_user2 should be 100
