@@ -1,10 +1,10 @@
 import "./scripts/setup"
-import {reinstall as reinstallDFTBasic} from "./scripts/canisters/dft_basic";
-import {reinstall as reinstallDFTBasic2} from "./scripts/canisters/dft_basic2";
-import {reinstall as reinstallDFTBurnable} from "./scripts/canisters/dft_burnable";
-import {reinstall as reinstallDFTMintable} from "./scripts/canisters/dft_mintable";
-import {reinstall as reinstallDFTReceiver} from "./scripts/canisters/dft_receiver";
-import {reinstall as reinstallDFTTxStorage} from "./scripts/canisters/dft_tx_storage";
+import {reinstall as reinstallDFTBasic} from "~/canisters/dftBasic";
+import {reinstall as reinstallDFTBasic2} from "~/canisters/dftBasic2";
+import {reinstall as reinstallDFTBurnable} from "~/canisters/dfBurnable";
+import {reinstall as reinstallDFTMintable} from "~/canisters/dftMintable";
+import {reinstall as reinstallDFTReceiver} from "~/canisters/dftReceiver";
+import {reinstall as reinstallDFTTxStorage} from "~/canisters/dftTxStorage";
 
 
 export const reinstall_all = async (options?: CanisterReinstallOptions) => {

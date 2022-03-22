@@ -1,1 +1,1 @@
-ts-node -r tsconfig-paths/register scripts/create_package.ts
+ts-node -r tsconfig-paths/register scripts/createPackage.ts

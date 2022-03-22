@@ -1,6 +1,6 @@
 import {exec} from "shelljs";
 import {Actor, CanisterInstallMode, HttpAgent} from "@dfinity/agent";
-import {DfxJsonCanister, get_dfx_json, get_wasm_path} from "~/utils/dfx_json";
+import {DfxJsonCanister, get_dfx_json, get_wasm_path} from "~/utils/dfxJson";
 import fs from "fs";
 import {identityFactory} from "~/utils/identity";
 import logger from "node-color-log";

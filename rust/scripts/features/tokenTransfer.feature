@@ -16,7 +16,6 @@ Feature: token transfer
       | dft_burnable | dft_user2 | 100000 |
       | dft_mintable | dft_user3 | 100000 |
 
-  @dev
   Scenario Outline:Transfer token to a receiver
     When <userA> transfer <diff> <token> to <userB> immediate
     Then Check the <token> balance of <userA> should be <amountA>
