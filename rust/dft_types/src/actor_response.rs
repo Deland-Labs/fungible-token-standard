@@ -1,9 +1,9 @@
 use crate::{
     ActorError, ActorResult, CommonResult, TransactionResponse, TxRecord, TxRecordCommonResult,
 };
-use candid::{CandidType, Principal};
+use candid::{CandidType, Principal, Deserialize};
 
-#[derive(CandidType)]
+#[derive(CandidType, Debug, Deserialize)]
 pub enum BooleanResult {
     Ok(bool),
     Err(ActorError),

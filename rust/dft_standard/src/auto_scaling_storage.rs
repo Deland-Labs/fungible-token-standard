@@ -1,5 +1,6 @@
 extern crate dft_types;
 extern crate dft_utils;
+
 use crate::ic_management::*;
 use crate::state::TOKEN;
 use candid::encode_args;
@@ -9,6 +10,7 @@ use ic_cdk::{
     api,
     export::{candid::Nat, Principal},
 };
+use ic_cdk::api::call::RejectionCode;
 
 pub async fn exec_auto_scaling_strategy() -> ActorResult<()> {
     let inner_txs: Vec<TxRecord> = TOKEN.with(|token| {
@@ -16,34 +18,40 @@ pub async fn exec_auto_scaling_strategy() -> ActorResult<()> {
         token.get_inner_txs()
     });
     let first_tx_index_inner: Nat = inner_txs[0].get_tx_index();
-
     // When create auto-scaling storage ?
     // DFT's txs count > 2000
     // It's means when creating a test DFT, when the number of transactions is less than 2000, no storage will be created to save cycles
     if inner_txs.len() >= MAX_TXS_CACHE_IN_DFT * 2 {
         let storage_canister_id = get_or_create_available_storage_id(&first_tx_index_inner).await?;
-
+        api::print(format!("storage_canister_id is {}", storage_canister_id.to_text()));
         let should_save_txs = inner_txs[0..MAX_TXS_CACHE_IN_DFT].to_vec();
         //save the txs to auto-scaling storage
-        match api::call::call(storage_canister_id, "batchAppend", (should_save_txs,)).await {
-            Ok((res,)) => {
-                if res {
-                    TOKEN.with(|token| {
-                        let mut token = token.borrow_mut();
-                        (0..MAX_TXS_CACHE_IN_DFT).for_each(|_| token.remove_inner_txs(0));
-                    });
+        let res: Result<(BooleanResult, ), (RejectionCode, String)> = api::call::call(storage_canister_id, "batchAppend", (should_save_txs, )).await;
+        match res {
+            Ok((res, )) => {
+                match res {
+                    BooleanResult::Ok(sucess) => {
+                        if sucess {
+                            TOKEN.with(|token| {
+                                let mut token = token.borrow_mut();
+                                (0..MAX_TXS_CACHE_IN_DFT).for_each(|_| token.remove_inner_txs(0));
+                            });
+                            api::print("batchAppend success");
+                            return Ok(());
+                        } else {
+                            api::print("batchAppend failed");
+                            Err(DFTError::MoveTxToScalingStorageFailed.into())
+                        }
+                    }
+                    BooleanResult::Err(err) => Err(err)
                 }
             }
             Err((_, emsg)) => {
-                api::print(format!(
-                    "batchAppend: save to auto-scaling storage failed,{}  ",
-                    emsg
-                ));
+                api::print(format!("batchAppend: save to auto-scaling storage failed,{0}", emsg));
+                Err(DFTError::MoveTxToScalingStorageFailed.into())
             }
         }
-    }
-
-    Ok(())
+    } else { Ok(()) }
 }
 
 async fn get_or_create_available_storage_id(tx_index: &Nat) -> ActorResult<Principal> {
@@ -58,6 +66,7 @@ async fn get_or_create_available_storage_id(tx_index: &Nat) -> ActorResult<Princ
             }
         }
     });
+
     let mut is_necessary_create_new_storage_canister = last_storage_id == Principal::anonymous();
 
     // check storage remain size
