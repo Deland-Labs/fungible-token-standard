@@ -1,6 +1,3 @@
-extern crate dft_types;
-extern crate dft_utils;
-
 use candid::candid_method;
 use dft_standard::token::TokenStandard;
 use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
@@ -363,64 +360,6 @@ fn transaction_by_id(tx_id: String) -> TxRecordResult {
         let token = token.borrow();
         token.transaction_by_id(&tx_id).into()
     })
-}
-
-#[update(name = "setOwner")]
-#[candid_method(update, rename = "setOwner")]
-fn set_owner(owner: Principal, nonce: Option<u64>) -> BooleanResult {
-    TOKEN.with(|token| {
-        let mut token = token.borrow_mut();
-        token
-            .set_owner(&api::caller(), owner, nonce, api::time())
-            .into()
-    })
-}
-
-#[update(name = "setLogo")]
-#[candid_method(update, rename = "setLogo")]
-fn set_logo(logo: Option<Vec<u8>>) -> BooleanResult {
-    TOKEN.with(|token| {
-        let mut token = token.borrow_mut();
-        token.set_logo(&api::caller(), logo).into()
-    })
-}
-
-#[update(name = "setDesc")]
-#[candid_method(update, rename = "setDesc")]
-fn set_desc_info(desc_data: Vec<(String, String)>) -> BooleanResult {
-    // convert desc data to hashmap
-    let mut desc_info = std::collections::HashMap::new();
-    for (key, value) in desc_data {
-        desc_info.insert(key, value);
-    }
-    TOKEN.with(|token| {
-        let mut token = token.borrow_mut();
-        token.set_desc(&api::caller(), desc_info).into()
-    })
-}
-
-#[update(name = "setFee")]
-#[candid_method(update, rename = "setFee")]
-fn set_fee(fee: Fee, nonce: Option<u64>) -> BooleanResult {
-    let caller = api::caller();
-    TOKEN.with(|token| {
-        let mut token = token.borrow_mut();
-        token.set_fee(&caller, fee, nonce, api::time()).into()
-    })
-}
-
-#[update(name = "setFeeTo")]
-#[candid_method(update, rename = "setFeeTo")]
-fn set_fee_to(fee_to: String, nonce: Option<u64>) -> BooleanResult {
-    match fee_to.parse::<TokenHolder>() {
-        Ok(holder) => TOKEN.with(|token| {
-            let mut token = token.borrow_mut();
-            token
-                .set_fee_to(&api::caller(), holder.clone(), nonce, api::time())
-                .into()
-        }),
-        Err(_) => BooleanResult::Err(DFTError::InvalidArgFormatFeeTo.into()),
-    }
 }
 
 candid::export_service!();

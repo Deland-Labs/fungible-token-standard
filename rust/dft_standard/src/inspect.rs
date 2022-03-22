@@ -1,6 +1,3 @@
-extern crate dft_types;
-extern crate dft_utils;
-
 use crate::token::TokenStandard;
 use candid::{Nat, Principal};
 use dft_types::*;
@@ -68,10 +65,14 @@ fn inspect_message() {
                 api::call::accept_message();
             } else if caller == Principal::anonymous() {
                 let err: ActorError = DFTError::NotAllowAnonymous.into();
-                api::call::reject(format!("{:?}", err).as_str());
+                let err_msg = format!("reject {:?}", err);
+                api::print(err_msg.to_string());
+                api::call::reject(err_msg.as_str());
             } else {
                 let err: ActorError = DFTError::InsufficientBalance.into();
-                api::call::reject(format!("{:?}", err).as_str());
+                let err_msg = format!("reject {:?}", err);
+                api::print(err_msg.to_string());
+                api::call::reject(err_msg.as_str());
             }
         }
         m if OWNER_METHODS.contains(&m) => {
@@ -81,7 +82,9 @@ fn inspect_message() {
                 api::call::accept_message();
             } else {
                 let err: ActorError = DFTError::OnlyOwnerAllowCallIt.into();
-                api::call::reject(format!("{:?}", err).as_str());
+                let err_msg = format!("reject {:?}", err);
+                api::print(err_msg.to_string());
+                api::call::reject(err_msg.as_str());
             }
         }
         _ => {
