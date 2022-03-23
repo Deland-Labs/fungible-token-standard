@@ -4,7 +4,6 @@ import {createActor as createDFTBurnable} from "~/declarations/dft_burnable";
 import {createActor as createDFTMintable} from "~/declarations/dft_mintable";
 import {identityFactory} from "~/utils/identity";
 import {get_id} from "~/utils/canister";
-import logger from "node-color-log";
 import {assert} from "chai";
 
 const createDFTBasicActor = (user: string) => {

@@ -35,7 +35,7 @@ export const uninstall_code = async (name: string) => {
 }
 
 export const createAll = async () => {
-    const result = exec(`dfx canister create --all`);
+    const result = exec(`dfx canister create --all --with-cycles 10000000000000`);
     if (result.code !== 0) {
         throw new Error(result.stderr);
     }
@@ -97,7 +97,7 @@ export const reinstall = (name: string, args?: string) => {
     console.info(`Reinstalling ${name}`);
     let result;
     if (args) {
-        const command = `echo yes | dfx canister install --mode reinstall ${name} --argument ${args}`;
+        const command = `echo yes | dfx canister install --mode reinstall ${name} --argument ${args} `;
         console.info(`Reinstalling command ${command}`);
         result = exec(command, {silent: true});
 
