@@ -9,9 +9,5 @@ Feature: token tx auto scaling storage
 
   Scenario:Auto scaling storage when tx count is more than 2000 times
     When Check the storage canisters count is equal to "0" ,by "dft_main"
-    Then Transfer token "dft_basic" from "dft_main" to "dft_user1" amount 10, repeat 500 times
-    Then Transfer token "dft_basic" from "dft_main" to "dft_user1" amount 29, repeat 500 times
-    Then Transfer token "dft_basic" from "dft_main" to "dft_user1" amount 30, repeat 500 times
-    Then Transfer token "dft_basic" from "dft_main" to "dft_user1" amount 40, repeat 500 times
-    Then Transfer token "dft_basic" from "dft_main" to "dft_user1" amount 50, repeat 100 times
+    Then Transfer token "dft_basic" from "dft_main" to "dft_user1" amount 10, repeat 2010 times
     Then Check the storage canisters count is equal to "1" ,by "dft_main"

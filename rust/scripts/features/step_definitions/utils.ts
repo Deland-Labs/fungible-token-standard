@@ -43,23 +43,17 @@ When(/^canister "([^"]*)" is down$/, async function (canister_name: string) {
 });
 
 export const createDFTActor = (token, user) => {
-    let actor = createDFTBasicActor(user);
     switch (token) {
         case "dft_basic":
-            actor = createDFTBasicActor(user);
-            break;
-        case "dft_basic_2":
-            actor = createDFTBasic2Actor(user);
-            break;
+            return createDFTBasicActor(user);
+        case "dft_basic2":
+            return createDFTBasic2Actor(user);
         case "dft_burnable":
-            actor = createDFTBurnableActor(user);
-            break;
+            return createDFTBurnableActor(user);
         case "dft_mintable":
-            actor = createDFTMintableActor(user);
-            break;
+            return createDFTMintableActor(user);
         default:
-            break;
+            return undefined;
     }
-    return actor;
 }
 
