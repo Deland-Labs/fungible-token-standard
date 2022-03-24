@@ -62,6 +62,7 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt principal
   lastTransactions : (nat64) -> (TxRecordListResult) query;
   logo : () -> (vec nat8) query;
   meta : () -> (Metadata) query;
+  mint : (text, nat, opt nat64) -> (TransactionResult);
   name : () -> (text) query;
   nonceOf : (principal) -> (nat64) query;
   owner : () -> (principal) query;

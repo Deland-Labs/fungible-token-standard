@@ -83,7 +83,7 @@ fn test_total_supply() -> u128 {
 #[fixture]
 fn test_fee_0_rate() -> Fee {
     Fee {
-        minimum: Nat::from(1u64),
+        minimum: Nat::from(2u64),
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     }
@@ -93,7 +93,7 @@ fn test_fee_0_rate() -> Fee {
 #[fixture]
 fn test_fee_non_0_rate() -> Fee {
     Fee {
-        minimum: Nat::from(1u64),
+        minimum: Nat::from(2u64),
         rate: Nat::from(1u64),
         rate_decimals: 2,
     }
@@ -692,14 +692,14 @@ fn test_token_basic_mint_burn(
     // mint token to from_holder
     let mint_val = Nat::from(10000);
     // mint with wrong nonce should fail
-    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(2), now);
+    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(2), now.clone());
     assert!(_mint_res.is_err());
     //check error message should be NonceNotMatch
     assert_eq!(
         _mint_res.err().unwrap().to_string(),
         DFTError::NonceNotMatch.to_string()
     );
-    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(1), now);
+    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(1), now.clone());
     // check mint_res is ok, and check minter_holder balance
     assert!(_mint_res.is_ok(), "{:?}", _mint_res.unwrap_err());
     let owner_balance = token.balance_of(&minter_holder);
@@ -711,19 +711,9 @@ fn test_token_basic_mint_burn(
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
-    // // burn with wrong nonce should fail
-    let burn_val = Nat::from(1000);
-    // let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 3, now + 1);
-
-    // // check burn_res error message is NonceNotMatch
-    // assert!(burn_res.is_err());
-    // assert_eq!(
-    //     burn_res.err().unwrap().to_string(),
-    //     DFTError::NonceNotMatch.to_string()
-    // );
-
-    // transfer token from minter_holder to to_holder
-    let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 2, now);
+    
+    let burn_val = Nat::from(1000);     
+    let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 2, now.clone());
 
     // check burn_res is ok, and check minter_holder balance
     assert!(burn_res.is_ok(), "{:?}", burn_res.unwrap_err());
@@ -733,6 +723,11 @@ fn test_token_basic_mint_burn(
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val - burn_val);
+
+    // burn value less than minimum fee will fail
+    let burn_val = Nat::from(1);
+    let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 3, now.clone());
+    assert!(burn_res.is_err());
 }
 
 // test token approve/transfer_from/transfer anonymous call should fail

@@ -1,4 +1,4 @@
-Feature: token transfer
+Feature: token approve and transfer from
 
   Background:
     Given Reinstall dft canisters

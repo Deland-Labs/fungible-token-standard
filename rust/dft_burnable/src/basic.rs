@@ -362,14 +362,6 @@ fn transaction_by_id(tx_id: String) -> TxRecordResult {
     })
 }
 
-candid::export_service!();
-
-#[query(name = "__get_candid_interface_tmp_hack")]
-#[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
-fn __get_candid_interface_tmp_hack() -> String {
-    __export_service()
-}
-
 // do something before sending
 fn before_token_sending(
     _transfer_from: &TokenHolder,

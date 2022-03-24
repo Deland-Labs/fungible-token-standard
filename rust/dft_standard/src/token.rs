@@ -470,9 +470,9 @@ impl TokenBasic {
         nonce: u64,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
-        // calc the transfer fee,if the fee smaller than minimum fee,return error
+        // calc the transfer fee,if the burn amount small than minimum fee,return error
         let fee = self.calc_transfer_fee(&value);
-        if fee < self.fee.minimum.clone() {
+        if value < self.fee.minimum.clone() {
             return Err(DFTError::BurnValueTooSmall);
         }
         //check the burn from holder's balance, if balance is not enough, return error

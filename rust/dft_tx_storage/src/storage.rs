@@ -327,13 +327,17 @@ mod tests {
         assert_eq!(storage.txs.len(), 1);
         // test get tx by index
         let res = storage.get_tx_by_index(test_tx_record.get_tx_index());
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), test_tx_record);
+        match res {
+            TxRecordCommonResult::Ok(tx) => assert_eq!(tx, test_tx_record),
+            _ => assert!(false),
+        }
         // test get tx by id
         let tx_id = encode_tx_id(test_token_id, test_tx_record.get_tx_index());
         let res = storage.get_tx_by_id(tx_id);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), test_tx_record);
+        match res {
+            TxRecordCommonResult::Ok(tx) => assert_eq!(tx, test_tx_record),
+            _ => assert!(false),
+        }
     }
 
     // test batch_append
@@ -364,15 +368,19 @@ mod tests {
         // test get tx by index
         for tx_record in &test_tx_records {
             let res = storage.get_tx_by_index(tx_record.get_tx_index());
-            assert!(res.is_ok());
-            assert_eq!(res.unwrap(), *tx_record);
+            match res {
+                TxRecordCommonResult::Ok(tx) => assert_eq!(tx, *tx_record),
+                _ => assert!(false),
+            }
         }
         // test get tx by id
         for tx_record in &test_tx_records {
             let tx_id = encode_tx_id(test_token_id, tx_record.get_tx_index());
             let res = storage.get_tx_by_id(tx_id);
-            assert!(res.is_ok());
-            assert_eq!(res.unwrap(), *tx_record);
+            match res {
+                TxRecordCommonResult::Ok(tx) => assert_eq!(tx, *tx_record),
+                _ => assert!(false),
+            }
         }
     }
 }

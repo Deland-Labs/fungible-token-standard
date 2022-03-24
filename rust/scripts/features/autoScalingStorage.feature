@@ -1,5 +1,6 @@
 @dft
-Feature: token transfer
+Feature: token tx auto scaling storage
+
   Background:
     Given Reinstall dft canisters
       | key       | name         | symbol | decimals | total_supply | fee_minimum | fee_rate | rate_decimals | owner    |

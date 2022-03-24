@@ -1,4 +1,4 @@
-Feature: token transfer
+Feature: token management
 
   Background:
     Given Reinstall dft canisters

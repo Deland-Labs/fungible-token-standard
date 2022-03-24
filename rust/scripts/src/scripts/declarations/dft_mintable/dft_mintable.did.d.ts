@@ -82,6 +82,9 @@ export interface _SERVICE {
   'lastTransactions' : (arg_0: bigint) => Promise<TxRecordListResult>,
   'logo' : () => Promise<Array<number>>,
   'meta' : () => Promise<Metadata>,
+  'mint' : (arg_0: string, arg_1: bigint, arg_2: [] | [bigint]) => Promise<
+      TransactionResult
+    >,
   'name' : () => Promise<string>,
   'nonceOf' : (arg_0: Principal) => Promise<bigint>,
   'owner' : () => Promise<Principal>,

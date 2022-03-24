@@ -76,6 +76,17 @@ export interface _SERVICE {
       arg_3: [] | [bigint],
     ) => Promise<TransactionResult>,
   'balanceOf' : (arg_0: string) => Promise<bigint>,
+  'burn' : (
+      arg_0: [] | [Array<number>],
+      arg_1: bigint,
+      arg_2: [] | [bigint],
+    ) => Promise<TransactionResult>,
+  'burnFrom' : (
+      arg_0: [] | [Array<number>],
+      arg_1: string,
+      arg_2: bigint,
+      arg_3: [] | [bigint],
+    ) => Promise<TransactionResult>,
   'decimals' : () => Promise<number>,
   'desc' : () => Promise<Array<[string, string]>>,
   'fee' : () => Promise<Fee>,

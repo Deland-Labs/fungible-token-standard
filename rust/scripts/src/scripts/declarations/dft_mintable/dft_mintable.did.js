@@ -1,4 +1,9 @@
 export const idlFactory = ({ IDL }) => {
+  const Fee = IDL.Record({
+    'rate' : IDL.Nat,
+    'minimum' : IDL.Nat,
+    'rate_decimals' : IDL.Nat8,
+  });
   const TokenHolder = IDL.Variant({
     'None' : IDL.Null,
     'Account' : IDL.Text,
@@ -12,11 +17,6 @@ export const idlFactory = ({ IDL }) => {
   const TransactionResult = IDL.Variant({
     'Ok' : TransactionResponse,
     'Err' : ActorError,
-  });
-  const Fee = IDL.Record({
-    'rate' : IDL.Nat,
-    'minimum' : IDL.Nat,
-    'rate_decimals' : IDL.Nat8,
   });
   const TxRecord = IDL.Variant({
     'FeeToModify' : IDL.Tuple(
@@ -100,6 +100,11 @@ export const idlFactory = ({ IDL }) => {
     'lastTransactions' : IDL.Func([IDL.Nat64], [TxRecordListResult], ['query']),
     'logo' : IDL.Func([], [IDL.Vec(IDL.Nat8)], ['query']),
     'meta' : IDL.Func([], [Metadata], ['query']),
+    'mint' : IDL.Func(
+        [IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],
+        [TransactionResult],
+        [],
+      ),
     'name' : IDL.Func([], [IDL.Text], ['query']),
     'nonceOf' : IDL.Func([IDL.Principal], [IDL.Nat64], ['query']),
     'owner' : IDL.Func([], [IDL.Principal], ['query']),
@@ -139,4 +144,20 @@ export const idlFactory = ({ IDL }) => {
       ),
   });
 };
-export const init = ({ IDL }) => { return []; };
+export const init = ({ IDL }) => {
+  const Fee = IDL.Record({
+    'rate' : IDL.Nat,
+    'minimum' : IDL.Nat,
+    'rate_decimals' : IDL.Nat8,
+  });
+  return [
+    IDL.Opt(IDL.Vec(IDL.Nat8)),
+    IDL.Opt(IDL.Vec(IDL.Nat8)),
+    IDL.Text,
+    IDL.Text,
+    IDL.Nat8,
+    IDL.Nat,
+    Fee,
+    IDL.Opt(IDL.Principal),
+  ];
+};
