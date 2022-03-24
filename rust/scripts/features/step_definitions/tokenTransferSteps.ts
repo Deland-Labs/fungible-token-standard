@@ -20,7 +20,8 @@ Then(/^Check the (.*) balance of (.*) should be (.*)$/, async function (token, u
     const actor = createDFTActor(token, user);
     const decimals = await actor.decimals();
     const balanceBN = parseToOrigin(balance, decimals);
-    assert.equal(balanceBN, await actor.balanceOf(userPrincipal.toText()));
+    const balanceRes = await actor.balanceOf(userPrincipal.toText());
+    assert.equal(balanceBN, balanceRes, `balance of ${user} should be ${balanceRes}`);
 });
 
 Then(/^Check that the transfer fees of (.*) by (.*) charged fee is (.*),fee to is (.*)$/, async function (token, transferAmount, fee, feeTo) {
