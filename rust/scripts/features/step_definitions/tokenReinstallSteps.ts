@@ -11,6 +11,7 @@ import {
 } from "~/declarations";
 import {parseRawTableToJsonArray} from "~/utils/convert";
 import {identityFactory} from "~/utils/identity";
+import {createDFTActor} from "./utils";
 
 Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
     let optionArray: Array<any> = parseRawTableToJsonArray(rawTable);
@@ -86,23 +87,7 @@ Given(/^transfer token from "([^"]*)" to these users$/, async function (user, ar
     const optionArray = parseRawTableToJsonArray(args.rawTable);
     for (let i = 0; i < optionArray.length; i++) {
         const option = optionArray[i];
-        let dftActor = createDFTBasicActor(user);
-        switch (option.token) {
-            case "dft_basic":
-                dftActor = createDFTBasicActor(user);
-                break;
-            case "dft_basic2":
-                dftActor = createDFTBasic2Actor(user);
-                break;
-            case "dft_burnable":
-                dftActor = createDFTBurnableActor(user);
-                break;
-            case "dft_mintable":
-                dftActor = createDFTMintableActor(user);
-                break;
-            default:
-                break;
-        }
+        let dftActor = createDFTActor(option.token, user);
         if (dftActor && option) {
             const decimals = await dftActor.decimals();
             const to = identityFactory.getPrincipal(option.user)!.toText();
