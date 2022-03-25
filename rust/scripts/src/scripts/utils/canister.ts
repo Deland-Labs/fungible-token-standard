@@ -35,7 +35,7 @@ export const uninstall_code = async (name: string) => {
 }
 
 export const createAll = async () => {
-    const result = exec(`dfx canister create --all --with-cycles 10000000000000`);
+    const result = exec(`dfx canister create --all --with-cycles 16000000000000`);
     if (result.code !== 0) {
         throw new Error(result.stderr);
     }

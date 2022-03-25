@@ -50,6 +50,7 @@ export interface IdentityInfo {
     agentOptions: agentOptions;
 }
 
+const DEFAULT_HOST = "http://127.0.0.1:8000";
 export const IDENTITIES = ["dft_main", "dft_miner", "dft_user1", "dft_user2", "dft_user3", "dft_receiver", "dft_fee_charger"];
 export const DEFAULT_IDENTITY = IDENTITIES[0];
 export const createIdentities = () => {
@@ -71,11 +72,15 @@ class IdentityFactory {
             identity: identity,
             principalText: principal.toText(),
             agentOptions: {
-                host: "http://127.0.0.1:8000",
+                host: DEFAULT_HOST,
                 identity: identity,
             }
         };
         this._identities.set(name, identityInfo);
+    }
+
+    getDefaultHost = () => {
+        return DEFAULT_HOST;
     }
 
     loadAllIdentities() {

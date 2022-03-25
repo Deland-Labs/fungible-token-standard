@@ -42,7 +42,7 @@ When(/^canister "([^"]*)" is down$/, async function (canister_name: string) {
     await canister.uninstall_code(canister_name);
 });
 
-export const createDFTActor = (token, user) => {
+export const createDFTActor = (token, user?: string) => {
     switch (token) {
         case "dft_basic":
             return createDFTBasicActor(user);

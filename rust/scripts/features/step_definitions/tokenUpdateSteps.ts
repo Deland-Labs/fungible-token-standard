@@ -169,7 +169,6 @@ When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with not owner "([^"]*)", w
 
 const fileToByteArray = (filePath) => {
     const realPath = path.resolve(filePath);
-    logger.error(`realPath: ${realPath}`);
     if (existsSync(filePath)) {
         const buffer = readFileSync(filePath);
         // buffer to Uint8Array

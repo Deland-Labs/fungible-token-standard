@@ -924,10 +924,14 @@ impl TokenStandard for TokenBasic {
         let count = if count > 100 { 100 } else { count };
 
         if self.txs.len() < count {
-            Ok(self.txs.clone())
+            let mut txs = self.txs.clone();
+            txs.reverse();
+            return Ok(txs); 
         } else {
             let start = self.txs.len() - count;
-            Ok(self.txs[start..].to_vec())
+            let mut txs = self.txs[start..].to_vec();
+            txs.reverse();
+            Ok(txs)
         }
     }
 }
