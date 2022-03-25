@@ -1,6 +1,6 @@
 import {When, Then} from "@cucumber/cucumber";
 import {assert, expect} from "chai";
-import {createDFTBurnableActor, createDFTMintableActor} from "~/declarations";
+import {createDFTMintableActor} from "~/declarations";
 import {identityFactory} from "~/utils/identity";
 import {parseToOrigin} from "~/utils/uint";
 

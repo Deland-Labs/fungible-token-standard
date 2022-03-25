@@ -28,7 +28,7 @@
   "include": [
     "scripts/src/scripts/**/*.ts",
     "scripts/*.ts",
-    "scripts/features/step_definitions/*.ts"
+    "scripts/features/stepDefinitions/*.ts"
   ],
   "exclude": [
     "node_modules/**/*",
