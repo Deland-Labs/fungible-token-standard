@@ -88,10 +88,14 @@ export interface _SERVICE {
   'name' : () => Promise<string>,
   'nonceOf' : (arg_0: Principal) => Promise<bigint>,
   'owner' : () => Promise<Principal>,
-  'setDesc' : (arg_0: Array<[string, string]>) => Promise<BooleanResult>,
+  'setDesc' : (arg_0: Array<[string, string]>, arg_1: [] | [bigint]) => Promise<
+      BooleanResult
+    >,
   'setFee' : (arg_0: Fee, arg_1: [] | [bigint]) => Promise<BooleanResult>,
   'setFeeTo' : (arg_0: string, arg_1: [] | [bigint]) => Promise<BooleanResult>,
-  'setLogo' : (arg_0: [] | [Array<number>]) => Promise<BooleanResult>,
+  'setLogo' : (arg_0: [] | [Array<number>], arg_1: [] | [bigint]) => Promise<
+      BooleanResult
+    >,
   'setOwner' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
       BooleanResult
     >,

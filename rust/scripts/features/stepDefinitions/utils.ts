@@ -8,6 +8,8 @@ import {
     createDFTBurnableActor,
     createDFTMintableActor
 } from "~/declarations";
+import path from "path";
+import {existsSync, readFileSync} from "fs";
 
 Then(/^Sleep for "([^"]*)" secs.$/, async function (sec: string) {
     // sleep for secs
@@ -56,4 +58,18 @@ export const createDFTActor = (token, user?: string) => {
             return undefined;
     }
 }
+
+export const fileToByteArray = (filePath) => {
+    const realPath = path.resolve(filePath);
+    if (existsSync(filePath)) {
+        const buffer = readFileSync(filePath);
+        // buffer to Uint8Array
+        const byteArray = new Uint8Array(buffer.byteLength);
+        for (let i = 0; i < buffer.byteLength; i++) {
+            byteArray[i] = buffer[i];
+        }
+        return byteArray;
+    }
+    return new Uint8Array();
+};
 

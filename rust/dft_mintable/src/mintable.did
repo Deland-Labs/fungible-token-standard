@@ -66,10 +66,10 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt principal
   name : () -> (text) query;
   nonceOf : (principal) -> (nat64) query;
   owner : () -> (principal) query;
-  setDesc : (vec record { text; text }) -> (BooleanResult);
+  setDesc : (vec record { text; text }, opt nat64) -> (BooleanResult);
   setFee : (Fee, opt nat64) -> (BooleanResult);
   setFeeTo : (text, opt nat64) -> (BooleanResult);
-  setLogo : (opt vec nat8) -> (BooleanResult);
+  setLogo : (opt vec nat8, opt nat64) -> (BooleanResult);
   setOwner : (principal, opt nat64) -> (BooleanResult);
   symbol : () -> (text) query;
   tokenInfo : () -> (TokenInfo) query;
@@ -77,7 +77,5 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt principal
   transactionById : (text) -> (TxRecordResult) query;
   transactionByIndex : (nat) -> (TxRecordResult) query;
   transfer : (opt vec nat8, text, nat, opt nat64) -> (TransactionResult);
-  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (
-      TransactionResult,
-    );
+  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (TransactionResult);
 }

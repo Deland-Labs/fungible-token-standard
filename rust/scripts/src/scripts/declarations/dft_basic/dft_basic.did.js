@@ -1,4 +1,9 @@
 export const idlFactory = ({ IDL }) => {
+  const Fee = IDL.Record({
+    'rate' : IDL.Nat,
+    'minimum' : IDL.Nat,
+    'rate_decimals' : IDL.Nat8,
+  });
   const TokenHolder = IDL.Variant({
     'None' : IDL.Null,
     'Account' : IDL.Text,
@@ -12,11 +17,6 @@ export const idlFactory = ({ IDL }) => {
   const TransactionResult = IDL.Variant({
     'Ok' : TransactionResponse,
     'Err' : ActorError,
-  });
-  const Fee = IDL.Record({
-    'rate' : IDL.Nat,
-    'minimum' : IDL.Nat,
-    'rate_decimals' : IDL.Nat8,
   });
   const TxRecord = IDL.Variant({
     'FeeToModify' : IDL.Tuple(
@@ -104,13 +104,17 @@ export const idlFactory = ({ IDL }) => {
     'nonceOf' : IDL.Func([IDL.Principal], [IDL.Nat64], ['query']),
     'owner' : IDL.Func([], [IDL.Principal], ['query']),
     'setDesc' : IDL.Func(
-        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)), IDL.Opt(IDL.Nat64)],
         [BooleanResult],
         [],
       ),
     'setFee' : IDL.Func([Fee, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
     'setFeeTo' : IDL.Func([IDL.Text, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
-    'setLogo' : IDL.Func([IDL.Opt(IDL.Vec(IDL.Nat8))], [BooleanResult], []),
+    'setLogo' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Opt(IDL.Nat64)],
+        [BooleanResult],
+        [],
+      ),
     'setOwner' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Nat64)],
         [BooleanResult],
@@ -139,4 +143,20 @@ export const idlFactory = ({ IDL }) => {
       ),
   });
 };
-export const init = ({ IDL }) => { return []; };
+export const init = ({ IDL }) => {
+  const Fee = IDL.Record({
+    'rate' : IDL.Nat,
+    'minimum' : IDL.Nat,
+    'rate_decimals' : IDL.Nat8,
+  });
+  return [
+    IDL.Opt(IDL.Vec(IDL.Nat8)),
+    IDL.Opt(IDL.Vec(IDL.Nat8)),
+    IDL.Text,
+    IDL.Text,
+    IDL.Nat8,
+    IDL.Nat,
+    Fee,
+    IDL.Opt(IDL.Principal),
+  ];
+};

@@ -109,13 +109,17 @@ export const idlFactory = ({ IDL }) => {
     'nonceOf' : IDL.Func([IDL.Principal], [IDL.Nat64], ['query']),
     'owner' : IDL.Func([], [IDL.Principal], ['query']),
     'setDesc' : IDL.Func(
-        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text)), IDL.Opt(IDL.Nat64)],
         [BooleanResult],
         [],
       ),
     'setFee' : IDL.Func([Fee, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
     'setFeeTo' : IDL.Func([IDL.Text, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
-    'setLogo' : IDL.Func([IDL.Opt(IDL.Vec(IDL.Nat8))], [BooleanResult], []),
+    'setLogo' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Opt(IDL.Nat64)],
+        [BooleanResult],
+        [],
+      ),
     'setOwner' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Nat64)],
         [BooleanResult],

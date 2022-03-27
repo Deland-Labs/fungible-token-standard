@@ -50,6 +50,22 @@ pub enum TxRecord {
         u64,
         u64,
     ),
+    // tx_index, caller (owner), new logo, nonce, timestamp
+    LogoModify(
+        Nat,
+        Principal,
+        Vec<u8>,
+        u64,
+        u64,
+    ),
+    // tx_index, caller (owner), new logo, nonce, timestamp
+    DescModify(
+        Nat,
+        Principal,
+        Vec<(String,String)>,
+        u64,
+        u64,
+    ),
 }
 
 impl TxRecord {
@@ -60,6 +76,8 @@ impl TxRecord {
             TxRecord::FeeModify(tx_index, _, _, _, _) => tx_index.clone(),
             TxRecord::OwnerModify(tx_index, _, _, _, _) => tx_index.clone(),
             TxRecord::FeeToModify(tx_index, _, _, _, _) => tx_index.clone(),
+            TxRecord::LogoModify(tx_index, _, _, _, _) => tx_index.clone(),
+            TxRecord::DescModify(tx_index, _, _, _, _) => tx_index.clone(),
         }
     }
 }

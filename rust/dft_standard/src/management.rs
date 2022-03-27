@@ -19,16 +19,16 @@ fn set_owner(owner: Principal, nonce: Option<u64>) -> BooleanResult {
 
 #[update(name = "setLogo")]
 #[candid_method(update, rename = "setLogo")]
-fn set_logo(logo: Option<Vec<u8>>) -> BooleanResult {
+fn set_logo(logo: Option<Vec<u8>>, nonce: Option<u64>) -> BooleanResult {
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        token.set_logo(&api::caller(), logo).into()
+        token.set_logo(&api::caller(), logo,nonce,api::time()).into()
     })
 }
 
 #[update(name = "setDesc")]
 #[candid_method(update, rename = "setDesc")]
-fn set_desc_info(desc_data: Vec<(String, String)>) -> BooleanResult {
+fn set_desc_info(desc_data: Vec<(String, String)>, nonce: Option<u64>) -> BooleanResult {
     // convert desc data to hashmap
     let mut desc_info = std::collections::HashMap::new();
     for (key, value) in desc_data {
@@ -36,7 +36,7 @@ fn set_desc_info(desc_data: Vec<(String, String)>) -> BooleanResult {
     }
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        token.set_desc(&api::caller(), desc_info).into()
+        token.set_desc(&api::caller(), desc_info,nonce,api::time()).into()
     })
 }
 

@@ -1,7 +1,7 @@
 import {When, Then} from "@cucumber/cucumber";
 import {parseRawTableToJsonArray} from "~/utils/convert";
 import {assert, expect} from "chai";
-import {createDFTActor} from "./utils";
+import {createDFTActor, fileToByteArray} from "./utils";
 import {Fee} from "~/declarations/dft_basic/dft_basic.did";
 import {parseToOrigin} from "~/utils/uint";
 import {identityFactory} from "~/utils/identity";
@@ -17,7 +17,7 @@ When(/^I update token "([^"]*)"'s description with not owner "([^"]*)", will fai
         desc.push([optionArray[i].key, optionArray[i].value]);
     }
     try {
-        let res = await actor!.setDesc(desc)
+        let res = await actor!.setDesc(desc,[])
         expect.fail(`should not set success, but set success with ${res}`);
     } catch (e) {
         // should be here
@@ -31,7 +31,7 @@ When(/^I update token "([^"]*)"'s description with owner "([^"]*)", will success
     for (let i = 0; i < optionArray.length; i++) {
         desc.push([optionArray[i].key, optionArray[i].value]);
     }
-    const res = await actor!.setDesc(desc);
+    const res = await actor!.setDesc(desc,[]);
     assert.isTrue("Ok" in res);
 });
 
@@ -67,16 +67,15 @@ When(/^I update token "([^"]*)"'s logo "([^"]*)" with owner "([^"]*)", will succ
     const logoData = fileToByteArray(`./scripts/assets/${logoName}`);
     const logoParam: [number[]] = [Array.from(logoData)];
     const actor = createDFTActor(token, user);
-    const res = await actor!.setLogo(logoParam);
+    const res = await actor!.setLogo(logoParam,[]);
     assert.isTrue("Ok" in res, `set logo failed with ${JSON.stringify(res)}`);
 });
 
 When(/^I update token "([^"]*)"'s logo with invalid image data with owner "([^"]*)", will failed$/, async function (token, user) {
     const logoData: [number[]] = [[1, 2, 3, 4]];
     const actor = createDFTActor(token, user);
-    await actor!.setLogo(logoData);
     try {
-        const res = await actor!.setLogo(logoData);
+        const res = await actor!.setLogo(logoData,[]);
         expect.fail(`should not set success, but set success with ${res}`);
     } catch (e) {
         // should be here
@@ -86,7 +85,7 @@ When(/^I update token "([^"]*)"'s logo with not owner "([^"]*)", will failed$/, 
     const logoData: any = [[1, 2, 3, 4]];
     const actor = createDFTActor(token, user);
     try {
-        const res = await actor!.setLogo(logoData);
+        const res = await actor!.setLogo(logoData,[]);
         expect.fail(`should not set success, but set success with ${res}`);
     } catch (e) {
         // should be here
@@ -165,16 +164,3 @@ When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with not owner "([^"]*)", w
     }
 });
 
-const fileToByteArray = (filePath) => {
-    const realPath = path.resolve(filePath);
-    if (existsSync(filePath)) {
-        const buffer = readFileSync(filePath);
-        // buffer to Uint8Array
-        const byteArray = new Uint8Array(buffer.byteLength);
-        for (let i = 0; i < buffer.byteLength; i++) {
-            byteArray[i] = buffer[i];
-        }
-        return byteArray;
-    }
-    return new Uint8Array();
-};
