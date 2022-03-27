@@ -37,15 +37,17 @@ rustup target add wasm32-unknown-unknown
 
 ## How to test?
 ### Rust
+**Unit Testing**
 ```bash
    cd rust
-   make test
+   cargo test
 ```
-
-### Motoko
+**Automated Integration Testing**
 ```bash
-   cd motoko
-   make test
+   cd rust
+   sh sh_go.sh
+   sh sh_setup_dev.sh
+   sh itt.sh
 ```
 
 ## About us
