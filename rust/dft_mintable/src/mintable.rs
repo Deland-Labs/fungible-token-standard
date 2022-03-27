@@ -1,6 +1,3 @@
-extern crate dft_types;
-extern crate dft_utils;
-
 use crate::token::MintableExtension;
 use candid::candid_method;
 use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;

@@ -1,5 +1,5 @@
 use super::{TokenHolder, TokenReceiver};
-use crate::{ActorError, DFTError, Fee};
+use crate::{DFTError, Fee};
 use candid::{CandidType, Deserialize, Nat, Principal};
 
 #[derive(CandidType, Debug, Clone, Deserialize, Eq, PartialEq)]
@@ -34,8 +34,8 @@ pub enum TxRecord {
         u64,
         u64,
     ),
-     // tx_index, caller (owner), new owner, nonce, timestamp
-     OwnerModify(
+    // tx_index, caller (owner), new owner, nonce, timestamp
+    OwnerModify(
         Nat,
         Principal,
         Principal,
@@ -50,6 +50,22 @@ pub enum TxRecord {
         u64,
         u64,
     ),
+    // tx_index, caller (owner), new logo, nonce, timestamp
+    LogoModify(
+        Nat,
+        Principal,
+        Vec<u8>,
+        u64,
+        u64,
+    ),
+    // tx_index, caller (owner), new logo, nonce, timestamp
+    DescModify(
+        Nat,
+        Principal,
+        Vec<(String,String)>,
+        u64,
+        u64,
+    ),
 }
 
 impl TxRecord {
@@ -59,7 +75,9 @@ impl TxRecord {
             TxRecord::Transfer(tx_index, _, _, _, _, _, _, _) => tx_index.clone(),
             TxRecord::FeeModify(tx_index, _, _, _, _) => tx_index.clone(),
             TxRecord::OwnerModify(tx_index, _, _, _, _) => tx_index.clone(),
-            TxRecord::FeeToModify(tx_index, _, _, _, _) => tx_index.clone(),    
+            TxRecord::FeeToModify(tx_index, _, _, _, _) => tx_index.clone(),
+            TxRecord::LogoModify(tx_index, _, _, _, _) => tx_index.clone(),
+            TxRecord::DescModify(tx_index, _, _, _, _) => tx_index.clone(),
         }
     }
 }
@@ -72,26 +90,6 @@ pub enum TxRecordCommonResult {
     Forward(Principal),
     // Such as out of tx index or tx id not exist
     Err(DFTError),
-}
-
-#[derive(CandidType, Debug, Clone, Deserialize)]
-pub enum TxRecordResult {
-    // Return tx record if exist in the DFT cache txs
-    Ok(TxRecord),
-    // If not storage in DFT cache txs, return the storage canister id
-    Forward(Principal),
-    // Such as out of tx index or tx id not exist
-    Err(ActorError),
-}
-
-impl From<TxRecordCommonResult> for TxRecordResult {
-    fn from(r: TxRecordCommonResult) -> Self {
-        match r {
-            TxRecordCommonResult::Ok(tx) => TxRecordResult::Ok(tx),
-            TxRecordCommonResult::Forward(p) => TxRecordResult::Forward(p),
-            TxRecordCommonResult::Err(e) => TxRecordResult::Err(e.into()),
-        }
-    }
 }
 
 #[test]

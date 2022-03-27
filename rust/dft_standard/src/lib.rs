@@ -1,6 +1,3 @@
-extern crate dft_types;
-extern crate dft_utils;
-
 pub mod auto_scaling_storage;
 pub mod ic_management;
 pub mod inspect;

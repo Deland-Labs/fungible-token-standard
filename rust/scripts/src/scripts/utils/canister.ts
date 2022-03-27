@@ -1,8 +1,8 @@
 import {exec} from "shelljs";
 import {Actor, CanisterInstallMode, HttpAgent} from "@dfinity/agent";
-import {DfxJsonCanister, get_dfx_json, get_wasm_path} from "~/utils/dfx_json";
+import {DfxJsonCanister, get_dfx_json, get_wasm_path} from "~/utils/dfxJson";
 import fs from "fs";
-import {identities} from "~/utils/identity";
+import {identityFactory} from "~/utils/identity";
 import logger from "node-color-log";
 
 export const create = (name: string) => {
@@ -34,16 +34,16 @@ export const uninstall_code = async (name: string) => {
     }
 }
 
-export const create_all = async () => {
-    const result = exec(`dfx canister create --all`);
+export const createAll = async () => {
+    const result = exec(`dfx canister create --all --with-cycles 16000000000000`);
     if (result.code !== 0) {
         throw new Error(result.stderr);
     }
 }
 
-export const add_main_as_controller = async () => {
+export const addMainAsController = async () => {
     // add main identity as controller of all canisters
-    const update_result = exec(`dfx canister update-settings --all --add-controller ${identities.main.principal_text}`);
+    const update_result = exec(`dfx canister update-settings --all --add-controller ${identityFactory.getPrincipal()}`);
     if (update_result.code !== 0) {
         throw new Error(update_result.stderr);
     }
@@ -97,7 +97,9 @@ export const reinstall = (name: string, args?: string) => {
     console.info(`Reinstalling ${name}`);
     let result;
     if (args) {
-        result = exec(`echo yes | dfx canister install --mode reinstall ${name} --argument ${args}`, {silent: true});
+        const command = `echo yes | dfx canister install --mode reinstall ${name} --argument ${args} `;
+        console.info(`Reinstalling command ${command}`);
+        result = exec(command, {silent: true});
 
     } else {
         result = exec(`echo yes | dfx canister install --mode reinstall ${name}`, {silent: true});
@@ -115,7 +117,7 @@ export const reinstall_code = async (name: string, args?: ArrayBuffer) => {
     let wasmPath = get_wasm_path(canister);
     let buffer = fs.readFileSync(wasmPath);
     let canister_id = get_id(name);
-    let agent = new HttpAgent(identities.main.agentOptions);
+    let agent = new HttpAgent(identityFactory.getIdentity()!.agentOptions);
     await agent.fetchRootKey();
     await Actor.install({
         module: buffer,

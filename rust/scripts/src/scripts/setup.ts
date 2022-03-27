@@ -1,5 +1,5 @@
 import {HttpAgent} from "@dfinity/agent";
-import {identities} from "./utils/identity";
+import {identityFactory} from "./utils/identity";
 import {Given, setDefaultTimeout, Then, When} from "@cucumber/cucumber";
 
 // This file may be used to polyfill features that aren't available in the test
@@ -21,7 +21,7 @@ BigInt.prototype.toJSON = function () {
 global.ic = {
     agent: new HttpAgent({
         host: "http://127.0.0.1:8000",
-        identity: identities.main.identity,
+        identity: identityFactory.getIdentity()!.identity,
     })
 };
 

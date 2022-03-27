@@ -2,7 +2,7 @@ let common = [
     'scripts/features/**/*.feature',                // Specify our feature files
     '--require-module ts-node/register',    // Load TypeScript module
     '--require-module tsconfig-paths/register',    // Load TypeScript module
-    '--require scripts/features/step_definitions/**/*.ts',   // Load step definitions
+    '--require scripts/features/stepDefinitions/**/*.ts',   // Load step definitions
     '--format progress',                // Load custom formatter
     '-f @cucumber/pretty-formatter',  // Load custom formatter
     '--publish-quiet',

@@ -1,53 +1,82 @@
-type Error = record { code : nat32; message : text };
-type Fee = record { rate : nat; rate_decimals : nat8; minimum : nat };
-type Metadata = record {  fee : Fee;  decimals : nat8;  name : text;  totalSupply : nat;  symbol : text;};
-type TransactionResult = variant { Ok : TransactionResponse; Err : Error };
-type TxRecordsResult = variant { Ok : vec TxRecord; Err : Error };
-type CommonResult = variant { Ok : bool; Err : Error };
+type ActorError = record { code : nat32; message : text };
+type BooleanResult = variant { Ok : bool; Err : ActorError };
+type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
+type Metadata = record {
+  fee : Fee;
+  decimals : nat8;
+  name : text;
+  totalSupply : nat;
+  symbol : text;
+};
 type TokenHolder = variant { None; Account : text; Principal : principal };
 type TokenInfo = record {
-  owner : principal; allowanceSize : nat;
-  cycles : nat64; txCount : nat;
-  holders : nat; storages : vec principal;
+  owner : principal;
+  allowanceSize : nat;
+  cycles : nat64;
+  txCount : nat;
+  holders : nat;
+  storages : vec principal;
   feeTo : TokenHolder;
 };
-type TransactionResponse = record { txId : text; error : opt Error };
+type TransactionResponse = record { txId : text; error : opt ActorError };
+type TransactionResult = variant { Ok : TransactionResponse; Err : ActorError };
 type TxRecord = variant {
-  Approve : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
-  FeeModify : record { nat; principal; Fee; nat64; nat64 };
   FeeToModify : record { nat; principal; TokenHolder; nat64; nat64 };
-  Transfer : record { nat; TokenHolder; TokenHolder; TokenHolder; nat; nat; nat64; nat64; };
+  Approve : record {
+    nat;
+    TokenHolder;
+    TokenHolder;
+    TokenHolder;
+    nat;
+    nat;
+    nat64;
+    nat64;
+  };
+  FeeModify : record { nat; principal; Fee; nat64; nat64 };
+  Transfer : record {
+    nat;
+    TokenHolder;
+    TokenHolder;
+    TokenHolder;
+    nat;
+    nat;
+    nat64;
+    nat64;
+  };
   OwnerModify : record { nat; principal; principal; nat64; nat64 };
 };
-type TxRecordResult = variant {Ok : TxRecord;  Err : Error;  Forward : principal; };
-service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt vec nat8) -> {
+type TxRecordListResult = variant { Ok : vec TxRecord; Err : ActorError };
+type TxRecordResult = variant {
+  Ok : TxRecord;
+  Err : ActorError;
+  Forward : principal;
+};
+service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt principal) -> {
   allowance : (text, text) -> (nat) query;
   allowancesOf : (text) -> (vec record { TokenHolder; nat }) query;
   approve : (opt vec nat8, text, nat, opt nat64) -> (TransactionResult);
   balanceOf : (text) -> (nat) query;
-  nonceOf : (principal) -> (nat64) query;
+  burn : (opt vec nat8, nat, opt nat64) -> (TransactionResult);
+  burnFrom : (opt vec nat8, text, nat, opt nat64) -> (TransactionResult);
   decimals : () -> (nat8) query;
   desc : () -> (vec record { text; text }) query;
   fee : () -> (Fee) query;
+  lastTransactions : (nat64) -> (TxRecordListResult) query;
   logo : () -> (vec nat8) query;
   meta : () -> (Metadata) query;
   name : () -> (text) query;
+  nonceOf : (principal) -> (nat64) query;
   owner : () -> (principal) query;
-  setDesc : (vec record { text; text }) -> (CommonResult);
-  setFee : (Fee) -> (CommonResult);
-  setFeeTo : (text) -> (CommonResult);
-  setLogo : (opt vec nat8) -> (CommonResult);
-  setOwner : (principal) -> (CommonResult);
+  setDesc : (vec record { text; text }, opt nat64) -> (BooleanResult);
+  setFee : (Fee, opt nat64) -> (BooleanResult);
+  setFeeTo : (text, opt nat64) -> (BooleanResult);
+  setLogo : (opt vec nat8, opt nat64) -> (BooleanResult);
+  setOwner : (principal, opt nat64) -> (BooleanResult);
   symbol : () -> (text) query;
   tokenInfo : () -> (TokenInfo) query;
   totalSupply : () -> (nat) query;
-  transfer : (opt vec nat8, text, nat, opt nat64) -> (TransactionResult);
-  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (TransactionResult);
-
-  lastTransactions : (nat64) -> (TxRecordsResult) query;
   transactionById : (text) -> (TxRecordResult) query;
   transactionByIndex : (nat) -> (TxRecordResult) query;
-
-  burn : (opt vec nat8, nat) -> (TransactionResult);
-  burnFrom : (opt vec nat8, text, nat) -> (TransactionResult);
+  transfer : (opt vec nat8, text, nat, opt nat64) -> (TransactionResult);
+  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (TransactionResult);
 }

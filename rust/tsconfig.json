@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "noImplicitAny": false,
-    "target": "es2020",
+    "target": "es2021",
     "module": "esnext",
     "lib": [
       "dom",
@@ -28,7 +28,7 @@
   "include": [
     "scripts/src/scripts/**/*.ts",
     "scripts/*.ts",
-    "scripts/features/step_definitions/*.ts"
+    "scripts/features/stepDefinitions/*.ts"
   ],
   "exclude": [
     "node_modules/**/*",

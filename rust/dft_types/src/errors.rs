@@ -35,6 +35,8 @@ pub enum DFTError {
     NotificationFailed,
     #[error("DFT: storage scaling failed")]
     StorageScalingFailed,
+    #[error("DFT: move tx to scaling storage failed")]
+    MoveTxToScalingStorageFailed,
     #[error("DFT: invalid type or format of logo")]
     InvalidTypeOrFormatOfLogo,
     #[error("DFT_TX: invalid tx index")]
@@ -67,12 +69,13 @@ impl DFTError {
             DFTError::BurnValueExceedsBalance => 13,
             DFTError::BurnValueExceedsAllowance => 14,
             DFTError::NotificationFailed => 15,
-            DFTError::StorageScalingFailed => 16, 
-            DFTError::InvalidTypeOrFormatOfLogo => 17,
-            DFTError::InvalidTxIndex => 18,
-            DFTError::InvalidTxId => 19,
-            DFTError::TxIdNotBelongToCurrentDft => 20,
-            DFTError::OnlyAllowTokenCanisterCallThisFunction => 21,
+            DFTError::StorageScalingFailed => 16,
+            DFTError::MoveTxToScalingStorageFailed => 17,
+            DFTError::InvalidTypeOrFormatOfLogo => 18,
+            DFTError::InvalidTxIndex => 19,
+            DFTError::InvalidTxId => 20,
+            DFTError::TxIdNotBelongToCurrentDft => 21,
+            DFTError::OnlyAllowTokenCanisterCallThisFunction => 22,
             DFTError::Unknown { .. } => 10000,
         }
     }
@@ -95,10 +98,3 @@ pub struct ActorError {
 
 pub type CommonResult<T> = anyhow::Result<T, DFTError>;
 pub type ActorResult<T> = Result<T, ActorError>;
-
-pub fn to_actor_result<T>(result: CommonResult<T>) -> ActorResult<T> {
-    match result {
-        Ok(value) => Ok(value),
-        Err(error) => Err(error.into()),
-    }
-}

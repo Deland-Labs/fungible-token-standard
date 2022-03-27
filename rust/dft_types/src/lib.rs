@@ -11,6 +11,7 @@ mod token_metrics;
 mod token_payload;
 mod transaction_result;
 mod tx_record;
+mod actor_response;
 
 use candid::Nat;
 use candid::Principal;
@@ -43,6 +44,7 @@ pub use token_metrics::TokenMetrics;
 pub use token_payload::TokenPayload;
 pub use transaction_result::TransactionResponse;
 pub use tx_record::*;
+pub use actor_response::*;
 
 #[test]
 fn test_nat_size() {

@@ -83,7 +83,7 @@ fn test_total_supply() -> u128 {
 #[fixture]
 fn test_fee_0_rate() -> Fee {
     Fee {
-        minimum: Nat::from(1u64),
+        minimum: Nat::from(2u64),
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     }
@@ -93,7 +93,7 @@ fn test_fee_0_rate() -> Fee {
 #[fixture]
 fn test_fee_non_0_rate() -> Fee {
     Fee {
-        minimum: Nat::from(1u64),
+        minimum: Nat::from(2u64),
         rate: Nat::from(1u64),
         rate_decimals: 2,
     }
@@ -217,14 +217,14 @@ fn test_token_basic_initialize_all_parameters(test_token_with_0_fee_rate: TokenB
 #[rstest]
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
-fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principal) {
+fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principal, now: u64) {
     let mut token = test_token.clone();
     let new_fee = Fee {
         minimum: Nat::from(2),
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
-    let res = token.set_fee(&test_owner, new_fee.clone());
+    let res = token.set_fee(&test_owner, new_fee.clone(), None, now);
     assert!(res.is_ok(), "set_fee should be ok");
     assert_eq!(token.fee(), new_fee);
 }
@@ -234,6 +234,7 @@ fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principa
 fn test_token_basic_set_fee_invalid_owner(
     test_token_with_0_fee_rate: TokenBasic,
     other_caller: Principal,
+    now: u64,
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
     let new_fee = Fee {
@@ -241,7 +242,7 @@ fn test_token_basic_set_fee_invalid_owner(
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
-    let res = token.set_fee(&other_caller, new_fee.clone());
+    let res = token.set_fee(&other_caller, new_fee.clone(), None, now);
     assert!(res.is_err(), "set_fee should be err");
 }
 
@@ -251,14 +252,15 @@ fn test_update_token_basic_set_fee_to(
     test_token_with_0_fee_rate: TokenBasic,
     test_owner: Principal,
     other_caller: Principal,
+    now: u64,
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
     let new_fee_to = TokenHolder::new(other_caller.clone(), None);
     // set fee_to by other caller will failed
-    let res = token.set_fee_to(&other_caller, new_fee_to.clone());
+    let res = token.set_fee_to(&other_caller, new_fee_to.clone(), None, now.clone());
     assert!(res.is_err(), "set_fee_to should be err");
     // set fee_to by owner will ok
-    let res = token.set_fee_to(&test_owner, new_fee_to.clone());
+    let res = token.set_fee_to(&test_owner, new_fee_to.clone(), None, now);
     assert!(res.is_ok(), "set_fee_to should be ok");
     assert_eq!(token.token_info().fee_to, new_fee_to);
 }
@@ -268,31 +270,32 @@ fn test_token_basic_set_logo(
     test_token_with_0_fee_rate: TokenBasic,
     test_owner: Principal,
     new_logo: Vec<u8>,
+    now: u64,
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
     // set logo by other caller will failed
-    let res = token.set_logo(&other_caller(), Some(new_logo.clone()));
+    let res = token.set_logo(&other_caller(), Some(new_logo.clone()), None, now.clone());
     assert!(res.is_err(), "set_logo should be err");
     // set logo by owner will ok
-    let res = token.set_logo(&test_owner, Some(new_logo.clone()));
+    let res = token.set_logo(&test_owner, Some(new_logo.clone()), None, now);
     assert!(res.is_ok(), "set_logo should be ok");
     assert_eq!(token.logo(), new_logo);
 }
 
 #[rstest]
-fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenBasic, test_owner: Principal) {
+fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenBasic, test_owner: Principal, now: u64) {
     let mut token = test_token_with_0_fee_rate.clone();
     let new_desc: HashMap<String, String> = vec![(
         "TWITTER".to_owned(),
         "https://twitter.com/DelandLabs".to_owned(),
     )]
-    .into_iter()
-    .collect();
+        .into_iter()
+        .collect();
     // set desc by other caller will failed
-    let res = token.set_desc(&other_caller(), new_desc.clone());
+    let res = token.set_desc(&other_caller(), new_desc.clone(), None, now.clone());
     assert!(res.is_err(), "set_desc should be err");
     // set desc by owner will ok
-    let res = token.set_desc(&test_owner, new_desc.clone());
+    let res = token.set_desc(&test_owner, new_desc.clone(), None, now.clone());
     assert!(res.is_ok(), "set_desc should be ok");
     assert_eq!(token.desc(), new_desc);
 
@@ -301,9 +304,9 @@ fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenBasic, test_owner:
         "TWITTER1".to_owned(),
         "https://twitter.com/DelandLabs1".to_owned(),
     )]
-    .into_iter()
-    .collect();
-    let res = token.set_desc(&test_owner, new_desc1.clone());
+        .into_iter()
+        .collect();
+    let res = token.set_desc(&test_owner, new_desc1.clone(), None, now);
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");
     assert_eq!(token.desc(), new_desc);
@@ -330,14 +333,14 @@ fn test_token_basic_fee_calculation(
     // mint & approve
     let mint_val = Nat::from(10000);
     let approve_val = Nat::from(1010);
-    let _ = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now);
+    let _ = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now.clone());
     let _ = token.approve(
         &test_minter,
         &minter_holder,
         &spender_holder,
         approve_val.clone(),
         None,
-        now,
+        now.clone(),
     );
     // check fee charge
     let approve_fee_charged = fee.minimum.clone();
@@ -357,7 +360,7 @@ fn test_token_basic_fee_calculation(
         &spender_holder,
         approve_val.clone(),
         None,
-        now,
+        now.clone(),
     );
     // check approve fee charge
     let approve_fee_charged: Nat = fee.clone().minimum.mul(2);
@@ -384,7 +387,7 @@ fn test_token_basic_fee_calculation(
         &to_holder,
         transfer_val.clone(),
         None,
-        now,
+        now.clone(),
     );
     // check transfer_from_res is Ok
     assert!(
@@ -483,7 +486,7 @@ fn test_token_basic_approve(
     // mint token to owner_holder
     let mint_val = Nat::from(10000);
     let approve_val = Nat::from(1000);
-    let mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now_u64);
+    let mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now_u64.clone());
     // mint_res is ok
     assert!(mint_res.is_ok());
     // check owner_holder balance
@@ -496,7 +499,7 @@ fn test_token_basic_approve(
         &spender_holder,
         approve_val.clone(),
         None,
-        now_u64,
+        now_u64.clone(),
     );
     // approve_rs is ok
     assert!(approve_rs.is_ok(), "{:?}", approve_rs.unwrap_err());
@@ -548,14 +551,14 @@ fn test_token_basic_transfer_from(
     // mint & approve
     let mint_val = Nat::from(10000);
     let approve_val = Nat::from(1000);
-    let _ = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now);
+    let _ = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now.clone());
     let _ = token.approve(
         &test_minter,
         &minter_holder,
         &spender_holder,
         approve_val.clone(),
         None,
-        now,
+        now.clone(),
     );
 
     // try transfer_from exceed allowance , should return err
@@ -567,7 +570,7 @@ fn test_token_basic_transfer_from(
         &to_holder,
         transfer_from_val,
         None,
-        now + 1,
+        now.clone() + 1,
     );
     assert!(result.is_err());
     // try transfer_from less than allowance , should return ok
@@ -634,7 +637,7 @@ fn test_token_basic_transfer(
     let fee = token.fee();
     // mint & approve
     let mint_val = Nat::from(10000);
-    let _ = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now);
+    let _ = token._mint(&test_owner, &minter_holder, mint_val.clone(), None, now.clone());
     // transfer token from from_holder to to_holder
     let transfer_val = Nat::from(1000);
     let transfer_res = token.transfer(
@@ -690,14 +693,14 @@ fn test_token_basic_mint_burn(
     // mint token to from_holder
     let mint_val = Nat::from(10000);
     // mint with wrong nonce should fail
-    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(2), now);
+    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(2), now.clone());
     assert!(_mint_res.is_err());
     //check error message should be NonceNotMatch
     assert_eq!(
         _mint_res.err().unwrap().to_string(),
         DFTError::NonceNotMatch.to_string()
     );
-    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(1), now);
+    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(1), now.clone());
     // check mint_res is ok, and check minter_holder balance
     assert!(_mint_res.is_ok(), "{:?}", _mint_res.unwrap_err());
     let owner_balance = token.balance_of(&minter_holder);
@@ -709,19 +712,9 @@ fn test_token_basic_mint_burn(
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
-    // // burn with wrong nonce should fail
+
     let burn_val = Nat::from(1000);
-    // let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 3, now + 1);
-
-    // // check burn_res error message is NonceNotMatch
-    // assert!(burn_res.is_err());
-    // assert_eq!(
-    //     burn_res.err().unwrap().to_string(),
-    //     DFTError::NonceNotMatch.to_string()
-    // );
-
-    // transfer token from minter_holder to to_holder
-    let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 2, now);
+    let burn_res = token._burn(&test_owner, &minter_holder, &minter_holder, burn_val.clone(), 2, now.clone());
 
     // check burn_res is ok, and check minter_holder balance
     assert!(burn_res.is_ok(), "{:?}", burn_res.unwrap_err());
@@ -731,6 +724,11 @@ fn test_token_basic_mint_burn(
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val - burn_val);
+
+    // burn value less than minimum fee will fail
+    let burn_val = Nat::from(1);
+    let burn_res = token._burn(&test_owner, &minter_holder, &minter_holder, burn_val.clone(), 3, now.clone());
+    assert!(burn_res.is_err());
 }
 
 // test token approve/transfer_from/transfer anonymous call should fail
@@ -758,7 +756,7 @@ fn test_token_basic_approve_transfer_from_transfer(
         &spender_holder,
         approve_val.clone(),
         None,
-        now,
+        now.clone(),
     );
     // check error message is DFTError::Unauthorized
     assert_eq!(
@@ -775,7 +773,7 @@ fn test_token_basic_approve_transfer_from_transfer(
         &to_holder,
         transfer_from_val.clone(),
         None,
-        now,
+        now.clone(),
     );
     assert_eq!(
         transfer_from_res.unwrap_err().to_string(),
@@ -822,7 +820,7 @@ fn test_token_basic_approve_transfer_from_transfer_with_wrong_nonce(
         &spender_holder,
         approve_val.clone(),
         Some(2),
-        now,
+        now.clone(),
     );
     assert_eq!(
         approve_res.unwrap_err().to_string(),
@@ -838,7 +836,7 @@ fn test_token_basic_approve_transfer_from_transfer_with_wrong_nonce(
         &to_holder,
         transfer_from_val.clone(),
         Some(2),
-        now,
+        now.clone(),
     );
     assert_eq!(
         transfer_from_res.unwrap_err().to_string(),

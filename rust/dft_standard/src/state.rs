@@ -1,5 +1,3 @@
-extern crate dft_types;
-extern crate dft_utils;
 use crate::token::*;
 use dft_types::*;
 use ic_cdk::storage;

@@ -49,10 +49,18 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
+        nonce: Option<u64>,
+        now: u64,
     ) -> CommonResult<bool>;
     // get/set logo
     fn logo(&self) -> Vec<u8>;
-    fn set_logo(&mut self, caller: &Principal, logo: Option<Vec<u8>>) -> CommonResult<bool>;
+    fn set_logo(
+        &mut self,
+        caller: &Principal,
+        logo: Option<Vec<u8>>,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool>;
     // nonce of
     fn nonce_of(&self, caller: &Principal) -> u64;
     // balance of
@@ -192,11 +200,14 @@ impl TokenBasic {
 
         Ok(())
     }
-
-    // generate new nonce
-    fn generate_new_nonce(&mut self, caller: &Principal) -> u64 {
-        let nonce = self.nonces.get(caller).unwrap_or(&0) + 1;
+    // update nonce
+    fn update_nonce(&mut self, caller: &Principal, nonce: u64) {
         self.nonces.insert(caller.clone(), nonce);
+    }
+
+    // get next nonce
+    fn get_next_nonce(&mut self, caller: &Principal) -> u64 {
+        let nonce = self.nonces.get(caller).unwrap_or(&0) + 1;
         nonce
     }
 
@@ -208,10 +219,9 @@ impl TokenBasic {
     ) -> CommonResult<u64> {
         if let Some(n) = nonce {
             self.check_nonce(caller, n)?;
-            self.nonces.insert(caller.clone(), n.clone());
             Ok(n)
         } else {
-            Ok(self.generate_new_nonce(caller))
+            Ok(self.get_next_nonce(caller))
         }
     }
 
@@ -397,7 +407,8 @@ impl TokenBasic {
     //transfer token
     fn _transfer(
         &mut self,
-        caller: &TokenHolder,
+        caller: &Principal,
+        tx_invoker: &TokenHolder,
         from: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
@@ -420,15 +431,16 @@ impl TokenBasic {
             let tx_index = self.generate_new_tx_index();
             let tx = TxRecord::Transfer(
                 tx_index.clone(),
-                caller.clone(),
+                tx_invoker.clone(),
                 from.clone(),
                 to.clone(),
                 value.clone(),
                 transfer_fee,
-                nonce,
+                nonce.clone(),
                 now,
             );
             self.txs.push(tx);
+            self.update_nonce(caller, nonce);
             Ok(tx_index)
         }
     }
@@ -458,21 +470,23 @@ impl TokenBasic {
             now,
         );
         self.txs.push(tx);
+        self.update_nonce(caller, nonce);
         Ok(tx_index)
     }
 
     // _burn
     pub fn _burn(
         &mut self,
-        caller: &TokenHolder,
+        caller: &Principal,
+        burner: &TokenHolder,
         from: &TokenHolder,
         value: Nat,
         nonce: u64,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
-        // calc the transfer fee,if the fee smaller than minimum fee,return error
+        // calc the transfer fee,if the burn amount small than minimum fee,return error
         let fee = self.calc_transfer_fee(&value);
-        if fee < self.fee.minimum.clone() {
+        if value < self.fee.minimum.clone() {
             return Err(DFTError::BurnValueTooSmall);
         }
         //check the burn from holder's balance, if balance is not enough, return error
@@ -488,15 +502,16 @@ impl TokenBasic {
             let tx_index = self.generate_new_tx_index();
             let tx = TxRecord::Transfer(
                 tx_index.clone(),
-                caller.clone(),
+                burner.clone(),
                 from.clone(),
                 TokenHolder::None,
                 value.clone(),
                 fee,
-                nonce,
+                nonce.clone(),
                 now,
             );
             self.txs.push(tx);
+            self.update_nonce(caller, nonce);
             Ok(tx_index)
         }
     }
@@ -635,16 +650,18 @@ impl TokenStandard for TokenBasic {
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.owner = owner;
+        let nonce = self.get_verified_nonce(caller, nonce)?;
         // create OwnerModifyTx
         let tx_index = self.generate_new_tx_index();
         let tx = TxRecord::OwnerModify(
             tx_index.clone(),
             caller.clone(),
             owner.clone(),
-            self.get_verified_nonce(caller, nonce)?,
+            nonce.clone(),
             now,
         );
         self.txs.push(tx);
+        self.update_nonce(caller, nonce);
         Ok(true)
     }
 
@@ -676,6 +693,7 @@ impl TokenStandard for TokenBasic {
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
+        let nonce = self.get_verified_nonce(caller, nonce)?;
         self.fee = fee.clone();
         // create FeeModifyTx
         let tx_index = self.generate_new_tx_index();
@@ -683,10 +701,11 @@ impl TokenStandard for TokenBasic {
             tx_index.clone(),
             caller.clone(),
             fee,
-            self.get_verified_nonce(caller, nonce)?,
+            nonce.clone(),
             now,
         );
         self.txs.push(tx);
+        self.update_nonce(caller, nonce);
         Ok(true)
     }
 
@@ -698,6 +717,7 @@ impl TokenStandard for TokenBasic {
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
+        let nonce = self.get_verified_nonce(caller, nonce)?;
         self.fee_to = fee_to.clone();
         // create FeeToModifyTx
         let tx_index = self.generate_new_tx_index();
@@ -705,10 +725,11 @@ impl TokenStandard for TokenBasic {
             tx_index.clone(),
             caller.clone(),
             fee_to.clone(),
-            self.get_verified_nonce(caller, nonce)?,
+            nonce.clone(),
             now,
         );
         self.txs.push(tx);
+        self.update_nonce(caller, nonce);
         Ok(true)
     }
 
@@ -730,27 +751,59 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
+        nonce: Option<u64>,
+        now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
+        let nonce = self.get_verified_nonce(caller, nonce)?;
         for (key, value) in descriptions.iter() {
             if DESC_KEYS.contains(&key.as_str()) {
                 self.desc.insert(key.clone(), value.clone());
             }
         }
+
+        let tx_index = self.generate_new_tx_index();
+        let modify_desc_tx = TxRecord::DescModify(
+            tx_index.clone(),
+            self.owner.clone(),
+            descriptions.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
+            nonce.clone(),
+            now,
+        );
+        self.txs.push(modify_desc_tx);
+        self.update_nonce(caller, nonce);
         Ok(true)
     }
     fn logo(&self) -> Vec<u8> {
         self.logo.clone().unwrap_or_else(|| vec![])
     }
 
-    fn set_logo(&mut self, caller: &Principal, logo: Option<Vec<u8>>) -> CommonResult<bool> {
+    fn set_logo(
+        &mut self,
+        caller: &Principal,
+        logo: Option<Vec<u8>>,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool> {
         self.only_owner(caller)?;
+        let nonce = self.get_verified_nonce(caller, nonce)?;
         if logo.is_some() {
             get_logo_type(&logo.clone().unwrap())
                 .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)?;
         }
 
-        self.logo = logo;
+        self.logo = logo.clone();
+        let tx_index = self.generate_new_tx_index();
+
+        let modify_logo_tx = TxRecord::LogoModify(
+            tx_index.clone(),
+            self.owner.clone(),
+            if logo.is_some() { logo.unwrap() } else { vec![] },
+            nonce,
+            now,
+        );
+        self.txs.push(modify_logo_tx);
+        self.update_nonce(caller, nonce);
         Ok(true)
     }
 
@@ -799,10 +852,11 @@ impl TokenStandard for TokenBasic {
             spender.clone(),
             value.clone(),
             approve_fee,
-            nonce,
+            nonce.clone(),
             now,
         );
         self.txs.push(approve_tx);
+        self.update_nonce(caller, nonce);
         return Ok(tx_index);
     }
 
@@ -829,7 +883,7 @@ impl TokenStandard for TokenBasic {
         // debit the spender's allowance
         self.debit_allowance(from, spender, decreased_allowance.clone())?;
 
-        return self._transfer(spender, from, to, value, nonce, now);
+        return self._transfer(caller, spender, from, to, value, nonce, now);
     }
 
     fn transfer(
@@ -843,7 +897,7 @@ impl TokenStandard for TokenBasic {
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
         let nonce = self.get_verified_nonce(caller, nonce)?;
-        self._transfer(&from, from, to, value, nonce, now)
+        self._transfer(caller, &from, from, to, value, nonce, now)
     }
 
     fn token_info(&self) -> TokenInfo {
@@ -924,10 +978,14 @@ impl TokenStandard for TokenBasic {
         let count = if count > 100 { 100 } else { count };
 
         if self.txs.len() < count {
-            Ok(self.txs.clone())
+            let mut txs = self.txs.clone();
+            txs.reverse();
+            return Ok(txs);
         } else {
             let start = self.txs.len() - count;
-            Ok(self.txs[start..].to_vec())
+            let mut txs = self.txs[start..].to_vec();
+            txs.reverse();
+            Ok(txs)
         }
     }
 }

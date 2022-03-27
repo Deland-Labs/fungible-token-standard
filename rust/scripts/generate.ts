@@ -1,12 +1,12 @@
 import {exec} from "shelljs";
-import {all_names} from "~/canisters/names";
+import {canisters} from "~/canisters";
 import logger from "node-color-log";
 
 (async () => {
     logger.debug("Generating code of canisters client ...");
-    for (const name of all_names) {
+    canisters.map(async ([name, config]) => {
         await exec(`dfx generate ${name}`, {silent: true});
-    }
+    });
 
     // remove ./src/declarations/*/index.js
     await exec(`rm -rf ./src/declarations/*/index.js`);

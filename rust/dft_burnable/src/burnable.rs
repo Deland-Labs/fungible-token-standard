@@ -1,6 +1,3 @@
-extern crate dft_types;
-extern crate dft_utils;
-
 use candid::candid_method;
 use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
 use dft_standard::state::TOKEN;

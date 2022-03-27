@@ -1,6 +1,3 @@
-extern crate dft_types;
-extern crate dft_utils;
-
 use candid::candid_method;
 use dft_standard::token::TokenStandard;
 use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
@@ -183,12 +180,12 @@ async fn approve(
     spender: String,
     value: Nat,
     nonce: Option<u64>,
-) -> ActorResult<TransactionResponse> {
+) -> TransactionResult {
     let caller = api::caller();
     let owner_holder = TokenHolder::new(caller.clone(), owner_sub_account);
     match spender.parse::<TokenHolder>() {
         Ok(spender_holder) => {
-            let tx_index = TOKEN.with(|token| {
+            match TOKEN.with(|token| {
                 let mut token = token.borrow_mut();
                 token.approve(
                     &caller,
@@ -198,18 +195,22 @@ async fn approve(
                     nonce,
                     api::time(),
                 )
-            })?;
-            let tx_id = encode_tx_id(api::id(), tx_index);
+            }) {
+                Ok(tx_index) => {
+                    let tx_id = encode_tx_id(api::id(), tx_index);
 
-            Ok(TransactionResponse {
-                tx_id: tx_id,
-                error: match exec_auto_scaling_strategy().await {
-                    Ok(_) => None,
-                    Err(e) => Some(e),
-                },
-            })
+                    TransactionResult::Ok(TransactionResponse {
+                        tx_id,
+                        error: match exec_auto_scaling_strategy().await {
+                            Ok(_) => None,
+                            Err(e) => Some(e),
+                        },
+                    })
+                }
+                Err(e) => TransactionResult::Err(e.into()),
+            }
         }
-        Err(_) => Err(DFTError::InvalidSpender.into()),
+        Err(_) => TransactionResult::Err(DFTError::InvalidSpender.into()),
     }
 }
 
@@ -233,7 +234,7 @@ async fn transfer_from(
     to: String,
     value: Nat,
     nonce: Option<u64>,
-) -> ActorResult<TransactionResponse> {
+) -> TransactionResult {
     let caller = api::caller();
     let now = api::time();
     let spender = TokenHolder::new(caller, spender_sub_account);
@@ -241,9 +242,12 @@ async fn transfer_from(
     match from.parse::<TokenHolder>() {
         Ok(from_token_holder) => match to.parse::<TokenHolder>() {
             Ok(to_token_holder) => {
-                // exec before-transfer check
-                before_token_sending(&from_token_holder, &to_token_holder, &value)?;
-                let tx_index = TOKEN.with(|token| {
+                // exec before-transfer check :before_token_sending
+                match before_token_sending(&from_token_holder, &to_token_holder, &value) {
+                    Err(e) => return TransactionResult::Err(e),
+                    _ => {}
+                };
+                match TOKEN.with(|token| {
                     let mut token = token.borrow_mut();
                     token.transfer_from(
                         &caller,
@@ -254,19 +258,23 @@ async fn transfer_from(
                         nonce,
                         now,
                     )
-                })?;
-                // exec auto scaling strategy
-                Ok(TransactionResponse {
-                    tx_id: encode_tx_id(api::id(), tx_index),
-                    error: match exec_auto_scaling_strategy().await {
-                        Err(e) => Some(e),
-                        _ => None,
-                    },
-                })
+                }) {
+                    Ok(tx_index) => {
+                        // exec auto scaling strategy
+                        TransactionResult::Ok(TransactionResponse {
+                            tx_id: encode_tx_id(api::id(), tx_index),
+                            error: match exec_auto_scaling_strategy().await {
+                                Err(e) => Some(e),
+                                _ => None,
+                            },
+                        })
+                    }
+                    Err(e) => TransactionResult::Err(e.into()),
+                }
             }
-            _ => Err(DFTError::InvalidArgFormatTo.into()),
+            _ => TransactionResult::Err(DFTError::InvalidArgFormatTo.into()),
         },
-        _ => Err(DFTError::InvalidArgFormatFrom.into()),
+        _ => TransactionResult::Err(DFTError::InvalidArgFormatFrom.into()),
     }
 }
 
@@ -277,7 +285,7 @@ async fn transfer(
     to: String,
     value: Nat,
     nonce: Option<u64>,
-) -> ActorResult<TransactionResponse> {
+) -> TransactionResult {
     let caller = api::caller();
     let now = api::time();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
@@ -286,9 +294,12 @@ async fn transfer(
     match receiver_parse_result {
         Ok(receiver) => {
             //exec before-transfer check
-            before_token_sending(&transfer_from, &receiver, &value)?;
+            match before_token_sending(&transfer_from, &receiver, &value) {
+                Err(e) => return TransactionResult::Err(e),
+                _ => {}
+            };
             //transfer token
-            let tx_index = TOKEN.with(|token| {
+            match TOKEN.with(|token| {
                 let mut token = token.borrow_mut();
                 token.transfer(
                     &caller,
@@ -298,27 +309,24 @@ async fn transfer(
                     nonce,
                     now,
                 )
-            })?;
-
-            //exec auto-scaling storage strategy
-            return Ok(TransactionResponse {
-                tx_id: encode_tx_id(api::id(), tx_index),
-                error: match exec_auto_scaling_strategy().await {
-                    Ok(_) => None,
-                    Err(e) => Some(e),
-                },
-            });
+            }) {
+                Ok(tx_index) => TransactionResult::Ok(TransactionResponse {
+                    tx_id: encode_tx_id(api::id(), tx_index),
+                    error: match exec_auto_scaling_strategy().await {
+                        Ok(_) => None,
+                        Err(e) => Some(e),
+                    },
+                }),
+                Err(e) => TransactionResult::Err(e.into()),
+            }
         }
-        _ => Err(DFTError::InvalidArgFormatTo.into()),
+        _ => TransactionResult::Err(DFTError::InvalidArgFormatTo.into()),
     }
 }
 
 #[query(name = "tokenInfo")]
 #[candid_method(query, rename = "tokenInfo")]
 fn get_token_info() -> TokenInfo {
-    // let mut token_info = TOKEN.read().unwrap().token_info();
-    // token_info.cycles = api::canister_balance();
-    // token_info
     TOKEN.with(|token| {
         let token = token.borrow();
         let mut token_info = token.token_info();
@@ -338,10 +346,10 @@ fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
 
 #[query(name = "lastTransactions")]
 #[candid_method(query, rename = "lastTransactions")]
-fn last_transactions(count: usize) -> ActorResult<Vec<TxRecord>> {
+fn last_transactions(count: usize) -> TxRecordListResult {
     TOKEN.with(|token| {
         let token = token.borrow();
-        to_actor_result(token.last_transactions(count))
+        token.last_transactions(count).into()
     })
 }
 
@@ -352,14 +360,6 @@ fn transaction_by_id(tx_id: String) -> TxRecordResult {
         let token = token.borrow();
         token.transaction_by_id(&tx_id).into()
     })
-}
-
-candid::export_service!();
-
-#[query(name = "__get_candid_interface_tmp_hack")]
-#[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
-fn __get_candid_interface_tmp_hack() -> String {
-    __export_service()
 }
 
 // do something before sending

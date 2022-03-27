@@ -74,32 +74,32 @@ impl AutoScalingStorage {
     }
 
     // fn get_tx_by_index
-    pub fn get_tx_by_index(&self, tx_index: Nat) -> CommonResult<TxRecord> {
+    pub fn get_tx_by_index(&self, tx_index: Nat) -> TxRecordCommonResult {
         if tx_index < self.tx_start_index
             || tx_index > (self.tx_start_index.clone() + self.txs.len() as u128)
         {
-            Err(DFTError::InvalidTxIndex)
+            TxRecordCommonResult::Err(DFTError::InvalidTxIndex)
         } else {
             let inner_index: usize = (tx_index - self.tx_start_index.clone())
                 .0
                 .try_into()
                 .unwrap();
-            Ok(self.txs[inner_index].clone())
+            TxRecordCommonResult::Ok(self.txs[inner_index].clone())
         }
     }
 
     // fn get_tx_by_id
-    pub fn get_tx_by_id(&self, tx_id: String) -> CommonResult<TxRecord> {
+    pub fn get_tx_by_id(&self, tx_id: String) -> TxRecordCommonResult {
         let decode_res = decode_tx_id(tx_id);
         match decode_res {
             Ok((dft_id, tx_index)) => {
                 if dft_id != self.dft_id {
-                    Err(DFTError::TxIdNotBelongToCurrentDft)
+                    TxRecordCommonResult::Err(DFTError::TxIdNotBelongToCurrentDft)
                 } else {
                     self.get_tx_by_index(tx_index)
                 }
             }
-            Err(_) => Err(DFTError::InvalidTxId),
+            Err(_) => TxRecordCommonResult::Err(DFTError::InvalidTxId),
         }
     }
 
@@ -327,13 +327,17 @@ mod tests {
         assert_eq!(storage.txs.len(), 1);
         // test get tx by index
         let res = storage.get_tx_by_index(test_tx_record.get_tx_index());
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), test_tx_record);
+        match res {
+            TxRecordCommonResult::Ok(tx) => assert_eq!(tx, test_tx_record),
+            _ => assert!(false),
+        }
         // test get tx by id
         let tx_id = encode_tx_id(test_token_id, test_tx_record.get_tx_index());
         let res = storage.get_tx_by_id(tx_id);
-        assert!(res.is_ok());
-        assert_eq!(res.unwrap(), test_tx_record);
+        match res {
+            TxRecordCommonResult::Ok(tx) => assert_eq!(tx, test_tx_record),
+            _ => assert!(false),
+        }
     }
 
     // test batch_append
@@ -364,15 +368,19 @@ mod tests {
         // test get tx by index
         for tx_record in &test_tx_records {
             let res = storage.get_tx_by_index(tx_record.get_tx_index());
-            assert!(res.is_ok());
-            assert_eq!(res.unwrap(), *tx_record);
+            match res {
+                TxRecordCommonResult::Ok(tx) => assert_eq!(tx, *tx_record),
+                _ => assert!(false),
+            }
         }
         // test get tx by id
         for tx_record in &test_tx_records {
             let tx_id = encode_tx_id(test_token_id, tx_record.get_tx_index());
             let res = storage.get_tx_by_id(tx_id);
-            assert!(res.is_ok());
-            assert_eq!(res.unwrap(), *tx_record);
+            match res {
+                TxRecordCommonResult::Ok(tx) => assert_eq!(tx, *tx_record),
+                _ => assert!(false),
+            }
         }
     }
 }

@@ -1,13 +1,15 @@
 import {exec} from "shelljs";
-import {favorites, registrar, registrar_control_gateway, registry, resolver} from "~/canisters/names";
+import {canisters} from "~/canisters";
 import fs from "fs";
 import logger from "node-color-log";
 
 
 const download_did = async (canister) => {
-    let result = exec(`dfx canister call ${canister} __get_candid_interface_tmp_hack`, {silent: true});
+    const command = `dfx canister call ${canister} __get_candid_interface_tmp_hack`;
+    logger.debug(`download_did : ${command}`);
+    let result = exec(command, {silent: true});
     if (result.code !== 0) {
-        logger.error(result.stderr);
+        logger.error(`${canister} : ${result.stderr}`);
         process.exit(1);
     }
     let source_content = result.stdout;
@@ -21,13 +23,14 @@ const download_did = async (canister) => {
 };
 
 (async () => {
-    let names = [registrar, registrar_control_gateway, registry, favorites, resolver];
-    for (let name of names) {
+
+    // for each canister
+    canisters.map(async ([name, config]) => {
+        let did_file = `${config.candid}`;
+        logger.debug(` ${name}: did_file: ${did_file}`);
         let did_content = await download_did(name);
-        let did_file = `canisters/${name}/src/${name}.did`;
-        logger.debug(`Writing ${did_file}`);
         fs.writeFileSync(did_file, did_content);
-    }
+    });
 
     logger.info("Did update complete");
 })();
