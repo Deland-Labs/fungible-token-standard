@@ -714,7 +714,7 @@ fn test_token_basic_mint_burn(
     assert_eq!(total_supply, mint_val);
 
     let burn_val = Nat::from(1000);
-    let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 2, now.clone());
+    let burn_res = token._burn(&test_owner, &minter_holder, &minter_holder, burn_val.clone(), 2, now.clone());
 
     // check burn_res is ok, and check minter_holder balance
     assert!(burn_res.is_ok(), "{:?}", burn_res.unwrap_err());
@@ -727,7 +727,7 @@ fn test_token_basic_mint_burn(
 
     // burn value less than minimum fee will fail
     let burn_val = Nat::from(1);
-    let burn_res = token._burn(&minter_holder, &minter_holder, burn_val.clone(), 3, now.clone());
+    let burn_res = token._burn(&test_owner, &minter_holder, &minter_holder, burn_val.clone(), 3, now.clone());
     assert!(burn_res.is_err());
 }
 
