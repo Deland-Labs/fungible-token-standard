@@ -1,5 +1,4 @@
 type ActorError = record { code : nat32; message : text };
-type BooleanResult = variant { Ok : bool; Err : ActorError };
 type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
 type Metadata = record {
   fee : Fee;
@@ -21,6 +20,13 @@ type TokenInfo = record {
 type TransactionResponse = record { txId : text; error : opt ActorError };
 type TransactionResult = variant { Ok : TransactionResponse; Err : ActorError };
 type TxRecord = variant {
+  DescModify : record {
+    nat;
+    principal;
+    vec record { text; text };
+    nat64;
+    nat64;
+  };
   FeeToModify : record { nat; principal; TokenHolder; nat64; nat64 };
   Approve : record {
     nat;
@@ -32,6 +38,7 @@ type TxRecord = variant {
     nat64;
     nat64;
   };
+  LogoModify : record { nat; principal; vec nat8; nat64; nat64 };
   FeeModify : record { nat; principal; Fee; nat64; nat64 };
   Transfer : record {
     nat;
