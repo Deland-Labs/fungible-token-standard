@@ -46,7 +46,7 @@ impl AccountIdentifier {
     /// Goes from the canonical format (with checksum) encoded in bytes rather
     /// than hex to AccountIdentifier
     pub fn from_slice(v: &[u8]) -> Result<AccountIdentifier, String> {
-        // Trim this down when we reach rust 1.48
+        // Trim this down when we reach src 1.48
         let hex: Box<[u8; 32]> = match v.to_vec().into_boxed_slice().try_into() {
             Ok(h) => h,
             Err(_) => {

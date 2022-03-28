@@ -11,4 +11,4 @@
 .dfx/
 package
 node_modules
-/rust/identities.json
+/src/identities.json
