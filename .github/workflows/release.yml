@@ -33,24 +33,24 @@ jobs:
 
       - name: install canister
         run: |
-          cd $GITHUB_WORKSPACE/rust
+          cd $GITHUB_WORKSPACE/src
           dfx start --host 0.0.0.0:8000 --background
           dfx canister create --all
       - name: create package
         run: |
-          cd $GITHUB_WORKSPACE/rust
+          cd $GITHUB_WORKSPACE/src
           pipenv install
           pipenv run invoke package-zip
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
           path: |
-            rust/package/local.zip
+            src/package/local.zip
       - name: Create Release
         uses: tix-factory/release-manager@v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           mode: uploadReleaseAsset
-          filePath: ./rust/package/local.zip
+          filePath: ./src/package/local.zip
           assetName: local-${{ steps.gitversion.outputs.MajorMinorPatch }}.zip
           tag: v${{ steps.gitversion.outputs.MajorMinorPatch }}

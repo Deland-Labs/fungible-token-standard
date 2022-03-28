@@ -39,12 +39,12 @@ rustup target add wasm32-unknown-unknown
 ### Rust
 **Unit Testing**
 ```bash
-   cd rust
+   cd src
    cargo test
 ```
 **Automated Integration Testing**
 ```bash
-   cd rust
+   cd src
    sh sh_go.sh
    sh sh_setup_dev.sh
    sh itt.sh
