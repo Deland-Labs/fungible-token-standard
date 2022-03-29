@@ -64,12 +64,12 @@ fn inspect_message() {
             if balance > Nat::from(0) {
                 api::call::accept_message();
             } else if caller == Principal::anonymous() {
-                let err: ActorError = DFTError::NotAllowAnonymous.into();
+                let err: ErrorInfo = DFTError::NotAllowAnonymous.into();
                 let err_msg = format!("reject {:?}", err);
                 api::print(err_msg.to_string());
                 api::call::reject(err_msg.as_str());
             } else {
-                let err: ActorError = DFTError::InsufficientBalance.into();
+                let err: ErrorInfo = DFTError::InsufficientBalance.into();
                 let err_msg = format!("reject {:?}", err);
                 api::print(err_msg.to_string());
                 api::call::reject(err_msg.as_str());
@@ -81,7 +81,7 @@ fn inspect_message() {
             if caller == owner {
                 api::call::accept_message();
             } else {
-                let err: ActorError = DFTError::OnlyOwnerAllowCallIt.into();
+                let err: ErrorInfo = DFTError::OnlyOwnerAllowCallIt.into();
                 let err_msg = format!("reject {:?}", err);
                 api::print(err_msg.to_string());
                 api::call::reject(err_msg.as_str());

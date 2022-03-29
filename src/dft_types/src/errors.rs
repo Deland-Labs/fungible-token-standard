@@ -81,9 +81,9 @@ impl DFTError {
     }
 }
 
-impl From<DFTError> for ActorError {
+impl From<DFTError> for ErrorInfo {
     fn from(error: DFTError) -> Self {
-        ActorError {
+        ErrorInfo {
             code: error.code(),
             message: error.to_string(),
         }
@@ -91,10 +91,10 @@ impl From<DFTError> for ActorError {
 }
 
 #[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, CandidType, Deserialize)]
-pub struct ActorError {
+pub struct ErrorInfo {
     code: u32,
     message: String,
 }
 
 pub type CommonResult<T> = anyhow::Result<T, DFTError>;
-pub type ActorResult<T> = Result<T, ActorError>;
+pub type ActorResult<T> = Result<T, ErrorInfo>;
