@@ -46,8 +46,8 @@ export const idlFactory = ({ IDL }) => {
       IDL.Nat64,
     ),
   });
-  const ActorError = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
-  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ActorError });
+  const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
+  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const StorageInfo = IDL.Record({
     'dft_id' : IDL.Principal,
     'tx_start_index' : IDL.Nat,
@@ -56,12 +56,12 @@ export const idlFactory = ({ IDL }) => {
   });
   const TxRecordResult = IDL.Variant({
     'Ok' : TxRecord,
-    'Err' : ActorError,
+    'Err' : ErrorInfo,
     'Forward' : IDL.Principal,
   });
   const TxRecordListResult = IDL.Variant({
     'Ok' : IDL.Vec(TxRecord),
-    'Err' : ActorError,
+    'Err' : ErrorInfo,
   });
   return IDL.Service({
     'append' : IDL.Func([TxRecord], [BooleanResult], []),
