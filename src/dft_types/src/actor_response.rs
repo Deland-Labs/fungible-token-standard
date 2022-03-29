@@ -1,12 +1,12 @@
 use crate::{
-    ActorError, ActorResult, CommonResult, TransactionResponse, TxRecord, TxRecordCommonResult,
+    ErrorInfo, ActorResult, CommonResult, TransactionResponse, TxRecord, TxRecordCommonResult,
 };
 use candid::{CandidType, Principal, Deserialize};
 
 #[derive(CandidType, Debug, Deserialize)]
 pub enum BooleanResult {
     Ok(bool),
-    Err(ActorError),
+    Err(ErrorInfo),
 }
 
 impl From<CommonResult<bool>> for BooleanResult {
@@ -30,7 +30,7 @@ impl From<ActorResult<bool>> for BooleanResult {
 #[derive(CandidType)]
 pub enum TransactionResult {
     Ok(TransactionResponse),
-    Err(ActorError),
+    Err(ErrorInfo),
 }
 
 impl From<CommonResult<TransactionResponse>> for TransactionResult {
@@ -58,7 +58,7 @@ pub enum TxRecordResult {
     // If not storage in DFT cache txs, return the storage canister id
     Forward(Principal),
     // Such as out of tx index or tx id not exist
-    Err(ActorError),
+    Err(ErrorInfo),
 }
 
 impl From<TxRecordCommonResult> for TxRecordResult {
@@ -74,7 +74,7 @@ impl From<TxRecordCommonResult> for TxRecordResult {
 #[derive(CandidType)]
 pub enum TxRecordListResult {
     Ok(Vec<TxRecord>),
-    Err(ActorError),
+    Err(ErrorInfo),
 }
 
 impl From<CommonResult<Vec<TxRecord>>> for TxRecordListResult {

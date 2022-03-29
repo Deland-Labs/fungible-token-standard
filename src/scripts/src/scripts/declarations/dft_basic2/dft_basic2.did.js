@@ -9,14 +9,14 @@ export const idlFactory = ({ IDL }) => {
     'Account' : IDL.Text,
     'Principal' : IDL.Principal,
   });
-  const ActorError = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
+  const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
   const TransactionResponse = IDL.Record({
     'txId' : IDL.Text,
-    'error' : IDL.Opt(ActorError),
+    'error' : IDL.Opt(ErrorInfo),
   });
   const TransactionResult = IDL.Variant({
     'Ok' : TransactionResponse,
-    'Err' : ActorError,
+    'Err' : ErrorInfo,
   });
   const TxRecord = IDL.Variant({
     'FeeToModify' : IDL.Tuple(
@@ -57,7 +57,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const TxRecordListResult = IDL.Variant({
     'Ok' : IDL.Vec(TxRecord),
-    'Err' : ActorError,
+    'Err' : ErrorInfo,
   });
   const Metadata = IDL.Record({
     'fee' : Fee,
@@ -66,7 +66,7 @@ export const idlFactory = ({ IDL }) => {
     'totalSupply' : IDL.Nat,
     'symbol' : IDL.Text,
   });
-  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ActorError });
+  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const TokenInfo = IDL.Record({
     'owner' : IDL.Principal,
     'allowanceSize' : IDL.Nat,
@@ -78,7 +78,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const TxRecordResult = IDL.Variant({
     'Ok' : TxRecord,
-    'Err' : ActorError,
+    'Err' : ErrorInfo,
     'Forward' : IDL.Principal,
   });
   return IDL.Service({

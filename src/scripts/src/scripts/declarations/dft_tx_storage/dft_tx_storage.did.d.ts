@@ -1,7 +1,7 @@
 import type { Principal } from '@dfinity/principal';
-export interface ActorError { 'code' : number, 'message' : string }
+export interface ErrorInfo { 'code' : number, 'message' : string }
 export type BooleanResult = { 'Ok' : boolean } |
-  { 'Err' : ActorError };
+  { 'Err' : ErrorInfo };
 export interface Fee {
   'rate' : bigint,
   'minimum' : bigint,
@@ -46,9 +46,9 @@ export type TxRecord = {
   } |
   { 'OwnerModify' : [bigint, Principal, Principal, bigint, bigint] };
 export type TxRecordListResult = { 'Ok' : Array<TxRecord> } |
-  { 'Err' : ActorError };
+  { 'Err' : ErrorInfo };
 export type TxRecordResult = { 'Ok' : TxRecord } |
-  { 'Err' : ActorError } |
+  { 'Err' : ErrorInfo } |
   { 'Forward' : Principal };
 export interface _SERVICE {
   'append' : (arg_0: TxRecord) => Promise<BooleanResult>,

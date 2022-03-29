@@ -1,5 +1,5 @@
-type ActorError = record { code : nat32; message : text };
-type BooleanResult = variant { Ok : bool; Err : ActorError };
+type ErrorInfo = record { code : nat32; message : text };
+type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
 type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
 type StorageInfo = record {
   dft_id : principal;
@@ -33,10 +33,10 @@ type TxRecord = variant {
   };
   OwnerModify : record { nat; principal; principal; nat64; nat64 };
 };
-type TxRecordListResult = variant { Ok : vec TxRecord; Err : ActorError };
+type TxRecordListResult = variant { Ok : vec TxRecord; Err : ErrorInfo };
 type TxRecordResult = variant {
   Ok : TxRecord;
-  Err : ActorError;
+  Err : ErrorInfo;
   Forward : principal;
 };
 service : (principal, nat) -> {  

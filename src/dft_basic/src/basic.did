@@ -1,4 +1,4 @@
-type ActorError = record { code : nat32; message : text };
+type ErrorInfo = record { code : nat32; message : text };
 type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
 type Metadata = record {
   fee : Fee;
@@ -17,8 +17,8 @@ type TokenInfo = record {
   storages : vec principal;
   feeTo : TokenHolder;
 };
-type TransactionResponse = record { txId : text; error : opt ActorError };
-type TransactionResult = variant { Ok : TransactionResponse; Err : ActorError };
+type TransactionResponse = record { txId : text; error : opt ErrorInfo };
+type TransactionResult = variant { Ok : TransactionResponse; Err : ErrorInfo };
 type TxRecord = variant {
   DescModify : record {
     nat;
@@ -52,10 +52,10 @@ type TxRecord = variant {
   };
   OwnerModify : record { nat; principal; principal; nat64; nat64 };
 };
-type TxRecordListResult = variant { Ok : vec TxRecord; Err : ActorError };
+type TxRecordListResult = variant { Ok : vec TxRecord; Err : ErrorInfo };
 type TxRecordResult = variant {
   Ok : TxRecord;
-  Err : ActorError;
+  Err : ErrorInfo;
   Forward : principal;
 };
 service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt principal) -> {
