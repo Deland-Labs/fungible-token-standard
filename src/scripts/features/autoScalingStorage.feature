@@ -1,4 +1,4 @@
-@dft
+@dev
 Feature: token tx auto scaling storage
 
   Background:

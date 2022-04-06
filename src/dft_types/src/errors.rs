@@ -15,8 +15,6 @@ pub enum DFTError {
     InvalidArgFormatTo,
     #[error("DFT: Invalid arg format [feeTo]")]
     InvalidArgFormatFeeTo,
-    #[error("DFT: nonce not match")]
-    NonceNotMatch,
     #[error("DFT: insufficient balance")]
     InsufficientBalance,
     #[error("DFT: insufficient allowance")]
@@ -39,6 +37,12 @@ pub enum DFTError {
     MoveTxToScalingStorageFailed,
     #[error("DFT: invalid type or format of logo")]
     InvalidTypeOrFormatOfLogo,
+    #[error("DFT: tx too old")]
+    TxTooOld,
+    #[error("DFT: tx created in future")]
+    TxCreatedInFuture,
+    #[error("DFT: tx duplicate")]
+    TxDuplicate,
     #[error("DFT_TX: invalid tx index")]
     InvalidTxIndex,
     #[error("DFT_TX: invalid tx id")]
@@ -60,22 +64,24 @@ impl DFTError {
             DFTError::InvalidArgFormatFrom => 4,
             DFTError::InvalidArgFormatTo => 5,
             DFTError::InvalidArgFormatFeeTo => 6,
-            DFTError::NonceNotMatch => 7,
-            DFTError::InsufficientBalance => 8,
-            DFTError::InsufficientAllowance => 9,
-            DFTError::TransferAmountExceedsAllowance => 10,
-            DFTError::TransferAmountExceedsBalance => 11,
-            DFTError::BurnValueTooSmall => 12,
-            DFTError::BurnValueExceedsBalance => 13,
-            DFTError::BurnValueExceedsAllowance => 14,
-            DFTError::NotificationFailed => 15,
-            DFTError::StorageScalingFailed => 16,
-            DFTError::MoveTxToScalingStorageFailed => 17,
-            DFTError::InvalidTypeOrFormatOfLogo => 18,
-            DFTError::InvalidTxIndex => 19,
-            DFTError::InvalidTxId => 20,
-            DFTError::TxIdNotBelongToCurrentDft => 21,
-            DFTError::OnlyAllowTokenCanisterCallThisFunction => 22,
+            DFTError::InsufficientBalance => 7,
+            DFTError::InsufficientAllowance => 8,
+            DFTError::TransferAmountExceedsAllowance => 9,
+            DFTError::TransferAmountExceedsBalance => 10,
+            DFTError::BurnValueTooSmall => 11,
+            DFTError::BurnValueExceedsBalance => 12,
+            DFTError::BurnValueExceedsAllowance => 13,
+            DFTError::NotificationFailed => 14,
+            DFTError::StorageScalingFailed => 15,
+            DFTError::MoveTxToScalingStorageFailed => 16,
+            DFTError::InvalidTypeOrFormatOfLogo => 17,
+            DFTError::TxTooOld => 18,
+            DFTError::TxCreatedInFuture => 19,
+            DFTError::TxDuplicate => 20,
+            DFTError::InvalidTxIndex => 21,
+            DFTError::InvalidTxId => 22,
+            DFTError::TxIdNotBelongToCurrentDft => 23,
+            DFTError::OnlyAllowTokenCanisterCallThisFunction => 24,
             DFTError::Unknown { .. } => 10000,
         }
     }

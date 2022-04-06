@@ -12,7 +12,6 @@ pub struct TokenPayload {
     pub logo: Vec<u8>,
     pub balances: Vec<(TokenHolder, Nat)>,
     pub allowances: Vec<(TokenHolder, Vec<(TokenHolder, Nat)>)>,
-    pub nonces: Vec<(Principal, u64)>,
     pub tx_index_cursor: Nat,
     pub storage_canister_ids: Vec<(Nat, Principal)>,
     pub txs_inner: Txs,

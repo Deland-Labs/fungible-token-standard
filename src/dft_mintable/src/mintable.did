@@ -1,4 +1,5 @@
 type ErrorInfo = record { code : nat32; message : text };
+type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
 type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
 type Metadata = record {
   fee : Fee;

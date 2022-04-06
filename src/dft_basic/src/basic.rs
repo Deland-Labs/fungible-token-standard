@@ -146,15 +146,6 @@ fn balance_of(holder: String) -> Nat {
     }
 }
 
-#[query(name = "nonceOf")]
-#[candid_method(query, rename = "nonceOf")]
-fn nonce_of(principal: Principal) -> u64 {
-    TOKEN.with(|token| {
-        let token = token.borrow();
-        token.nonce_of(&principal)
-    })
-}
-
 #[query(name = "allowance")]
 #[candid_method(query, rename = "allowance")]
 fn allowance(owner: String, spender: String) -> Nat {
@@ -179,7 +170,7 @@ async fn approve(
     owner_sub_account: Option<Subaccount>,
     spender: String,
     value: Nat,
-    nonce: Option<u64>,
+    created_at: Option<u64>,
 ) -> TransactionResult {
     let caller = api::caller();
     let owner_holder = TokenHolder::new(caller.clone(), owner_sub_account);
@@ -192,7 +183,7 @@ async fn approve(
                     &owner_holder,
                     &spender_holder,
                     value,
-                    nonce,
+                    created_at,
                     api::time(),
                 )
             }) {
@@ -233,7 +224,7 @@ async fn transfer_from(
     from: String,
     to: String,
     value: Nat,
-    nonce: Option<u64>,
+    created_at: Option<u64>,
 ) -> TransactionResult {
     let caller = api::caller();
     let now = api::time();
@@ -255,7 +246,7 @@ async fn transfer_from(
                         &spender,
                         &to_token_holder,
                         value.clone(),
-                        nonce,
+                        created_at,
                         now,
                     )
                 }) {
@@ -284,7 +275,7 @@ async fn transfer(
     from_sub_account: Option<Subaccount>,
     to: String,
     value: Nat,
-    nonce: Option<u64>,
+    created_at: Option<u64>,
 ) -> TransactionResult {
     let caller = api::caller();
     let now = api::time();
@@ -306,7 +297,7 @@ async fn transfer(
                     &transfer_from,
                     &receiver,
                     value.clone(),
-                    nonce,
+                    created_at,
                     now,
                 )
             }) {
@@ -360,14 +351,6 @@ fn transaction_by_id(tx_id: String) -> TxRecordResult {
         let token = token.borrow();
         token.transaction_by_id(&tx_id).into()
     })
-}
-
-candid::export_service!();
-
-#[query(name = "__get_candid_interface_tmp_hack")]
-#[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
-fn __get_candid_interface_tmp_hack() -> String {
-    __export_service()
 }
 
 // do something before sending

@@ -695,19 +695,16 @@ fn test_token_basic_mint_burn(
     // mint with wrong nonce should fail
     let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(2), now.clone());
     assert!(_mint_res.is_err());
-    //check error message should be NonceNotMatch
+    //check error message should be TxTooOld
     assert_eq!(
         _mint_res.err().unwrap().to_string(),
-        DFTError::NonceNotMatch.to_string()
+        DFTError::TxTooOld.to_string()
     );
-    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(1), now.clone());
+    let _mint_res = token._mint(&test_owner, &minter_holder, mint_val.clone(), Some(now), now.clone());
     // check mint_res is ok, and check minter_holder balance
     assert!(_mint_res.is_ok(), "{:?}", _mint_res.unwrap_err());
     let owner_balance = token.balance_of(&minter_holder);
     assert_eq!(owner_balance, mint_val);
-    // check test_owner nonce
-    let nonce = token.nonce_of(&test_owner);
-    assert_eq!(nonce, 1u64);
 
     // check total supply
     let total_supply = token.total_supply();
@@ -792,68 +789,5 @@ fn test_token_basic_approve_transfer_from_transfer(
     assert_eq!(
         transfer_res.unwrap_err().to_string(),
         DFTError::NotAllowAnonymous.to_string()
-    );
-}
-
-// test token approve/transfer_from/transfer with wrong nonce will fail
-#[rstest]
-#[case(test_token_with_0_fee_rate())]
-#[case(test_token_with_non_0_fee_rate())]
-fn test_token_basic_approve_transfer_from_transfer_with_wrong_nonce(
-    #[case] test_token: TokenBasic,
-    test_owner: Principal,
-    test_minter: Principal,
-    test_spender: Principal,
-    other_caller: Principal,
-    now: u64,
-) {
-    let mut token = test_token.clone();
-    let minter_holder = TokenHolder::new(test_minter.clone(), None);
-    let spender_holder = TokenHolder::new(test_spender.clone(), None);
-    let to_holder = TokenHolder::new(other_caller.clone(), None);
-
-    // approve with wrong nonce should fail
-    let approve_val = Nat::from(1000);
-    let approve_res = token.approve(
-        &test_owner,
-        &minter_holder,
-        &spender_holder,
-        approve_val.clone(),
-        Some(2),
-        now.clone(),
-    );
-    assert_eq!(
-        approve_res.unwrap_err().to_string(),
-        DFTError::NonceNotMatch.to_string()
-    );
-
-    // transfer_from with wrong nonce should fail
-    let transfer_from_val = Nat::from(1000);
-    let transfer_from_res = token.transfer_from(
-        &test_owner,
-        &minter_holder,
-        &spender_holder,
-        &to_holder,
-        transfer_from_val.clone(),
-        Some(2),
-        now.clone(),
-    );
-    assert_eq!(
-        transfer_from_res.unwrap_err().to_string(),
-        DFTError::NonceNotMatch.to_string()
-    );
-    // transfer with wrong nonce should fail
-    let transfer_val = Nat::from(1000);
-    let transfer_res = token.transfer(
-        &test_owner,
-        &minter_holder,
-        &spender_holder,
-        transfer_val.clone(),
-        Some(2),
-        now,
-    );
-    assert_eq!(
-        transfer_res.unwrap_err().to_string(),
-        DFTError::NonceNotMatch.to_string()
     );
 }

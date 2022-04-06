@@ -1,7 +1,7 @@
 use candid::{Nat, Principal};
 use dft_types::*;
 use dft_utils::{decode_tx_id, get_logo_type};
-use std::collections::HashMap;
+use std::{collections::HashMap, time::Duration};
 
 pub trait TokenStandard {
     // token id
@@ -12,7 +12,7 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         owner: Principal,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
 
@@ -30,7 +30,7 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         fee: Fee,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
     // set fee to
@@ -38,7 +38,7 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         fee_to: TokenHolder,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
     // get metadata
@@ -49,7 +49,7 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
     // get/set logo
@@ -58,11 +58,9 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         logo: Option<Vec<u8>>,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
-    // nonce of
-    fn nonce_of(&self, caller: &Principal) -> u64;
     // balance of
     fn balance_of(&self, owner: &TokenHolder) -> Nat;
     // allowance
@@ -76,7 +74,7 @@ pub trait TokenStandard {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex>;
     // transfer from
@@ -87,7 +85,7 @@ pub trait TokenStandard {
         spender: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex>;
     // transfer
@@ -97,7 +95,7 @@ pub trait TokenStandard {
         from: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex>;
     // token info
@@ -129,8 +127,6 @@ pub struct TokenBasic {
     balances: HashMap<TokenHolder, Nat>,
     // allowances
     allowances: HashMap<TokenHolder, HashMap<TokenHolder, Nat>>,
-    //nonces
-    nonces: HashMap<Principal, u64>,
     // token's logo
     logo: Option<Vec<u8>>,
     // token's name
@@ -158,7 +154,6 @@ impl Default for TokenBasic {
             txs: Vec::new(),
             balances: HashMap::new(),
             allowances: HashMap::new(),
-            nonces: HashMap::new(),
             logo: None,
             name: "".to_string(),
             symbol: "".to_string(),
@@ -191,38 +186,24 @@ impl TokenBasic {
         Ok(())
     }
 
-    // check nonce
-    fn check_nonce(&self, caller: &Principal, nonce: u64) -> CommonResult<()> {
-        let nonce_in_store = self.nonces.get(caller).unwrap_or(&0);
-        if nonce != *nonce_in_store + 1 {
-            return Err(DFTError::NonceNotMatch);
+    // verify created at
+    pub fn verified_created_at(
+        &self,
+        created_at: &Option<u64>,
+        now: &u64,
+    ) -> CommonResult<()> {
+        if created_at.is_none() {
+            return Ok(());
         }
-
+        let created_at_time = Duration::from_nanos(created_at.unwrap());
+        let now = Duration::from_nanos(now.clone());
+        if created_at_time + constants::DEFAULT_MAX_TRANSACTIONS_IN_WINDOW < now {
+            return Err(DFTError::TxTooOld);
+        }
+        if created_at_time > now + constants::PERMITTED_DRIFT {
+            return Err(DFTError::TxCreatedInFuture);
+        }
         Ok(())
-    }
-    // update nonce
-    fn update_nonce(&mut self, caller: &Principal, nonce: u64) {
-        self.nonces.insert(caller.clone(), nonce);
-    }
-
-    // get next nonce
-    fn get_next_nonce(&mut self, caller: &Principal) -> u64 {
-        let nonce = self.nonces.get(caller).unwrap_or(&0) + 1;
-        nonce
-    }
-
-    // get verified nonce
-    pub fn get_verified_nonce(
-        &mut self,
-        caller: &Principal,
-        nonce: Option<u64>,
-    ) -> CommonResult<u64> {
-        if let Some(n) = nonce {
-            self.check_nonce(caller, n)?;
-            Ok(n)
-        } else {
-            Ok(self.get_next_nonce(caller))
-        }
     }
 
     //generate new tx index
@@ -412,7 +393,7 @@ impl TokenBasic {
         from: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
-        nonce: u64,
+        created_at: u64,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         // calc the transfer fee
@@ -436,11 +417,10 @@ impl TokenBasic {
                 to.clone(),
                 value.clone(),
                 transfer_fee,
-                nonce.clone(),
+                created_at,
                 now,
             );
             self.txs.push(tx);
-            self.update_nonce(caller, nonce);
             Ok(tx_index)
         }
     }
@@ -450,11 +430,12 @@ impl TokenBasic {
         caller: &Principal,
         to: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
-        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self.verified_created_at(&created_at, &now)?;
         self.credit_balance(to, value.clone());
+        let created_at = created_at.unwrap_or(now.clone());
         // increase the total supply
         self.total_supply = self.total_supply.clone() + value.clone();
         // add the mint tx to txs
@@ -466,11 +447,10 @@ impl TokenBasic {
             to.clone(),
             value.clone(),
             Nat::from(0),
-            nonce,
+            created_at,
             now,
         );
         self.txs.push(tx);
-        self.update_nonce(caller, nonce);
         Ok(tx_index)
     }
 
@@ -481,7 +461,7 @@ impl TokenBasic {
         burner: &TokenHolder,
         from: &TokenHolder,
         value: Nat,
-        nonce: u64,
+        created_at: u64,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         // calc the transfer fee,if the burn amount small than minimum fee,return error
@@ -507,11 +487,10 @@ impl TokenBasic {
                 TokenHolder::None,
                 value.clone(),
                 fee,
-                nonce.clone(),
+                created_at,
                 now,
             );
             self.txs.push(tx);
-            self.update_nonce(caller, nonce);
             Ok(tx_index)
         }
     }
@@ -575,9 +554,6 @@ impl TokenBasic {
             }
             self.allowances.insert(k, inner);
         }
-        for (k, v) in payload.nonces {
-            self.nonces.insert(k, v);
-        }
         for (k, v) in payload.storage_canister_ids {
             self.storage_canister_ids.insert(k, v);
         }
@@ -590,7 +566,6 @@ impl TokenBasic {
         let mut desc = Vec::new();
         let mut balances = Vec::new();
         let mut allowances = Vec::new();
-        let mut nonces = Vec::new();
         let mut storage_canister_ids = Vec::new();
         let mut txs = Vec::new();
         for (k, v) in self.desc.iter() {
@@ -606,9 +581,6 @@ impl TokenBasic {
             }
             allowances.push((th.clone(), allow_item));
         }
-        for (k, v) in self.nonces.iter() {
-            nonces.push((k.clone(), v.clone()));
-        }
         for (k, v) in self.storage_canister_ids.iter() {
             storage_canister_ids.push((k.clone(), *v));
         }
@@ -617,14 +589,13 @@ impl TokenBasic {
         }
         TokenPayload {
             token_id: self.token_id.clone(),
-            owner: self.owner,
+            owner: self.owner.clone(),
             fee_to: self.fee_to.clone(),
             meta: self.metadata(),
             desc,
             logo: self.logo.clone().unwrap_or_else(|| vec![]),
             balances,
             allowances,
-            nonces,
             tx_index_cursor: self.next_tx_index.clone(),
             storage_canister_ids,
             txs_inner: txs,
@@ -645,23 +616,23 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         owner: Principal,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
+        self.verified_created_at(&created_at, &now)?;
         self.owner = owner;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
         // create OwnerModifyTx
         let tx_index = self.generate_new_tx_index();
+        let created_at = created_at.unwrap_or(now.clone());
         let tx = TxRecord::OwnerModify(
             tx_index.clone(),
             caller.clone(),
             owner.clone(),
-            nonce.clone(),
+            created_at,
             now,
         );
         self.txs.push(tx);
-        self.update_nonce(caller, nonce);
         Ok(true)
     }
 
@@ -689,23 +660,17 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         fee: Fee,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self.verified_created_at(&created_at, &now)?;
         self.fee = fee.clone();
         // create FeeModifyTx
         let tx_index = self.generate_new_tx_index();
-        let tx = TxRecord::FeeModify(
-            tx_index.clone(),
-            caller.clone(),
-            fee,
-            nonce.clone(),
-            now,
-        );
+        let created_at = created_at.unwrap_or(now.clone());
+        let tx = TxRecord::FeeModify(tx_index.clone(), caller.clone(), fee, created_at, now);
         self.txs.push(tx);
-        self.update_nonce(caller, nonce);
         Ok(true)
     }
 
@@ -713,23 +678,23 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         fee_to: TokenHolder,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self.verified_created_at(&created_at, &now)?;
         self.fee_to = fee_to.clone();
         // create FeeToModifyTx
         let tx_index = self.generate_new_tx_index();
+        let created_at = created_at.unwrap_or(now.clone());
         let tx = TxRecord::FeeToModify(
             tx_index.clone(),
             caller.clone(),
             fee_to.clone(),
-            nonce.clone(),
+            created_at,
             now,
         );
         self.txs.push(tx);
-        self.update_nonce(caller, nonce);
         Ok(true)
     }
 
@@ -737,7 +702,7 @@ impl TokenStandard for TokenBasic {
         Metadata {
             name: self.name.clone(),
             symbol: self.symbol.clone(),
-            decimals: self.decimals,
+            decimals: self.decimals.clone(),
             total_supply: self.total_supply.clone(),
             fee: self.fee.clone(),
         }
@@ -751,11 +716,11 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self.verified_created_at(&created_at, &now)?;
         for (key, value) in descriptions.iter() {
             if DESC_KEYS.contains(&key.as_str()) {
                 self.desc.insert(key.clone(), value.clone());
@@ -763,15 +728,18 @@ impl TokenStandard for TokenBasic {
         }
 
         let tx_index = self.generate_new_tx_index();
+        let created_at = created_at.unwrap_or(now.clone());
         let modify_desc_tx = TxRecord::DescModify(
             tx_index.clone(),
             self.owner.clone(),
-            descriptions.iter().map(|(k, v)| (k.clone(), v.clone())).collect(),
-            nonce.clone(),
+            descriptions
+                .iter()
+                .map(|(k, v)| (k.clone(), v.clone()))
+                .collect(),
+            created_at,
             now,
         );
         self.txs.push(modify_desc_tx);
-        self.update_nonce(caller, nonce);
         Ok(true)
     }
     fn logo(&self) -> Vec<u8> {
@@ -782,11 +750,11 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         logo: Option<Vec<u8>>,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self.verified_created_at(&created_at, &now)?;
         if logo.is_some() {
             get_logo_type(&logo.clone().unwrap())
                 .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)?;
@@ -794,21 +762,20 @@ impl TokenStandard for TokenBasic {
 
         self.logo = logo.clone();
         let tx_index = self.generate_new_tx_index();
-
+        let created_at = created_at.unwrap_or(now.clone());
         let modify_logo_tx = TxRecord::LogoModify(
             tx_index.clone(),
             self.owner.clone(),
-            if logo.is_some() { logo.unwrap() } else { vec![] },
-            nonce,
+            if logo.is_some() {
+                logo.unwrap()
+            } else {
+                vec![]
+            },
+            created_at,
             now,
         );
         self.txs.push(modify_logo_tx);
-        self.update_nonce(caller, nonce);
         Ok(true)
-    }
-
-    fn nonce_of(&self, caller: &Principal) -> u64 {
-        self.nonces.get(caller).unwrap_or(&0).clone()
     }
 
     fn balance_of(&self, holder: &TokenHolder) -> Nat {
@@ -835,16 +802,16 @@ impl TokenStandard for TokenBasic {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self.verified_created_at(&created_at, &now)?;
         let approve_fee = self.charge_approve_fee(owner)?;
         //credit the spender's allowance
         self.credit_allowance(owner, spender, value.clone());
         let tx_index = self.generate_new_tx_index();
-
+        let created_at = created_at.unwrap_or(now.clone());
         let approve_tx = TxRecord::Approve(
             tx_index.clone(),
             owner.clone(),
@@ -852,11 +819,10 @@ impl TokenStandard for TokenBasic {
             spender.clone(),
             value.clone(),
             approve_fee,
-            nonce.clone(),
+            created_at,
             now,
         );
         self.txs.push(approve_tx);
-        self.update_nonce(caller, nonce);
         return Ok(tx_index);
     }
 
@@ -867,11 +833,12 @@ impl TokenStandard for TokenBasic {
         spender: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now.clone());
         let transfer_fee = self.calc_transfer_fee(&value);
         // get spenders allowance
         let spender_allowance = self._allowance(from, spender);
@@ -883,7 +850,7 @@ impl TokenStandard for TokenBasic {
         // debit the spender's allowance
         self.debit_allowance(from, spender, decreased_allowance.clone())?;
 
-        return self._transfer(caller, spender, from, to, value, nonce, now);
+        return self._transfer(caller, spender, from, to, value, created_at, now);
     }
 
     fn transfer(
@@ -892,12 +859,13 @@ impl TokenStandard for TokenBasic {
         from: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
-        self._transfer(caller, &from, from, to, value, nonce, now)
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now.clone());
+        self._transfer(caller, &from, from, to, value, created_at, now)
     }
 
     fn token_info(&self) -> TokenInfo {
