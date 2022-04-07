@@ -14,9 +14,13 @@ fn http_request(req: HttpRequest) -> HttpResponse {
     let cycles = ic_cdk::api::canister_balance();
     match path.as_str() {
         "/" => {
-            let (token_info, metrics) = TOKEN.with(|token| {
+            let (token_info, metrics, total_supply) = TOKEN.with(|token| {
                 let token = token.borrow();
-                (token.metadata().clone(), token.token_metrics().clone())
+                (
+                    token.metadata().clone(),
+                    token.token_metrics().clone(),
+                    token.total_supply().clone(),
+                )
             });
             let fee = token_info.fee().clone();
             // convert token_info to json
@@ -25,7 +29,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 token_info.name(),
                 token_info.symbol(),
                 token_info.decimals(),
-                token_info.total_supply(),
+                total_supply ,
                 fee.minimum,
                 format!("{} %", fee.rate * 100 / 10u64.pow(fee.rate_decimals.into()))
             );
@@ -90,7 +94,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         "/totalsupply" => {
             let total_supply = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.metadata().total_supply().clone()
+                token.total_supply().clone()
             });
             HttpResponse::ok(vec![], total_supply.to_string().into_bytes())
         }

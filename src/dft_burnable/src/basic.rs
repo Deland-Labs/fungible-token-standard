@@ -52,7 +52,7 @@ async fn canister_init(
 fn owner() -> Principal {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.owner()
+        token.owner().clone()
     })
 }
 
@@ -61,7 +61,7 @@ fn owner() -> Principal {
 fn get_name() -> String {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.name()
+        token.metadata().name().clone()
     })
 }
 
@@ -70,7 +70,7 @@ fn get_name() -> String {
 fn get_symbol() -> String {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.symbol()
+        token.metadata().symbol().clone()
     })
 }
 
@@ -79,7 +79,7 @@ fn get_symbol() -> String {
 fn get_decimals() -> u8 {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.decimals()
+        token.metadata().decimals().clone()
     })
 }
 
@@ -88,7 +88,7 @@ fn get_decimals() -> u8 {
 fn get_total_supply() -> Nat {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.total_supply()
+        token.total_supply().clone()
     })
 }
 
@@ -97,16 +97,16 @@ fn get_total_supply() -> Nat {
 fn get_fee_setting() -> Fee {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.fee()
+        token.metadata().fee().clone()
     })
 }
 
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
-fn get_meta_data() -> Metadata {
+fn get_meta_data() -> TokenMetadata {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.metadata()
+        token.metadata().clone()
     })
 }
 
@@ -118,6 +118,7 @@ fn get_desc_info() -> Vec<(String, String)> {
         // get token desc , return as a vector
         token
             .desc()
+            .get_all()
             .iter()
             .map(|v| (v.0.clone(), v.1.clone()))
             .collect()
@@ -129,7 +130,7 @@ fn get_desc_info() -> Vec<(String, String)> {
 fn logo() -> Vec<u8> {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.logo()
+        token.logo().clone().unwrap_or(vec![])
     })
 }
 

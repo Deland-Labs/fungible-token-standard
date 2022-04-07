@@ -1,4 +1,4 @@
-use super::{Metadata, TokenHolder, Txs};
+use super::{TokenHolder, TokenMetadata, Txs};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use std::string::String;
 
@@ -7,7 +7,7 @@ pub struct TokenPayload {
     pub token_id: Principal,
     pub owner: Principal,
     pub fee_to: TokenHolder,
-    pub meta: Metadata,
+    pub meta: TokenMetadata,
     pub desc: Vec<(String, String)>,
     pub logo: Vec<u8>,
     pub balances: Vec<(TokenHolder, Nat)>,

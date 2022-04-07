@@ -88,7 +88,7 @@ fn get_decimals() -> u8 {
 fn get_total_supply() -> Nat {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.metadata().total_supply().clone()
+        token.total_supply().clone()
     })
 }
 
@@ -103,7 +103,7 @@ fn get_fee_setting() -> Fee {
 
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
-fn get_meta_data() -> Metadata {
+fn get_meta_data() -> TokenMetadata {
     TOKEN.with(|token| {
         let token = token.borrow();
         token.metadata().clone()

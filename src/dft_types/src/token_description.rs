@@ -72,9 +72,17 @@ impl TokenDescription {
     }
 
     pub fn set_all(&mut self, desc: HashMap<String, String>) {
-        self.desc = desc;
+        for (key, value) in desc {
+            self.set(key, value)
+        }
     }
     pub fn to_vec(&self)-> Vec<(String, String)> {
         self.desc.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    }
+    pub fn restore_from(&mut self, vec: Vec<(String, String)>) {
+        self.desc = HashMap::new();
+        for (k, v) in vec {
+            self.desc.insert(k, v);
+        }
     }
 }
