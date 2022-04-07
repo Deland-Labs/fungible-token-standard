@@ -81,8 +81,8 @@ fn test_total_supply() -> u128 {
 
 // test fee 0 rate
 #[fixture]
-fn test_fee_0_rate() -> Fee {
-    Fee {
+fn test_fee_0_rate() -> TokenFee {
+    TokenFee {
         minimum: Nat::from(2u64),
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
@@ -91,8 +91,8 @@ fn test_fee_0_rate() -> Fee {
 
 // test fee non 0 rate
 #[fixture]
-fn test_fee_non_0_rate() -> Fee {
-    Fee {
+fn test_fee_non_0_rate() -> TokenFee {
+    TokenFee {
         minimum: Nat::from(2u64),
         rate: Nat::from(1u64),
         rate_decimals: 2,
@@ -181,7 +181,7 @@ fn test_token_basic_logo_invalid_image(
     test_name: String,
     test_symbol: String,
     test_decimals: u8,
-    test_fee_0_rate: Fee,
+    test_fee_0_rate: TokenFee,
 ) {
     let mut token = TokenBasic::default();
     let fee_to = TokenHolder::new(test_owner.clone(), None);
@@ -219,7 +219,7 @@ fn test_token_basic_initialize_all_parameters(test_token_with_0_fee_rate: TokenB
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principal, now: u64) {
     let mut token = test_token.clone();
-    let new_fee = Fee {
+    let new_fee = TokenFee {
         minimum: Nat::from(2),
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
@@ -237,7 +237,7 @@ fn test_token_basic_set_fee_invalid_owner(
     now: u64,
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
-    let new_fee = Fee {
+    let new_fee = TokenFee {
         minimum: Nat::from(2),
         rate: Nat::from(0),
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,

@@ -1,4 +1,4 @@
-use super::Fee;
+use super::TokenFee;
 use candid::{CandidType, Deserialize};
 use getset::{Getters, Setters};
 
@@ -10,12 +10,12 @@ pub struct TokenMetadata {
     symbol: String,
     decimals: u8,
     #[getset(set = "pub")]
-    fee: Fee,
+    fee: TokenFee,
 }
 
 impl TokenMetadata {
     // new
-    pub fn new(name: String, symbol: String, decimals: u8, fee: Fee) -> Self {
+    pub fn new(name: String, symbol: String, decimals: u8, fee: TokenFee) -> Self {
         Self {
             name,
             symbol,

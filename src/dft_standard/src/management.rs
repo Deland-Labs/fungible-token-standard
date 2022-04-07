@@ -42,7 +42,7 @@ fn set_desc_info(desc_data: Vec<(String, String)>, nonce: Option<u64>) -> Boolea
 
 #[update(name = "setFee")]
 #[candid_method(update, rename = "setFee")]
-fn set_fee(fee: Fee, nonce: Option<u64>) -> BooleanResult {
+fn set_fee(fee: TokenFee, nonce: Option<u64>) -> BooleanResult {
     let caller = api::caller();
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();

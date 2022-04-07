@@ -279,7 +279,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with wrong nonce, wil
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to Fee
+    // convert optionArray to TokenFee
     const fee: Fee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),
@@ -299,7 +299,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with out nonce, the n
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to Fee
+    // convert optionArray to TokenFee
     const fee: Fee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),
@@ -320,7 +320,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with correct nonce, t
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to Fee
+    // convert optionArray to TokenFee
     const fee: Fee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),

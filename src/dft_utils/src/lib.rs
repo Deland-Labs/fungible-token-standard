@@ -51,9 +51,9 @@ pub fn get_logo_type(logo: &[u8]) -> Result<String, String> {
 //test is_support_interface
 fn test_is_support_interface() {
     let did = r#"type CallData = record { method : text; args : vec nat8 };
-    type Fee = record { rate : nat; minimum : nat };
+    type TokenFee = record { rate : nat; minimum : nat };
     type Metadata = record {
-      fee : Fee;
+      fee : TokenFee;
       decimals : nat8;
       name : text;
       totalSupply : nat;
@@ -105,14 +105,14 @@ fn test_is_support_interface() {
       balanceOf : (text) -> (nat) query;
       decimals : () -> (nat8) query;
       desc : () -> (vec record { text; text }) query;
-      fee : () -> (Fee) query;
+      fee : () -> (TokenFee) query;
       lastTransactions : (nat64) -> (Result_1) query;
       logo : () -> (vec nat8) query;
       meta : () -> (Metadata) query;
       name : () -> (text) query;
       owner : () -> (principal);
       setDesc : (vec record { text; text }) -> (Result_2);
-      setFee : (Fee) -> (Result_2);
+      setFee : (TokenFee) -> (Result_2);
       setFeeTo : (text) -> (Result_2);
       setLogo : (vec nat8) -> (Result_2);
       setOwner : (principal) -> (Result_2);

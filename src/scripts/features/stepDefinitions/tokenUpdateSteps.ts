@@ -97,7 +97,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)", will success$/, asyn
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to Fee
+    // convert optionArray to TokenFee
     const fee: Fee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),
@@ -127,7 +127,7 @@ When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, a
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to Fee
+    // convert optionArray to TokenFee
     const fee: Fee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),

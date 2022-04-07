@@ -4,7 +4,7 @@ mod block;
 mod blockchain;
 pub mod constants;
 mod errors;
-mod fee;
+mod token_fee;
 mod http;
 mod token_metadata;
 mod token_balances;
@@ -33,7 +33,7 @@ pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, Nat>>;
 pub use account_identifier::AccountIdentifier;
 pub use account_identifier::Subaccount;
 pub use account_identifier::SUB_ACCOUNT_ZERO;
-pub use fee::Fee;
+pub use token_fee::TokenFee;
 pub use token_metadata::TokenMetadata;
 pub use token_holder::TokenHolder;
 

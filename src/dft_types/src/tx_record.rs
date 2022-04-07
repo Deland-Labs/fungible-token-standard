@@ -1,5 +1,5 @@
 use super::{TokenHolder, TokenReceiver};
-use crate::{DFTError, Fee, TransactionHash};
+use crate::{DFTError, TokenFee, TransactionHash};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use sha2::{Digest, Sha256};
 
@@ -21,7 +21,7 @@ pub enum Operation {
     },
     FeeModify {
         caller: Principal,
-        fee: Fee,
+        fee: TokenFee,
     },
     OwnerModify {
         caller: Principal,
@@ -88,7 +88,7 @@ pub enum TxRecord {
         u64,
     ),
     // tx_index, caller (owner), new fee setting, created_at, timestamp
-    FeeModify(Nat, Principal, Fee, u64, u64),
+    FeeModify(Nat, Principal, TokenFee, u64, u64),
     // tx_index, caller (owner), new owner, created_at, timestamp
     OwnerModify(Nat, Principal, Principal, u64, u64),
     // tx_index, caller (owner), new feeTo, created_at, timestamp

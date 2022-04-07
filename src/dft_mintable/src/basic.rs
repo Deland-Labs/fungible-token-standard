@@ -18,7 +18,7 @@ async fn canister_init(
     symbol_: String,
     decimals_: u8,
     total_supply_: Nat,
-    fee_: Fee,
+    fee_: TokenFee,
     caller: Option<Principal>,
 ) {
     let real_caller = caller.unwrap_or_else(|| api::caller());
@@ -94,7 +94,7 @@ fn get_total_supply() -> Nat {
 
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
-fn get_fee_setting() -> Fee {
+fn get_fee_setting() -> TokenFee {
     TOKEN.with(|token| {
         let token = token.borrow();
         token.metadata().fee().clone()

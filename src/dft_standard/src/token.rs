@@ -15,7 +15,7 @@ pub trait TokenStandard {
     fn set_fee(
         &mut self,
         caller: &Principal,
-        fee: Fee,
+        fee: TokenFee,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
@@ -403,7 +403,7 @@ impl TokenBasic {
         name: String,
         symbol: String,
         decimals: u8,
-        fee: Fee,
+        fee: TokenFee,
         fee_to: TokenHolder,
     ) {
         // check logo type
@@ -500,7 +500,7 @@ impl TokenStandard for TokenBasic {
     fn set_fee(
         &mut self,
         caller: &Principal,
-        fee: Fee,
+        fee: TokenFee,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
