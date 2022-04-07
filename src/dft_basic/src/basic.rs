@@ -118,6 +118,7 @@ fn get_desc_info() -> Vec<(String, String)> {
         // get token desc , return as a vector
         token
             .desc()
+            .get_all()
             .iter()
             .map(|v| (v.0.clone(), v.1.clone()))
             .collect()

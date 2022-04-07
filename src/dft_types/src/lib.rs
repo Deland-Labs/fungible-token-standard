@@ -1,6 +1,5 @@
 mod account_identifier;
 pub mod constants;
-mod desc_keys;
 mod errors;
 mod fee;
 mod http;
@@ -14,6 +13,7 @@ mod tx_record;
 mod actor_response;
 mod block;
 mod blockchain;
+mod token_description;
 
 use candid::Nat;
 use candid::Principal;
@@ -42,7 +42,6 @@ pub type BlockHash=[u8;32];
 pub type BlockHeight=u64;
 pub type TransactionHash=[u8;32];
 
-pub use desc_keys::DESC_KEYS;
 pub use errors::*;
 pub use http::*;
 pub use token_info::TokenInfo;
@@ -53,6 +52,7 @@ pub use tx_record::*;
 pub use actor_response::*;
 pub use block::*;
 pub use blockchain::*;
+pub use token_description::TokenDescription;
 
 #[test]
 fn test_nat_size() {

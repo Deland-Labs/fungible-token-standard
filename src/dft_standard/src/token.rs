@@ -113,7 +113,7 @@ pub struct TokenBasic {
     // token's logo
     logo: Option<Vec<u8>>,
     // token's desc info : social media, description etc
-    desc: HashMap<String, String>,
+    desc: TokenDescription,
 }
 
 impl Default for TokenBasic {
@@ -129,7 +129,7 @@ impl Default for TokenBasic {
             balances: HashMap::new(),
             allowances: HashMap::new(),
             logo: None,
-            desc: HashMap::new(),
+            desc: TokenDescription::default(),
         }
     }
 }
@@ -505,7 +505,7 @@ impl TokenBasic {
         self.fee_to = payload.fee_to;
 
         for (k, v) in payload.desc {
-            self.desc.insert(k, v);
+            self.desc.set(k, v);
         }
         for (k, v) in payload.balances {
             self.balances.insert(k, v);
@@ -526,14 +526,11 @@ impl TokenBasic {
         }
     }
     pub fn to_token_payload(&self) -> TokenPayload {
-        let mut desc = Vec::new();
+        let desc = self.desc.to_vec();
         let mut balances = Vec::new();
         let mut allowances = Vec::new();
         let mut storage_canister_ids = Vec::new();
         let mut txs = Vec::new();
-        for (k, v) in self.desc.iter() {
-            desc.push((k.to_string(), v.to_string()));
-        }
         for (k, v) in self.balances.iter() {
             balances.push((k.clone(), v.clone()));
         }
@@ -642,12 +639,7 @@ impl TokenStandard for TokenBasic {
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.verified_created_at(&created_at, &now)?;
-        for (key, value) in descriptions.iter() {
-            if DESC_KEYS.contains(&key.as_str()) {
-                self.desc.insert(key.clone(), value.clone());
-            }
-        }
-
+        self.desc.set_all(descriptions.clone());
         let tx_index = self.generate_new_tx_index();
         let created_at = created_at.unwrap_or(now.clone());
         let modify_desc_tx = TxRecord::DescModify(
