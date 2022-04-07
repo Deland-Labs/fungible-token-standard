@@ -37,7 +37,7 @@ impl BurnableExtension for TokenBasic {
         self.not_allow_anonymous(caller)?;
         self.verified_created_at(&created_at, &now)?;
         let created_at = created_at.unwrap_or(now.clone());
-        self._burn(caller, owner, owner, value, created_at, now)
+        self._burn(owner, value, created_at, now)
     }
     fn burn_from(
         &mut self,
@@ -50,9 +50,7 @@ impl BurnableExtension for TokenBasic {
     ) -> CommonResult<TransactionIndex> {
         self.not_allow_anonymous(caller)?;
         self.verified_created_at(&created_at, &now)?;
-        // debit spender's allowance
-        self.debit_allowance(owner, spender, value.clone())?;
         let created_at = created_at.unwrap_or(now.clone());
-        self._burn(caller, spender, owner, value, created_at, now)
+        self._burn_from(spender, owner, value, created_at, now)
     }
 }

@@ -17,8 +17,8 @@ impl TokenBalances {
     }
 
     // holder count
-    pub fn holder_count(&self) -> usize {
-        self.balances.len()
+    pub fn holder_count(&self) -> Nat {
+        Nat::from(self.balances.len())
     }
 
     // total supply

@@ -1,5 +1,5 @@
 use super::Fee;
-use candid::{CandidType, Deserialize, Nat};
+use candid::{CandidType, Deserialize};
 use getset::{Getters, Setters};
 
 #[derive(Getters, Setters)]

@@ -111,7 +111,7 @@ pub struct TokenBasic {
     // balances
     balances: TokenBalances,
     // allowances
-    allowances: HashMap<TokenHolder, HashMap<TokenHolder, Nat>>,
+    allowances: TokenAllowances,
     // token's logo
     logo: Option<Vec<u8>>,
     // token's desc info : social media, description etc
@@ -129,7 +129,7 @@ impl Default for TokenBasic {
             next_tx_index: Nat::from(0),
             txs: Vec::new(),
             balances: TokenBalances::default(),
-            allowances: HashMap::new(),
+            allowances: TokenAllowances::default(),
             logo: None,
             desc: TokenDescription::default(),
         }
@@ -174,72 +174,6 @@ impl TokenBasic {
         let rtn = self.next_tx_index.clone();
         self.next_tx_index = rtn.clone() + 1;
         rtn
-    }
-    //debit token holder's allowance
-    pub fn debit_allowance(
-        &mut self,
-        owner: &TokenHolder,
-        spender: &TokenHolder,
-        value: Nat,
-    ) -> CommonResult<()> {
-        // get spenders allowance
-        let spender_allowance = self._allowance(owner, spender);
-        // check allowance
-        if spender_allowance < value {
-            return Err(DFTError::InsufficientAllowance);
-        }
-        let new_spender_allowance = spender_allowance - value.clone();
-        match self.allowances.get(&owner) {
-            Some(inner) => {
-                let mut temp = inner.clone();
-                if value == 0 {
-                    temp.remove(&spender);
-                    if temp.len() > 0 {
-                        self.allowances.insert(owner.clone(), temp);
-                    } else {
-                        self.allowances.remove(&owner);
-                    }
-                } else {
-                    temp.insert(spender.clone(), new_spender_allowance);
-                    self.allowances.insert(owner.clone(), temp);
-                }
-            }
-            None => {
-                if value.gt(&Nat::from(0)) {
-                    let mut inner = HashMap::new();
-                    inner.insert(spender.clone(), new_spender_allowance);
-                    self.allowances.insert(owner.clone(), inner);
-                }
-            }
-        };
-        Ok(())
-    }
-
-    //credit token spender's allowance
-    pub fn credit_allowance(&mut self, owner: &TokenHolder, spender: &TokenHolder, value: Nat) {
-        match self.allowances.get(&owner) {
-            Some(inner) => {
-                let mut temp = inner.clone();
-                if value == 0 {
-                    temp.remove(&spender);
-                    if temp.len() > 0 {
-                        self.allowances.insert(owner.clone(), temp);
-                    } else {
-                        self.allowances.remove(&owner);
-                    }
-                } else {
-                    temp.insert(spender.clone(), value.clone());
-                    self.allowances.insert(owner.clone(), temp);
-                }
-            }
-            None => {
-                if value.gt(&Nat::from(0)) {
-                    let mut inner = HashMap::new();
-                    inner.insert(spender.clone(), value.clone());
-                    self.allowances.insert(owner.clone(), inner);
-                }
-            }
-        };
     }
 
     //charge approve fee
@@ -315,14 +249,6 @@ impl TokenBasic {
         self.txs.remove(index);
     }
 
-    fn _allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> Nat {
-        self.allowances
-            .get(owner)
-            .unwrap_or(&HashMap::new())
-            .get(spender)
-            .unwrap_or(&Nat::from(0))
-            .clone()
-    }
     //transfer token
     fn _transfer(
         &mut self,
@@ -373,7 +299,7 @@ impl TokenBasic {
     ) -> CommonResult<TransactionIndex> {
         self.verified_created_at(&created_at, &now)?;
         self.balances.credit_balance(to, value.clone());
-        let created_at = created_at.unwrap_or(now.clone());      
+        let created_at = created_at.unwrap_or(now.clone());
         // add the mint tx to txs
         let tx_index = self.generate_new_tx_index();
         let tx = TxRecord::Transfer(
@@ -393,7 +319,42 @@ impl TokenBasic {
     // _burn
     pub fn _burn(
         &mut self,
-        caller: &Principal,
+        burner: &TokenHolder,
+        value: Nat,
+        created_at: u64,
+        now: u64,
+    ) -> CommonResult<TransactionIndex> {
+        // calc the transfer fee,if the burn amount small than minimum fee,return error
+        let fee = self.calc_transfer_fee(&value);
+        if value < self.metadata().fee().minimum.clone() {
+            return Err(DFTError::BurnValueTooSmall);
+        }
+        //check the burn from holder's balance, if balance is not enough, return error
+        if self.balances.balance_of(burner) < value.clone() {
+            return Err(DFTError::InsufficientBalance);
+        }
+        // burn does not charge the transfer fee
+        // debit the burn from holder's balance
+        self.balances.debit_balance(burner, value.clone())?;
+        // add the burn tx to txs
+        let tx_index = self.generate_new_tx_index();
+        let tx = TxRecord::Transfer(
+            tx_index.clone(),
+            burner.clone(),
+            burner.clone(),
+            TokenHolder::None,
+            value.clone(),
+            fee,
+            created_at,
+            now,
+        );
+        self.txs.push(tx);
+        Ok(tx_index)
+    }
+
+    // _burn_from
+    pub fn _burn_from(
+        &mut self,
         burner: &TokenHolder,
         from: &TokenHolder,
         value: Nat,
@@ -409,9 +370,10 @@ impl TokenBasic {
         if self.balances.balance_of(from) < value.clone() {
             return Err(DFTError::InsufficientBalance);
         } else {
+            self.allowances.debit(from, burner, value.clone())?;
             // burn does not charge the transfer fee
             // debit the burn from holder's balance
-            self.balances.debit_balance(from, value.clone())?;        
+            self.balances.debit_balance(from, value.clone())?;
             // add the burn tx to txs
             let tx_index = self.generate_new_tx_index();
             let tx = TxRecord::Transfer(
@@ -454,12 +416,8 @@ impl TokenBasic {
         // set the parameters to token's properties
         self.owner = owner.clone();
         self.token_id = token_id.clone();
-        self.metadata = TokenMetadata::new(
-            name.clone(),
-            symbol.clone(),
-            decimals.clone(),
-            fee.clone(),
-        );
+        self.metadata =
+            TokenMetadata::new(name.clone(), symbol.clone(), decimals.clone(), fee.clone());
         self.logo = logo;
         self.fee_to = fee_to;
     }
@@ -472,17 +430,11 @@ impl TokenBasic {
             None
         };
         self.metadata = payload.meta;
+        self.allowances.restore_from(payload.allowances);
         self.balances.restore_from(payload.balances);
         self.desc.restore_from(payload.desc);
         self.fee_to = payload.fee_to;
 
-        for (k, v) in payload.allowances {
-            let mut inner = HashMap::new();
-            for (ik, iv) in v {
-                inner.insert(ik, iv);
-            }
-            self.allowances.insert(k, inner);
-        }
         for (k, v) in payload.storage_canister_ids {
             self.storage_canister_ids.insert(k, v);
         }
@@ -494,16 +446,10 @@ impl TokenBasic {
     pub fn to_token_payload(&self) -> TokenPayload {
         let desc = self.desc.to_vec();
         let balances = self.balances.to_vec();
-        let mut allowances = Vec::new();
+        let allowances = self.allowances.to_vec();
         let mut storage_canister_ids = Vec::new();
         let mut txs = Vec::new();
-        for (th, v) in self.allowances.iter() {
-            let mut allow_item = Vec::new();
-            for (sp, val) in v.iter() {
-                allow_item.push((sp.clone(), val.clone()));
-            }
-            allowances.push((th.clone(), allow_item));
-        }
+
         for (k, v) in self.storage_canister_ids.iter() {
             storage_canister_ids.push((k.clone(), *v));
         }
@@ -660,17 +606,11 @@ impl TokenStandard for TokenBasic {
     }
 
     fn allowance(&self, holder: &TokenHolder, spender: &TokenHolder) -> Nat {
-        self._allowance(holder, spender)
+        self.allowances.allowance(holder, spender)
     }
 
     fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, Nat)> {
-        match self.allowances.get(owner) {
-            Some(allowances) => allowances
-                .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect(),
-            None => Vec::new(),
-        }
+        self.allowances.allowances_of(owner)
     }
 
     fn approve(
@@ -686,7 +626,7 @@ impl TokenStandard for TokenBasic {
         self.verified_created_at(&created_at, &now)?;
         let approve_fee = self.charge_approve_fee(owner)?;
         //credit the spender's allowance
-        self.credit_allowance(owner, spender, value.clone());
+        self.allowances.credit(owner, spender, value.clone());
         let tx_index = self.generate_new_tx_index();
         let created_at = created_at.unwrap_or(now.clone());
         let approve_tx = TxRecord::Approve(
@@ -718,14 +658,15 @@ impl TokenStandard for TokenBasic {
         let created_at = created_at.unwrap_or(now.clone());
         let transfer_fee = self.calc_transfer_fee(&value);
         // get spenders allowance
-        let spender_allowance = self._allowance(from, spender);
+        let spender_allowance = self.allowances.allowance(from, spender);
         let decreased_allowance = value.clone() + transfer_fee.clone();
         // check allowance
         if spender_allowance < decreased_allowance.clone() {
             return Err(DFTError::InsufficientAllowance);
         }
         // debit the spender's allowance
-        self.debit_allowance(from, spender, decreased_allowance.clone())?;
+        self.allowances
+            .debit(from, spender, decreased_allowance.clone())?;
 
         return self._transfer(caller, spender, from, to, value, created_at, now);
     }
@@ -746,16 +687,10 @@ impl TokenStandard for TokenBasic {
     }
 
     fn token_info(&self) -> TokenInfo {
-        //get the allowances size
-        let allowances_size = match self.allowances.len() {
-            0 => 0,
-            _ => self.allowances.values().map(|v| v.len()).sum(),
-        };
-
         TokenInfo {
             owner: self.owner.clone(),
             holders: Nat::from(self.balances.holder_count()),
-            allowance_size: Nat::from(allowances_size),
+            allowance_size: self.allowances.allowance_size(),
             fee_to: self.fee_to.clone(),
             tx_count: self.next_tx_index.clone(),
             cycles: 0,
@@ -768,15 +703,11 @@ impl TokenStandard for TokenBasic {
     }
 
     fn token_metrics(&self) -> TokenMetrics {
-        let allowances_size = match self.allowances.len() {
-            0 => 0,
-            _ => self.allowances.values().map(|v| v.len()).sum(),
-        };
         TokenMetrics {
-            holders: Nat::from(self.balances.holder_count()),
+            holders: self.balances.holder_count(),
             total_tx_count: self.next_tx_index.clone(),
             inner_tx_count: Nat::from(self.txs.len()),
-            allowance_size: Nat::from(allowances_size),
+            allowance_size: self.allowances.allowance_size(),
         }
     }
 
