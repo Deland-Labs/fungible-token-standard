@@ -1,13 +1,10 @@
 use candid::{Nat, Principal};
 use dft_types::*;
 use dft_utils::{decode_tx_id, get_logo_type};
+use getset::{Getters, Setters};
 use std::{collections::HashMap, time::Duration};
 
 pub trait TokenStandard {
-    // token id
-    fn id(&self) -> Principal;
-    // get/set owner
-    fn owner(&self) -> Principal;
     fn set_owner(
         &mut self,
         caller: &Principal,
@@ -15,17 +12,6 @@ pub trait TokenStandard {
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
-
-    // name
-    fn name(&self) -> String;
-    // symbol
-    fn symbol(&self) -> String;
-    // decimals
-    fn decimals(&self) -> u8;
-    // total supply
-    fn total_supply(&self) -> Nat;
-    // get/set fee
-    fn fee(&self) -> Fee;
     fn set_fee(
         &mut self,
         caller: &Principal,
@@ -41,10 +27,6 @@ pub trait TokenStandard {
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
-    // get metadata
-    fn metadata(&self) -> Metadata;
-    // get/set desc info
-    fn desc(&self) -> HashMap<String, String>;
     fn set_desc(
         &mut self,
         caller: &Principal,
@@ -52,8 +34,6 @@ pub trait TokenStandard {
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
-    // get/set logo
-    fn logo(&self) -> Vec<u8>;
     fn set_logo(
         &mut self,
         caller: &Principal,
@@ -108,7 +88,8 @@ pub trait TokenStandard {
     // last transactions
     fn last_transactions(&self, count: usize) -> CommonResult<Vec<TxRecord>>;
 }
-
+#[derive(Getters, Setters)]
+#[getset(get = "pub")]
 #[derive(Debug, Clone)]
 pub struct TokenBasic {
     // token id
@@ -117,6 +98,8 @@ pub struct TokenBasic {
     owner: Principal,
     // fee to
     fee_to: TokenHolder,
+    // meta data
+    metadata: Metadata,
     // storage canister ids
     storage_canister_ids: HashMap<Nat, Principal>,
     // next tx index
@@ -129,16 +112,6 @@ pub struct TokenBasic {
     allowances: HashMap<TokenHolder, HashMap<TokenHolder, Nat>>,
     // token's logo
     logo: Option<Vec<u8>>,
-    // token's name
-    name: String,
-    // token's symbol
-    symbol: String,
-    // token's decimals
-    decimals: u8,
-    // token's total supply
-    total_supply: Nat,
-    // token's fee
-    fee: Fee,
     // token's desc info : social media, description etc
     desc: HashMap<String, String>,
 }
@@ -147,6 +120,7 @@ impl Default for TokenBasic {
     fn default() -> Self {
         TokenBasic {
             token_id: Principal::anonymous(),
+            metadata: Metadata::default(),
             owner: Principal::anonymous(),
             fee_to: TokenHolder::None,
             storage_canister_ids: HashMap::new(),
@@ -155,15 +129,6 @@ impl Default for TokenBasic {
             balances: HashMap::new(),
             allowances: HashMap::new(),
             logo: None,
-            name: "".to_string(),
-            symbol: "".to_string(),
-            decimals: 0,
-            total_supply: Nat::from(0),
-            fee: Fee {
-                minimum: Nat::from(0),
-                rate: Nat::from(0),
-                rate_decimals: 0,
-            },
             desc: HashMap::new(),
         }
     }
@@ -187,11 +152,7 @@ impl TokenBasic {
     }
 
     // verify created at
-    pub fn verified_created_at(
-        &self,
-        created_at: &Option<u64>,
-        now: &u64,
-    ) -> CommonResult<()> {
+    pub fn verified_created_at(&self, created_at: &Option<u64>, now: &u64) -> CommonResult<()> {
         if created_at.is_none() {
             return Ok(());
         }
@@ -306,11 +267,11 @@ impl TokenBasic {
     fn charge_approve_fee(&mut self, approver: &TokenHolder) -> CommonResult<Nat> {
         // check the approver's balance
         // if balance is not enough, return error
-        if self.balances.get(approver).unwrap_or(&Nat::from(0)) < &self.fee.minimum {
+        if self.balances.get(approver).unwrap_or(&Nat::from(0)) < &self.metadata().fee().minimum {
             Err(DFTError::InsufficientBalance)
         } else {
             // charge the approver's balance as approve fee
-            let fee = self.fee.minimum.clone();
+            let fee = self.metadata().fee().minimum.clone();
             let fee_to = self.fee_to.clone();
             self.debit_balance(&approver, fee.clone())?;
             self.credit_balance(&fee_to, fee.clone());
@@ -325,10 +286,10 @@ impl TokenBasic {
         transfer_value: &Nat,
     ) -> CommonResult<Nat> {
         // calc the transfer fee: rate * value
-        // compare the transfer fee and minumum fee,get the max value
-        let rate_fee = self.fee.rate.clone() * transfer_value.clone()
-            / 10u64.pow(self.fee.rate_decimals.into());
-        let min_fee = self.fee.minimum.clone();
+        // compare the transfer fee and minimum fee,get the max value
+        let rate_fee = self.metadata().fee().rate.clone() * transfer_value.clone()
+            / 10u64.pow(self.metadata().fee().rate_decimals.into());
+        let min_fee = self.metadata().fee().minimum.clone();
         let transfer_fee = if rate_fee > min_fee {
             rate_fee
         } else {
@@ -350,9 +311,9 @@ impl TokenBasic {
     fn calc_transfer_fee(&self, transfer_value: &Nat) -> Nat {
         // calc the transfer fee: rate * value
         // compare the transfer fee and minimum fee,get the max value
-        let fee = self.fee.rate.clone() * transfer_value.clone()
-            / 10u64.pow(self.fee.rate_decimals.into());
-        let min_fee = self.fee.minimum.clone();
+        let fee = self.metadata().fee().rate.clone() * transfer_value.clone()
+            / 10u64.pow(self.metadata().fee().rate_decimals.into());
+        let min_fee = self.metadata().fee().minimum.clone();
         let max_fee = if fee > min_fee { fee } else { min_fee };
         max_fee
     }
@@ -437,7 +398,8 @@ impl TokenBasic {
         self.credit_balance(to, value.clone());
         let created_at = created_at.unwrap_or(now.clone());
         // increase the total supply
-        self.total_supply = self.total_supply.clone() + value.clone();
+        self.metadata
+            .set_total_supply(self.metadata().total_supply().clone() + value.clone());
         // add the mint tx to txs
         let tx_index = self.generate_new_tx_index();
         let tx = TxRecord::Transfer(
@@ -466,7 +428,7 @@ impl TokenBasic {
     ) -> CommonResult<TransactionIndex> {
         // calc the transfer fee,if the burn amount small than minimum fee,return error
         let fee = self.calc_transfer_fee(&value);
-        if value < self.fee.minimum.clone() {
+        if value < self.metadata().fee().minimum.clone() {
             return Err(DFTError::BurnValueTooSmall);
         }
         //check the burn from holder's balance, if balance is not enough, return error
@@ -477,7 +439,8 @@ impl TokenBasic {
             // debit the burn from holder's balance
             self.debit_balance(from, value.clone())?;
             // decrease the total supply
-            self.total_supply = self.total_supply.clone() - value.clone();
+            self.metadata
+                .set_total_supply(self.metadata().total_supply().clone() - value.clone());
             // add the burn tx to txs
             let tx_index = self.generate_new_tx_index();
             let tx = TxRecord::Transfer(
@@ -520,11 +483,14 @@ impl TokenBasic {
         // set the parameters to token's properties
         self.owner = owner.clone();
         self.token_id = token_id.clone();
+        self.metadata = Metadata::new(
+            name.clone(),
+            symbol.clone(),
+            decimals.clone(),
+            0.into(),
+            fee.clone(),
+        );
         self.logo = logo;
-        self.name = name.clone();
-        self.symbol = symbol.clone();
-        self.decimals = decimals;
-        self.fee = fee;
         self.fee_to = fee_to;
     }
     pub fn load_from_token_payload(&mut self, payload: TokenPayload) {
@@ -535,10 +501,7 @@ impl TokenBasic {
         } else {
             None
         };
-        self.name = payload.meta.name;
-        self.symbol = payload.meta.symbol;
-        self.decimals = payload.meta.decimals;
-        self.fee = payload.meta.fee;
+        self.metadata = payload.meta;
         self.fee_to = payload.fee_to;
 
         for (k, v) in payload.desc {
@@ -591,7 +554,7 @@ impl TokenBasic {
             token_id: self.token_id.clone(),
             owner: self.owner.clone(),
             fee_to: self.fee_to.clone(),
-            meta: self.metadata(),
+            meta: self.metadata.clone(),
             desc,
             logo: self.logo.clone().unwrap_or_else(|| vec![]),
             balances,
@@ -604,14 +567,6 @@ impl TokenBasic {
 }
 
 impl TokenStandard for TokenBasic {
-    fn id(&self) -> Principal {
-        self.token_id.clone()
-    }
-
-    fn owner(&self) -> Principal {
-        self.owner.clone()
-    }
-
     fn set_owner(
         &mut self,
         caller: &Principal,
@@ -636,26 +591,6 @@ impl TokenStandard for TokenBasic {
         Ok(true)
     }
 
-    fn name(&self) -> String {
-        self.name.clone()
-    }
-
-    fn symbol(&self) -> String {
-        self.symbol.clone()
-    }
-
-    fn decimals(&self) -> u8 {
-        self.decimals.clone()
-    }
-
-    fn total_supply(&self) -> Nat {
-        self.total_supply.clone()
-    }
-
-    fn fee(&self) -> Fee {
-        self.fee.clone()
-    }
-
     fn set_fee(
         &mut self,
         caller: &Principal,
@@ -665,7 +600,7 @@ impl TokenStandard for TokenBasic {
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.verified_created_at(&created_at, &now)?;
-        self.fee = fee.clone();
+        self.metadata.set_fee(fee.clone());
         // create FeeModifyTx
         let tx_index = self.generate_new_tx_index();
         let created_at = created_at.unwrap_or(now.clone());
@@ -698,20 +633,6 @@ impl TokenStandard for TokenBasic {
         Ok(true)
     }
 
-    fn metadata(&self) -> Metadata {
-        Metadata {
-            name: self.name.clone(),
-            symbol: self.symbol.clone(),
-            decimals: self.decimals.clone(),
-            total_supply: self.total_supply.clone(),
-            fee: self.fee.clone(),
-        }
-    }
-
-    fn desc(&self) -> HashMap<String, String> {
-        self.desc.clone()
-    }
-
     fn set_desc(
         &mut self,
         caller: &Principal,
@@ -741,9 +662,6 @@ impl TokenStandard for TokenBasic {
         );
         self.txs.push(modify_desc_tx);
         Ok(true)
-    }
-    fn logo(&self) -> Vec<u8> {
-        self.logo.clone().unwrap_or_else(|| vec![])
     }
 
     fn set_logo(

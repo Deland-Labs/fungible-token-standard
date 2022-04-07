@@ -1,12 +1,32 @@
+use crate::TokenHolder;
+
 use super::Fee;
 use candid::{CandidType, Deserialize, Nat};
+use getset::{Getters, Setters};
 
-#[derive(CandidType, Debug, Deserialize)]
+#[derive(Getters, Setters)]
+#[getset(get = "pub")]
+#[derive(CandidType, Clone, Default, Debug, Deserialize)]
 pub struct Metadata {
-    pub name: String,
-    pub symbol: String,
-    pub decimals: u8,
+    name: String,
+    symbol: String,
+    decimals: u8,
+    #[getset(set = "pub")]
     #[serde(rename = "totalSupply")]
-    pub total_supply: Nat,
-    pub fee: Fee,
+    total_supply: Nat,
+    #[getset(set = "pub")]
+    fee: Fee,
+}
+
+impl Metadata {
+    // new
+    pub fn new(name: String, symbol: String, decimals: u8, total_supply: Nat, fee: Fee) -> Self {
+        Self {
+            name,
+            symbol,
+            decimals,
+            total_supply,
+            fee,
+        }
+    }
 }

@@ -12,6 +12,8 @@ mod token_payload;
 mod transaction_result;
 mod tx_record;
 mod actor_response;
+mod block;
+mod blockchain;
 
 use candid::Nat;
 use candid::Principal;
@@ -36,6 +38,10 @@ pub use token_holder::TokenHolder;
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
 
+pub type BlockHash=[u8;32];
+pub type BlockHeight=u64;
+pub type TransactionHash=[u8;32];
+
 pub use desc_keys::DESC_KEYS;
 pub use errors::*;
 pub use http::*;
@@ -45,6 +51,8 @@ pub use token_payload::TokenPayload;
 pub use transaction_result::TransactionResponse;
 pub use tx_record::*;
 pub use actor_response::*;
+pub use block::*;
+pub use blockchain::*;
 
 #[test]
 fn test_nat_size() {

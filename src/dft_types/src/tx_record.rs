@@ -1,98 +1,69 @@
 use super::{TokenHolder, TokenReceiver};
-use crate::{DFTError, Fee};
+use crate::{DFTError, Fee, TransactionHash};
 use candid::{CandidType, Deserialize, Nat, Principal};
-use std::convert::TryInto;
-//
-// #[derive(CandidType, Clone, Debug)]
-// pub enum Operation {
-//     Approve {
-//         #[prost(message, tag = "1")]
-//         caller: Principal,
-//         #[prost(message, tag = "2")]
-//         owner: TokenHolder,
-//         #[prost(message, tag = "3")]
-//         spender: TokenHolder,
-//         #[prost(message, tag = "4")]
-//         value: Nat,
-//         #[prost(message, tag = "5")]
-//         fee: Nat,
-//         #[prost(message, tag = "6")]
-//         timestamp: u64,
-//     }
-// }
-// prost_into_vec!(Operation, 32);
-// vec_try_into_prost!(Operation);
-// // test serialization
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::{DFTError, Fee};
-//     use candid::{CandidType, Deserialize, Nat, Principal};
-//     use std::convert::TryInto;
-//     use std::str::FromStr;
-//     use std::time::SystemTime;
-//
-//     #[test]
-//     fn test_serialize_approve() {
-//         let caller = Principal::from_text("czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae").unwrap();
-//         let owner = TokenHolder::new(caller, None);
-//         let spender = TokenHolder::new(caller, None);
-//         let value = Nat::from(1);
-//         let fee = Nat::from(1);
-//         let timestamp = 1u64;
-//         let op = Operation::Approve {
-//             caller,
-//             owner,
-//             spender,
-//             value,
-//             fee,
-//             timestamp,
-//         };
-//         let data: Vec<u8> = op.into();
-//         let deserialized: Operation = data.try_into().unwrap();
-//         //compare op and deserialized
-//         match deserialized {
-//             Operation::Approve {
-//                 caller: _caller,
-//                 owner: _owner,
-//                 spender: _spender,
-//                 value: _value,
-//                 fee: _fee,
-//                 timestamp: _timestamp,
-//             } => {
-//                 match op {
-//                     Operation::Approve {
-//                         caller: _caller,
-//                         owner: _owner,
-//                         spender: _spender,
-//                         value: _value,
-//                         fee: _fee,
-//                         timestamp: _timestamp,
-//                     } => {
-//                         assert_eq!(_caller, caller);
-//                         assert_eq!(_owner, owner);
-//                         assert_eq!(_spender, spender);
-//                         assert_eq!(_value, value);
-//                         assert_eq!(_fee, fee);
-//                         assert_eq!(_timestamp, timestamp);
-//                     }
-//                     _ => panic!("deserialized op is not an approve"),
-//                 }
-//             },
-//             _ => panic!("deserialized op is not an approve operation"),
-//         }
-//         assert_eq!(op, deserialized);
-//     }
-// }
+use sha2::{Digest, Sha256};
 
-// #[derive(CandidType, Clone,  PartialEq, Eq, PartialOrd, Ord, Hash, Message)]
-// pub struct Transaction {
-//     pub caller: Principal,
-//     pub operation: Operation,
-//     pub created_at: Nat,
-// }
+#[derive(Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Operation {
+    Approve {
+        caller: Principal,
+        owner: TokenHolder,
+        spender: TokenHolder,
+        value: Nat,
+        fee: Nat,
+    },
+    Transfer {
+        caller: TokenHolder,
+        from: TokenHolder,
+        to: TokenReceiver,
+        value: Nat,
+        fee: Nat,
+    },
+    FeeModify {
+        caller: Principal,
+        fee: Fee,
+    },
+    OwnerModify {
+        caller: Principal,
+        #[serde(rename = "newOwner")]
+        new_owner: Principal,
+    },
+    FeeToModify {
+        caller: Principal,
+        #[serde(rename = "newFeeTo")]
+        new_fee_to: TokenHolder,
+    },
+    LogoModify {
+        caller: Principal,
+        #[serde(rename = "newLogo")]
+        new_logo: Vec<u8>,
+    },
+    DescModify {
+        caller: Principal,
+        #[serde(rename = "newDesc")]
+        new_desc: Vec<(String, String)>,
+    },
+}
 
-#[derive(CandidType, Debug, Clone, Deserialize, Eq, PartialEq)]
+#[derive(Deserialize, CandidType, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Transaction {
+    pub operation: Operation,
+    /// The time this transaction was created.
+    #[serde(rename = "createdAt")]
+    pub created_at: u64,
+}
+
+impl Transaction {
+    // hash token id + tx bytes, make sure tx hash unique
+    pub fn hash_with_token_id(&self, token_id: &Principal) -> TransactionHash {
+        let mut sha = Sha256::new();
+        let tx_bytes = candid::encode_one(&self).unwrap();
+        let combine_bytes = [token_id.as_slice(), &tx_bytes[..]].concat();
+        sha.update(combine_bytes);
+        sha.finalize().into()
+    }
+}
+#[derive(CandidType, Deserialize, Debug, Clone, Eq, PartialEq)]
 pub enum TxRecord {
     // tx_index, caller, owner, spender, value, fee,created_at , timestamp
     Approve(
@@ -117,45 +88,14 @@ pub enum TxRecord {
         u64,
     ),
     // tx_index, caller (owner), new fee setting, created_at, timestamp
-    FeeModify(
-        Nat,
-        Principal,
-        Fee,
-        u64,
-        u64,
-    ),
+    FeeModify(Nat, Principal, Fee, u64, u64),
     // tx_index, caller (owner), new owner, created_at, timestamp
-    OwnerModify(
-        Nat,
-        Principal,
-        Principal,
-        u64,
-        u64,
-    ),
+    OwnerModify(Nat, Principal, Principal, u64, u64),
     // tx_index, caller (owner), new feeTo, created_at, timestamp
-    FeeToModify(
-        Nat,
-        Principal,
-        TokenHolder,
-        u64,
-        u64,
-    ),
+    FeeToModify(Nat, Principal, TokenHolder, u64, u64),
     // tx_index, caller (owner), new logo, created_at, timestamp
-    LogoModify(
-        Nat,
-        Principal,
-        Vec<u8>,
-        u64,
-        u64,
-    ),
-    // tx_index, caller (owner), new logo, created_at, timestamp
-    DescModify(
-        Nat,
-        Principal,
-        Vec<(String, String)>,
-        u64,
-        u64,
-    ),
+    LogoModify(Nat, Principal, Vec<u8>, u64, u64),
+    DescModify(Nat, Principal, Vec<(String, String)>, u64, u64),
 }
 
 impl TxRecord {

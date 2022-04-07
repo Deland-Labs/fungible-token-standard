@@ -77,7 +77,7 @@ fn inspect_message() {
         }
         m if OWNER_METHODS.contains(&m) => {
             // check if caller is owner
-            let owner = TOKEN.with(|token| token.borrow().owner());
+            let owner = TOKEN.with(|token| token.borrow().owner().clone());
             if caller == owner {
                 api::call::accept_message();
             } else {

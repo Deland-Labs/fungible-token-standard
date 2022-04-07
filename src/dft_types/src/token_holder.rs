@@ -6,7 +6,8 @@ use std::{
 };
 
 use super::{AccountIdentifier, Subaccount};
-#[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq)]
+
+#[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TokenHolder {
     Account(AccountIdentifier),
     Principal(Principal),
