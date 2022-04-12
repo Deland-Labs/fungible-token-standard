@@ -31,26 +31,35 @@ pub enum DFTError {
     BurnValueExceedsAllowance,
     #[error("DFT: notification failed")]
     NotificationFailed,
-    #[error("DFT: storage scaling failed")]
-    StorageScalingFailed,
+    #[error("DFT: storage scaling failed, details: {detail:?}")]
+    StorageScalingFailed { detail: String },
     #[error("DFT: move tx to scaling storage failed")]
     MoveTxToScalingStorageFailed,
     #[error("DFT: invalid type or format of logo")]
     InvalidTypeOrFormatOfLogo,
+    #[error("DFT: cannot apply block because its parent hash doesn't match")]
+    ApplyBlockFailedByParentHashDoesNotMatch,
+    #[error("DFT: cannot apply block because its timestamp is older than the previous tip")]
+    ApplyBlockFailedByInvalidTimestamp,
     #[error("DFT: tx too old")]
     TxTooOld,
     #[error("DFT: tx created in future")]
     TxCreatedInFuture,
     #[error("DFT: tx duplicate")]
     TxDuplicate,
-    #[error("DFT_TX: invalid tx index")]
-    InvalidTxIndex,
+    #[error("DFT: too many transactions in replay prevention window, token is throttling, please retry later")]
+    TooManyTransactionsInReplayPreventionWindow,
+    #[error("DFT_TX: non-existent block height")]
+    NonExistentBlockHeight,
+    #[error("DFT_TX: exceed the byte size limit of one request")]
+    ExceedTheByteSizeLimitOfOneRequest,
     #[error("DFT_TX: invalid tx id")]
     InvalidTxId,
     #[error("DFT_TX: tx id does not belong to current dft")]
     TxIdNotBelongToCurrentDft,
     #[error("DFT_TX: only allow token canister call this function")]
     OnlyAllowTokenCanisterCallThisFunction,
+
     #[error("Unknown error, detail: {detail:?}")]
     Unknown { detail: String },
 }
@@ -72,16 +81,20 @@ impl DFTError {
             DFTError::BurnValueExceedsBalance => 12,
             DFTError::BurnValueExceedsAllowance => 13,
             DFTError::NotificationFailed => 14,
-            DFTError::StorageScalingFailed => 15,
+            DFTError::StorageScalingFailed { .. } => 15,
             DFTError::MoveTxToScalingStorageFailed => 16,
             DFTError::InvalidTypeOrFormatOfLogo => 17,
-            DFTError::TxTooOld => 18,
-            DFTError::TxCreatedInFuture => 19,
-            DFTError::TxDuplicate => 20,
-            DFTError::InvalidTxIndex => 21,
-            DFTError::InvalidTxId => 22,
-            DFTError::TxIdNotBelongToCurrentDft => 23,
-            DFTError::OnlyAllowTokenCanisterCallThisFunction => 24,
+            DFTError::ApplyBlockFailedByParentHashDoesNotMatch => 18,
+            DFTError::ApplyBlockFailedByInvalidTimestamp => 19,
+            DFTError::TxTooOld => 20,
+            DFTError::TxCreatedInFuture => 21,
+            DFTError::TxDuplicate => 22,
+            DFTError::TooManyTransactionsInReplayPreventionWindow => 23,
+            DFTError::NonExistentBlockHeight => 24,
+            DFTError::ExceedTheByteSizeLimitOfOneRequest => 25,
+            DFTError::InvalidTxId => 26,
+            DFTError::TxIdNotBelongToCurrentDft => 27,
+            DFTError::OnlyAllowTokenCanisterCallThisFunction => 28,
             DFTError::Unknown { .. } => 10000,
         }
     }
@@ -92,6 +105,46 @@ impl From<DFTError> for ErrorInfo {
         ErrorInfo {
             code: error.code(),
             message: error.to_string(),
+        }
+    }
+}
+
+impl From<ErrorInfo> for DFTError {
+    fn from(error: ErrorInfo) -> Self {
+        match error.code {
+            1 => DFTError::NotAllowAnonymous,
+            2 => DFTError::OnlyOwnerAllowCallIt,
+            3 => DFTError::InvalidSpender,
+            4 => DFTError::InvalidArgFormatFrom,
+            5 => DFTError::InvalidArgFormatTo,
+            6 => DFTError::InvalidArgFormatFeeTo,
+            7 => DFTError::InsufficientBalance,
+            8 => DFTError::InsufficientAllowance,
+            9 => DFTError::TransferAmountExceedsAllowance,
+            10 => DFTError::TransferAmountExceedsBalance,
+            11 => DFTError::BurnValueTooSmall,
+            12 => DFTError::BurnValueExceedsBalance,
+            13 => DFTError::BurnValueExceedsAllowance,
+            14 => DFTError::NotificationFailed,
+            15 => DFTError::StorageScalingFailed {
+                detail: error.message,
+            },
+            16 => DFTError::MoveTxToScalingStorageFailed,
+            17 => DFTError::InvalidTypeOrFormatOfLogo,
+            18 => DFTError::ApplyBlockFailedByParentHashDoesNotMatch,
+            19 => DFTError::ApplyBlockFailedByInvalidTimestamp,
+            20 => DFTError::TxTooOld,
+            21 => DFTError::TxCreatedInFuture,
+            22 => DFTError::TxDuplicate,
+            23 => DFTError::TooManyTransactionsInReplayPreventionWindow,
+            24 => DFTError::NonExistentBlockHeight,
+            25 => DFTError::ExceedTheByteSizeLimitOfOneRequest,
+            26 => DFTError::InvalidTxId,
+            27 => DFTError::TxIdNotBelongToCurrentDft,
+            28 => DFTError::OnlyAllowTokenCanisterCallThisFunction,
+            _ => DFTError::Unknown {
+                detail: error.message,
+            },
         }
     }
 }

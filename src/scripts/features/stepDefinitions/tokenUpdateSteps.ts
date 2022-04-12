@@ -2,11 +2,9 @@ import {When, Then} from "@cucumber/cucumber";
 import {parseRawTableToJsonArray} from "~/utils/convert";
 import {assert, expect} from "chai";
 import {createDFTActor, fileToByteArray} from "./utils";
-import {Fee} from "~/declarations/dft_basic/dft_basic.did";
+import {TokenFee} from "~/declarations/dft_basic/dft_basic.did";
 import {parseToOrigin} from "~/utils/uint";
 import {identityFactory} from "~/utils/identity";
-import {existsSync, readFileSync} from "fs";
-import path from "path";
 
 When(/^I update token "([^"]*)"'s description with not owner "([^"]*)", will failed$/, async function (token, user, {rawTable}) {
     let actor = createDFTActor(token, user);
@@ -17,7 +15,7 @@ When(/^I update token "([^"]*)"'s description with not owner "([^"]*)", will fai
         desc.push([optionArray[i].key, optionArray[i].value]);
     }
     try {
-        let res = await actor!.setDesc(desc,[])
+        let res = await actor!.setDesc(desc)
         expect.fail(`should not set success, but set success with ${res}`);
     } catch (e) {
         // should be here
@@ -31,7 +29,7 @@ When(/^I update token "([^"]*)"'s description with owner "([^"]*)", will success
     for (let i = 0; i < optionArray.length; i++) {
         desc.push([optionArray[i].key, optionArray[i].value]);
     }
-    const res = await actor!.setDesc(desc,[]);
+    const res = await actor!.setDesc(desc);
     assert.isTrue("Ok" in res);
 });
 
@@ -67,7 +65,7 @@ When(/^I update token "([^"]*)"'s logo "([^"]*)" with owner "([^"]*)", will succ
     const logoData = fileToByteArray(`./scripts/assets/${logoName}`);
     const logoParam: [number[]] = [Array.from(logoData)];
     const actor = createDFTActor(token, user);
-    const res = await actor!.setLogo(logoParam,[]);
+    const res = await actor!.setLogo(logoParam);
     assert.isTrue("Ok" in res, `set logo failed with ${JSON.stringify(res)}`);
 });
 
@@ -75,7 +73,7 @@ When(/^I update token "([^"]*)"'s logo with invalid image data with owner "([^"]
     const logoData: [number[]] = [[1, 2, 3, 4]];
     const actor = createDFTActor(token, user);
     try {
-        const res = await actor!.setLogo(logoData,[]);
+        const res = await actor!.setLogo(logoData);
         expect.fail(`should not set success, but set success with ${res}`);
     } catch (e) {
         // should be here
@@ -85,7 +83,7 @@ When(/^I update token "([^"]*)"'s logo with not owner "([^"]*)", will failed$/, 
     const logoData: any = [[1, 2, 3, 4]];
     const actor = createDFTActor(token, user);
     try {
-        const res = await actor!.setLogo(logoData,[]);
+        const res = await actor!.setLogo(logoData);
         expect.fail(`should not set success, but set success with ${res}`);
     } catch (e) {
         // should be here
@@ -98,10 +96,10 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)", will success$/, asyn
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to TokenFee
-    const fee: Fee = {
+    const fee: TokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),
-        rate_decimals: Number(option.rate_decimals)
+        rateDecimals: Number(option.rate_decimals)
     };
     const res = await actor!.setFee(fee, []);
     assert.isTrue("Ok" in res);
@@ -112,15 +110,15 @@ Then(/^Get token "([^"]*)"'s fee by "([^"]*)",will include blow fields and value
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     const fee = await actor!.fee();
-    const feeValid: Fee = {
+    const feeValid: TokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),
-        rate_decimals: Number(option.rate_decimals)
+        rateDecimals: Number(option.rate_decimals)
     };
     // check fee is same with feeValid
     assert.equal(fee.minimum, feeValid.minimum);
     assert.equal(fee.rate, feeValid.rate);
-    assert.equal(fee.rate_decimals, feeValid.rate_decimals);
+    assert.equal(fee.rateDecimals, feeValid.rateDecimals);
 });
 When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, async function (token, owner, {rawTable}) {
     const actor = createDFTActor(token, owner);
@@ -128,10 +126,10 @@ When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, a
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to TokenFee
-    const fee: Fee = {
+    const fee: TokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: parseToOrigin(option.rate, option.rate_decimals),
-        rate_decimals: Number(option.rate_decimals)
+        rateDecimals: Number(option.rate_decimals)
     };
     try {
         const res = await actor!.setFee(fee, []);

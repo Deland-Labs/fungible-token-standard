@@ -1,111 +1,136 @@
-import {When, Then} from "@cucumber/cucumber";
-import {createDFTBasicActor, createStorageActor} from "~/declarations";
-import {identityFactory} from "~/utils/identity";
-import {parseToOrigin} from "~/utils/uint";
-import {assert, expect} from "chai";
+import { When, Then } from "@cucumber/cucumber";
+import { createDFTBasicActor, createStorageActor } from "~/declarations";
+import { identityFactory } from "~/utils/identity";
+import { parseToOrigin } from "~/utils/uint";
+import { assert, expect } from "chai";
 import logger from "node-color-log";
-import {createDFTActor} from "./utils";
-import {parseRawTableToJsonArray} from "~/utils/convert";
+import { createDFTActor } from "./utils";
+import { parseRawTableToJsonArray } from "~/utils/convert";
 
-When(/^Check the storage canisters count is equal to "([^"]*)" ,by "([^"]*)"$/, async function (count, user) {
+When(
+  /^Check the storage canisters count is equal to "([^"]*)" ,by "([^"]*)"$/,
+  async function (count, user) {
     const actor = createDFTBasicActor(user);
     const tokenInfo = await actor.tokenInfo();
     logger.debug(`tokenInfo: ${JSON.stringify(tokenInfo)}`);
     assert.equal(tokenInfo.storages.length, parseInt(count));
-});
-Then(/^Transfer token "([^"]*)" from "([^"]*)" to "([^"]*)" amount of equals the times, repeat (\d+) times$/, {timeout: 6000 * 1000}, async function (token, from, to, repeatTimes) {
+  }
+);
+Then(
+  /^Transfer token "([^"]*)" from "([^"]*)" to "([^"]*)" amount of equals the times, repeat (\d+) times$/,
+  { timeout: 6000 * 1000 },
+  async function (token, from, to, repeatTimes) {
     const actor = createDFTBasicActor(from);
     const toPrincipal = identityFactory.getPrincipal(to)!.toText();
     const decimals = await actor.decimals();
     const repeat = parseInt(repeatTimes);
 
     for (let i = 1; i <= repeat; i++) {
-        const amountBN = parseToOrigin(i, decimals);
-        logger.debug(`Transferring job, the index is ${i + 1}`);
-        await actor.transfer([], toPrincipal, amountBN, []);
+      const amountBN = parseToOrigin(i, decimals);
+      const res = await actor.transfer([], toPrincipal, amountBN, []);
+      if ("Ok" in res) {
+        logger.debug(
+          `Transferring job, the block height is ${res.Ok.blockHeight}`
+        );
+      }
+      else{
+        expect.fail(`transfer failed, tx: ${JSON.stringify(res)}`);
+      }
     }
-});
-Then(/^Check the tx index "([^"]*)" transfer transaction of "([^"]*)", the amount should be (\d+)$/, async function (txIndex, token, amount) {
+  }
+);
+Then(
+  /^Check the block height "([^"]*)" transfer transaction of "([^"]*)", the amount should be (\d+)$/,
+  async function (blockHeight, token, amount) {
     const actor = createDFTActor(token);
     const decimals = await actor!.decimals();
-    const txIndexBN = parseToOrigin(txIndex, 0);
-    const tx = await actor!.transactionByIndex(txIndexBN);
-    if ("Ok" in tx) {
-        const txDetails = tx.Ok;
-        if ("Transfer" in txDetails) {
-            const txInfo = txDetails.Transfer;
-            assert.equal(txInfo[0], txIndexBN);
-            assert.equal(txInfo[4], parseToOrigin(amount, decimals));
+    const blockHeightBN = parseToOrigin(blockHeight, 0);
+    const blockRes = await actor!.blockByHeight(blockHeightBN);
+    if ("Ok" in blockRes) {
+      const block = blockRes.Ok;
+      if ("transaction" in block) {
+        const tx = block.transaction;
+        if ("Transfer" in tx.operation) {
+          const transfer = tx.operation.Transfer;
+          const amountBN = parseToOrigin(amount, decimals);
+          assert.equal(amountBN, transfer.value);
         }
+      }
     } else {
-        expect.fail(`transactionByIndex failed, tx: ${JSON.stringify(tx)}`);
+      expect.fail(`blockByHeight failed, tx: ${JSON.stringify(blockRes)}`);
     }
-});
-Then(/^Check the tx index "([^"]*)" transfer transaction of "([^"]*)", the result should be a forward result$/, async function (txIndex, token) {
-    const actor = createDFTActor(token);
-    const txIndexBN = parseToOrigin(txIndex, 0);
-    const tx = await actor!.transactionByIndex(txIndexBN);
-    if ("Forward" in tx) {
-        const scalingStorageCanisterId = tx.Forward.toText();
-        const storageActor = createStorageActor(scalingStorageCanisterId);
-        const txInStorage = await storageActor!.transactionByIndex(txIndexBN);
-        if ("Ok" in txInStorage) {
-            const txDetails = txInStorage.Ok;
-            if ("Transfer" in txDetails) {
-                const txInfoInStorage = txDetails.Transfer;
-                assert.equal(txInfoInStorage[0], txIndexBN);
-            }
-        } else {
-            expect.fail(`transactionByIndex failed, tx: ${JSON.stringify(txInStorage)}`);
-        }
-    } else {
-        expect.fail(`transactionByIndex in storage failed, tx: ${JSON.stringify(txInStorage)}`);
-    }
-});
+  }
+);
 
-Then(/^Check the tx index "([^"]*)" transfer transaction of "([^"]*)", the result should not be a forward result$/, async function (txIndex, token) {
+Then(
+  /^Check the block height "([^"]*)" transfer transaction of "([^"]*)", the result should be a forward result$/,
+  async function (blockHeight, token) {
     const actor = createDFTActor(token);
-    const txIndexBN = parseToOrigin(txIndex, 0);
-    const tx = await actor!.transactionByIndex(txIndexBN);
+    const decimals = await actor!.decimals();
+    const blockHeightBN = parseToOrigin(blockHeight, 0);
+    const blockRes = await actor!.blockByHeight(blockHeightBN);
+    if ("Forward" in blockRes) {
+      const canisterId = blockRes.Forward;
+      const tokenInfo = await actor!.tokenInfo();
+      // tokenInfo.storages should contains canisterId
+      const canisterIdVal = tokenInfo.storages.find(
+        (storage) => storage === canisterId
+      );
+      assert.isNotNull(canisterIdVal);
+    } else {
+      expect.fail(`transactionByIndex failed, tx: ${JSON.stringify(blockRes)}`);
+    }
+  }
+);
+
+Then(
+  /^Check the block height "([^"]*)" transfer transaction of "([^"]*)", the result should not be a forward result$/,
+  async function (blockHeight, token) {
+    const actor = createDFTActor(token);
+    const blockHeightBN = parseToOrigin(blockHeight, 0);
+    const tx = await actor!.blockByHeight(blockHeightBN);
     assert.isFalse("Forward" in tx);
-});
+  }
+);
 
-Then(/^Check the last (\d+) transactions of "([^"]*)", check each transaction is correct$/, async function (size, token, {rawTable}) {
+Then(
+  /^Check the blocks query of "([^"]*)", start block height "([^"]*)",size "([^"]*)", check each transaction is correct$/,
+  async function (token, startBlockHeight, size, { rawTable }) {
     const actor = createDFTActor(token);
     const decimals = await actor!.decimals();
     const optionArray = parseRawTableToJsonArray(rawTable);
-    const last10TxsRes = await actor!.lastTransactions(size);
-    if ("Ok" in last10TxsRes) {
-        assert.equal(last10TxsRes.Ok.length, size);
-        for (let i = 0; i < size; i++) {
-            const tx = last10TxsRes.Ok[i];
-            const option = optionArray[i];
-            if ("Transfer" in tx) {
-                const transfer = tx.Transfer;
-                assert.equal(transfer[0], parseToOrigin(option.index, 0), `index is not equal, expected: ${option.index}, actual: ${transfer[0]}`);
-                if ("Principal" in transfer[1]) {
-                    const principal = transfer[1].Principal.toText();
-                    const expectedPrincipal = identityFactory.getPrincipal(option.caller)!.toText();
-                    assert.equal(principal, expectedPrincipal, `caller is not equal, expected: ${expectedPrincipal}, actual: ${principal}`);
-                }
-                if ("Principal" in transfer[2]) {
-                    const principal = transfer[2].Principal.toText();
-                    const expectedPrincipal = identityFactory.getPrincipal(option.from)!.toText();
-                    assert.equal(principal, expectedPrincipal, `from is not equal, expected: ${expectedPrincipal}, actual: ${principal}`);
-                }
-                if ("Principal" in transfer[3]) {
-                    const principal = transfer[3].Principal.toText();
-                    const expectedPrincipal = identityFactory.getPrincipal(option.to)!.toText();
-                    assert.equal(principal, expectedPrincipal, `to is not equal, expected: ${expectedPrincipal}, actual: ${principal}`);
-                }
-                assert.equal(transfer[4], parseToOrigin(option.amount, decimals), `amount is not equal, expected: ${option.amount}, actual: ${transfer[4]}`);
-                assert.equal(transfer[5], parseToOrigin(option.fee, decimals), `fee is not equal, expected: ${option.fee}, actual: ${transfer[5]}`);
-                assert.isTrue(transfer[6] > 0, `timestamp is not greater than 0, actual: ${transfer[6]}`);
-                break;
-            }
+    const startBlockHeightBN = parseToOrigin(startBlockHeight, 0);
+    const sizeBN = parseToOrigin(size, 0);
+    const queryRes = await actor!.blocksByQuery(startBlockHeightBN, sizeBN);
 
+    optionArray.forEach((option, index) => {
+      const block = queryRes.blocks[index];
+      if ("transaction" in block) {
+        const tx = block.transaction;
+        if ("Transfer" in tx.operation) {
+          const transfer = tx.operation.Transfer;
+          const amountBN = parseToOrigin(option.amount, decimals);
+          const feeBN = parseToOrigin(option.fee, decimals);
+          assert.equal(amountBN, transfer.value);
+          assert.equal(feeBN, transfer.fee);
+          const callerPrincipal = identityFactory
+            .getPrincipal(option.caller)!
+            .toText();
+          const fromPrincipal = identityFactory
+            .getPrincipal(option.from)!
+            .toText();
+          const toPrincipal = identityFactory.getPrincipal(option.to)!.toText();
+          if ("Principal" in transfer.caller) {
+            assert.equal(callerPrincipal, transfer.caller.Principal.toText());
+          }
+          if ("Principal" in transfer.from) {
+            assert.equal(fromPrincipal, transfer.from.Principal.toText());
+          }
+          if ("Principal" in transfer.to) {
+            assert.equal(toPrincipal, transfer.to.Principal.toText());
+          }
         }
-    } else {
-        expect.fail(`lastTransactions failed, tx: ${JSON.stringify(last10TxsRes)}`);
-    }
-});
+      }
+    });
+  }
+);

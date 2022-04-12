@@ -1,62 +1,59 @@
 import type { Principal } from '@dfinity/principal';
-export interface ErrorInfo { 'code' : number, 'message' : string }
+export interface Block {
+  'transaction' : Transaction,
+  'timestamp' : bigint,
+  'parentHash' : [] | [Array<number>],
+}
+export type BlockListResult = { 'Ok' : Array<Block> } |
+  { 'Err' : ErrorInfo };
+export type BlockResult = { 'Ok' : Block } |
+  { 'Err' : ErrorInfo } |
+  { 'Forward' : Principal };
 export type BooleanResult = { 'Ok' : boolean } |
   { 'Err' : ErrorInfo };
-export interface Fee {
+export interface ErrorInfo { 'code' : number, 'message' : string }
+export type Operation = {
+    'FeeToModify' : { 'newFeeTo' : TokenHolder, 'caller' : Principal }
+  } |
+  {
+    'Approve' : {
+      'fee' : bigint,
+      'value' : bigint,
+      'owner' : TokenHolder,
+      'caller' : Principal,
+      'spender' : TokenHolder,
+    }
+  } |
+  { 'FeeModify' : { 'newFee' : TokenFee, 'caller' : Principal } } |
+  {
+    'Transfer' : {
+      'to' : TokenHolder,
+      'fee' : bigint,
+      'value' : bigint,
+      'from' : TokenHolder,
+      'caller' : TokenHolder,
+    }
+  } |
+  { 'OwnerModify' : { 'newOwner' : Principal, 'caller' : Principal } };
+export interface StorageInfo {
+  'tokenId' : Principal,
+  'totalBlocksCount' : bigint,
+  'cycles' : bigint,
+  'totalBlockSizeBytes' : bigint,
+  'blockHeightOffset' : bigint,
+}
+export interface TokenFee {
   'rate' : bigint,
   'minimum' : bigint,
-  'rate_decimals' : number,
-}
-export interface StorageInfo {
-  'dft_id' : Principal,
-  'tx_start_index' : bigint,
-  'txs_count' : bigint,
-  'cycles' : bigint,
+  'rateDecimals' : number,
 }
 export type TokenHolder = { 'None' : null } |
   { 'Account' : string } |
   { 'Principal' : Principal };
-export type TxRecord = {
-    'FeeToModify' : [bigint, Principal, TokenHolder, bigint, bigint]
-  } |
-  {
-    'Approve' : [
-      bigint,
-      TokenHolder,
-      TokenHolder,
-      TokenHolder,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-    ]
-  } |
-  { 'FeeModify' : [bigint, Principal, Fee, bigint, bigint] } |
-  {
-    'Transfer' : [
-      bigint,
-      TokenHolder,
-      TokenHolder,
-      TokenHolder,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-    ]
-  } |
-  { 'OwnerModify' : [bigint, Principal, Principal, bigint, bigint] };
-export type TxRecordListResult = { 'Ok' : Array<TxRecord> } |
-  { 'Err' : ErrorInfo };
-export type TxRecordResult = { 'Ok' : TxRecord } |
-  { 'Err' : ErrorInfo } |
-  { 'Forward' : Principal };
+export interface Transaction { 'createdAt' : bigint, 'operation' : Operation }
 export interface _SERVICE {
-  'append' : (arg_0: TxRecord) => Promise<BooleanResult>,
-  'batchAppend' : (arg_0: Array<TxRecord>) => Promise<BooleanResult>,
+  'batchAppend' : (arg_0: Array<Array<number>>) => Promise<BooleanResult>,
+  'blockByIndex' : (arg_0: bigint) => Promise<BlockResult>,
+  'blocksByQuery' : (arg_0: bigint, arg_1: bigint) => Promise<BlockListResult>,
   'storageInfo' : () => Promise<StorageInfo>,
-  'transactionById' : (arg_0: string) => Promise<TxRecordResult>,
-  'transactionByIndex' : (arg_0: bigint) => Promise<TxRecordResult>,
-  'transactions' : (arg_0: bigint, arg_1: bigint) => Promise<
-      TxRecordListResult
-    >,
 }

@@ -1,128 +1,141 @@
-import type { Principal } from '@dfinity/principal';
-export interface ErrorInfo { 'code' : number, 'message' : string }
-export type BooleanResult = { 'Ok' : boolean } |
-  { 'Err' : ErrorInfo };
-export interface Fee {
-  'rate' : bigint,
-  'minimum' : bigint,
-  'rate_decimals' : number,
+import type { Principal } from "@dfinity/principal";
+export interface ArchivedBlocksRange {
+  storageCanisterId: Principal;
+  start: bigint;
+  length: bigint;
 }
-export interface Metadata {
-  'fee' : Fee,
-  'decimals' : number,
-  'name' : string,
-  'totalSupply' : bigint,
-  'symbol' : string,
+export interface Block {
+  transaction: Transaction;
+  timestamp: bigint;
+  parentHash: [] | [Array<number>];
 }
-export type TokenHolder = { 'None' : null } |
-  { 'Account' : string } |
-  { 'Principal' : Principal };
+export type BlockResult =
+  | { Ok: Block }
+  | { Err: ErrorInfo }
+  | { Forward: Principal };
+export type BooleanResult = { Ok: boolean } | { Err: ErrorInfo };
+export interface ErrorInfo {
+  code: number;
+  message: string;
+}
+export type Operation =
+  | {
+      FeeToModify: { newFeeTo: TokenHolder; caller: Principal };
+    }
+  | {
+      Approve: {
+        fee: bigint;
+        value: bigint;
+        owner: TokenHolder;
+        caller: Principal;
+        spender: TokenHolder;
+      };
+    }
+  | { FeeModify: { newFee: TokenFee; caller: Principal } }
+  | {
+      Transfer: {
+        to: TokenHolder;
+        fee: bigint;
+        value: bigint;
+        from: TokenHolder;
+        caller: TokenHolder;
+      };
+    }
+  | { OwnerModify: { newOwner: Principal; caller: Principal } };
+export type OperationResult =
+  | {
+      Ok: {
+        txId: string;
+        error: [] | [ErrorInfo];
+        blockHeight: bigint;
+      };
+    }
+  | { Err: ErrorInfo };
+export interface QueryBlocksResult {
+  chainLength: bigint;
+  certificate: [] | [Array<number>];
+  archivedBlocks: Array<ArchivedBlocksRange>;
+  blocks: Array<Block>;
+  firstBlockIndex: bigint;
+}
+export interface TokenFee {
+  rate: bigint;
+  minimum: bigint;
+  rateDecimals: number;
+}
+export type TokenHolder =
+  | { None: null }
+  | { Account: string }
+  | { Principal: Principal };
 export interface TokenInfo {
-  'owner' : Principal,
-  'allowanceSize' : bigint,
-  'cycles' : bigint,
-  'txCount' : bigint,
-  'holders' : bigint,
-  'storages' : Array<Principal>,
-  'feeTo' : TokenHolder,
+  certificate: [] | [Array<number>];
+  owner: Principal;
+  allowanceSize: bigint;
+  cycles: bigint;
+  blockHeight: bigint;
+  holders: bigint;
+  storages: Array<Principal>;
+  feeTo: TokenHolder;
 }
-export interface TransactionResponse {
-  'txId' : string,
-  'error' : [] | [ErrorInfo],
+export interface TokenMetadata {
+  fee: TokenFee;
+  decimals: number;
+  name: string;
+  symbol: string;
 }
-export type TransactionResult = { 'Ok' : TransactionResponse } |
-  { 'Err' : ErrorInfo };
-export type TxRecord = {
-    'FeeToModify' : [bigint, Principal, TokenHolder, bigint, bigint]
-  } |
-  {
-    'Approve' : [
-      bigint,
-      TokenHolder,
-      TokenHolder,
-      TokenHolder,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-    ]
-  } |
-  { 'FeeModify' : [bigint, Principal, Fee, bigint, bigint] } |
-  {
-    'Transfer' : [
-      bigint,
-      TokenHolder,
-      TokenHolder,
-      TokenHolder,
-      bigint,
-      bigint,
-      bigint,
-      bigint,
-    ]
-  } |
-  { 'OwnerModify' : [bigint, Principal, Principal, bigint, bigint] };
-export type TxRecordListResult = { 'Ok' : Array<TxRecord> } |
-  { 'Err' : ErrorInfo };
-export type TxRecordResult = { 'Ok' : TxRecord } |
-  { 'Err' : ErrorInfo } |
-  { 'Forward' : Principal };
+export interface Transaction {
+  createdAt: bigint;
+  operation: Operation;
+}
 export interface _SERVICE {
-  'allowance' : (arg_0: string, arg_1: string) => Promise<bigint>,
-  'allowancesOf' : (arg_0: string) => Promise<Array<[TokenHolder, bigint]>>,
-  'approve' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: bigint,
-      arg_3: [] | [bigint],
-    ) => Promise<TransactionResult>,
-  'balanceOf' : (arg_0: string) => Promise<bigint>,
-  'burn' : (
-      arg_0: [] | [Array<number>],
-      arg_1: bigint,
-      arg_2: [] | [bigint],
-    ) => Promise<TransactionResult>,
-  'burnFrom' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: bigint,
-      arg_3: [] | [bigint],
-    ) => Promise<TransactionResult>,
-  'decimals' : () => Promise<number>,
-  'desc' : () => Promise<Array<[string, string]>>,
-  'fee' : () => Promise<Fee>,
-  'lastTransactions' : (arg_0: bigint) => Promise<TxRecordListResult>,
-  'logo' : () => Promise<Array<number>>,
-  'meta' : () => Promise<Metadata>,
-  'name' : () => Promise<string>,
-  'nonceOf' : (arg_0: Principal) => Promise<bigint>,
-  'owner' : () => Promise<Principal>,
-  'setDesc' : (arg_0: Array<[string, string]>, arg_1: [] | [bigint]) => Promise<
-      BooleanResult
-    >,
-  'setFee' : (arg_0: Fee, arg_1: [] | [bigint]) => Promise<BooleanResult>,
-  'setFeeTo' : (arg_0: string, arg_1: [] | [bigint]) => Promise<BooleanResult>,
-  'setLogo' : (arg_0: [] | [Array<number>], arg_1: [] | [bigint]) => Promise<
-      BooleanResult
-    >,
-  'setOwner' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
-      BooleanResult
-    >,
-  'symbol' : () => Promise<string>,
-  'tokenInfo' : () => Promise<TokenInfo>,
-  'totalSupply' : () => Promise<bigint>,
-  'transactionById' : (arg_0: string) => Promise<TxRecordResult>,
-  'transactionByIndex' : (arg_0: bigint) => Promise<TxRecordResult>,
-  'transfer' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: bigint,
-      arg_3: [] | [bigint],
-    ) => Promise<TransactionResult>,
-  'transferFrom' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: string,
-      arg_3: bigint,
-      arg_4: [] | [bigint],
-    ) => Promise<TransactionResult>,
+  allowance: (arg_0: string, arg_1: string) => Promise<bigint>;
+  allowancesOf: (arg_0: string) => Promise<Array<[TokenHolder, bigint]>>;
+  approve: (
+    arg_0: [] | [Array<number>],
+    arg_1: string,
+    arg_2: bigint,
+    arg_3: [] | [bigint]
+  ) => Promise<OperationResult>;
+  balanceOf: (arg_0: string) => Promise<bigint>;
+  blockByHeight: (arg_0: bigint) => Promise<BlockResult>;
+  blocksByQuery: (arg_0: bigint, arg_1: bigint) => Promise<QueryBlocksResult>;
+  burn: (
+    arg_0: [] | [Array<number>],
+    arg_1: bigint,
+    arg_2: [] | [bigint]
+  ) => Promise<OperationResult>;
+  burnFrom: (
+    arg_0: [] | [Array<number>],
+    arg_1: string,
+    arg_2: bigint,
+    arg_3: [] | [bigint]
+  ) => Promise<OperationResult>;
+  decimals: () => Promise<number>;
+  desc: () => Promise<Array<[string, string]>>;
+  fee: () => Promise<TokenFee>;
+  logo: () => Promise<Array<number>>;
+  meta: () => Promise<TokenMetadata>;
+  name: () => Promise<string>;
+  owner: () => Promise<Principal>;
+  setDesc: (arg_0: Array<[string, string]>) => Promise<BooleanResult>;
+  setFee: (arg_0: TokenFee, arg_1: [] | [bigint]) => Promise<BooleanResult>;
+  setFeeTo: (arg_0: string, arg_1: [] | [bigint]) => Promise<BooleanResult>;
+  setLogo: (arg_0: [] | [Array<number>]) => Promise<BooleanResult>;
+  setOwner: (arg_0: Principal, arg_1: [] | [bigint]) => Promise<BooleanResult>;
+  symbol: () => Promise<string>;
+  tokenInfo: () => Promise<TokenInfo>;
+  totalSupply: () => Promise<bigint>;
+  transfer: (
+    arg_0: [] | [Array<number>],
+    arg_1: string,
+    arg_2: bigint,
+    arg_3: [] | [bigint]
+  ) => Promise<OperationResult>;
+  transferFrom: (
+    arg_0: [] | [Array<number>],
+    arg_1: string,
+    arg_2: string,
+    arg_3: bigint,
+    arg_4: [] | [bigint]
+  ) => Promise<OperationResult>;
 }

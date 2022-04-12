@@ -9,9 +9,9 @@ pub trait BurnableExtension {
         caller: &Principal,
         owner: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
     //burn from
     fn burn_from(
         &mut self,
@@ -19,12 +19,12 @@ pub trait BurnableExtension {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
 }
 
-// imple BurnableExtension for TokenBasic
+// impl BurnableExtension for TokenBasic
 impl BurnableExtension for TokenBasic {
     fn burn(
         &mut self,
@@ -33,7 +33,7 @@ impl BurnableExtension for TokenBasic {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.not_allow_anonymous(caller)?;
         self.verified_created_at(&created_at, &now)?;
         let created_at = created_at.unwrap_or(now.clone());
@@ -47,10 +47,11 @@ impl BurnableExtension for TokenBasic {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.not_allow_anonymous(caller)?;
         self.verified_created_at(&created_at, &now)?;
         let created_at = created_at.unwrap_or(now.clone());
         self._burn_from(spender, owner, value, created_at, now)
+            .into()
     }
 }

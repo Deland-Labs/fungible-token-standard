@@ -1,8 +1,8 @@
-use crate::{BlockHash, Operation, Transaction};
-use candid::{CandidType, Deserialize};
+use crate::{BlockHash, CommonResult, DFTError, Operation, Transaction};
+use candid::{CandidType, Deserialize, Principal};
+use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
-use serde::Serialize;
 
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Block {
@@ -42,11 +42,13 @@ impl Block {
         }
     }
 
-    pub fn encode(self) -> Result<EncodedBlock, String> {
+    pub fn encode(self) -> CommonResult<EncodedBlock> {
         let bytes = candid::encode_one(&self);
         match bytes {
             Ok(b) => Ok(EncodedBlock::from(b)),
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(DFTError::Unknown {
+                detail: format!("block encode failed,{0}", e.to_string()),
+            }),
         }
     }
 
@@ -63,7 +65,7 @@ impl Block {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, CandidType, Debug, Clone)]
 pub struct EncodedBlock(pub serde_bytes::ByteBuf);
 
 impl From<Vec<u8>> for EncodedBlock {
@@ -73,18 +75,23 @@ impl From<Vec<u8>> for EncodedBlock {
 }
 
 impl EncodedBlock {
-    pub fn hash(&self) -> BlockHash {
+    // hash token id + block bytes, ensuring that the block hash of different tokens is unique.
+    pub fn hash_with_token_id(&self, token_id: &Principal) -> BlockHash {
         let mut sha = Sha256::new();
-        sha.update(&self.0);
+        let tx_bytes = candid::encode_one(&self).unwrap();
+        let combine_bytes = [token_id.as_slice(), &tx_bytes[..]].concat();
+        sha.update(combine_bytes);
         sha.finalize().into()
     }
 
-    pub fn decode(&self) -> Result<Block, String> {
+    pub fn decode(&self) -> CommonResult<Block> {
         let bytes = self.0.to_vec();
         let block = candid::decode_one::<Block>(&bytes);
         match block {
             Ok(b) => Ok(b),
-            Err(e) => Err(e.to_string()),
+            Err(e) => Err(DFTError::Unknown {
+                detail: format!("decode block failed,{0}", e.to_string()),
+            }),
         }
     }
 
@@ -101,3 +108,13 @@ impl EncodedBlock {
     }
 }
 
+#[test]
+fn test_block_size() {
+    let block_size = std::mem::size_of::<Block>();
+    let should_be_size = 200;
+    assert_eq!(
+        should_be_size, block_size,
+        "Block size should be {} bytes, but is {} bytes",
+        should_be_size, block_size
+    );
+}

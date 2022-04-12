@@ -1,3 +1,4 @@
+@dft
 Feature: token management
 
   Background:

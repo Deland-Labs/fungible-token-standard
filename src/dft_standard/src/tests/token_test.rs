@@ -270,14 +270,13 @@ fn test_token_basic_set_logo(
     test_token_with_0_fee_rate: TokenBasic,
     test_owner: Principal,
     new_logo: Vec<u8>,
-    now: u64,
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
     // set logo by other caller will failed
-    let res = token.set_logo(&other_caller(), Some(new_logo.clone()), None, now.clone());
+    let res = token.set_logo(&other_caller(), Some(new_logo.clone()));
     assert!(res.is_err(), "set_logo should be err");
     // set logo by owner will ok
-    let res = token.set_logo(&test_owner, Some(new_logo.clone()), None, now);
+    let res = token.set_logo(&test_owner, Some(new_logo.clone()));
     assert!(res.is_ok(), "set_logo should be ok");
     assert_eq!(token.logo().clone().unwrap_or(vec![]), new_logo);
 }
@@ -286,7 +285,6 @@ fn test_token_basic_set_logo(
 fn test_token_basic_set_desc(
     test_token_with_0_fee_rate: TokenBasic,
     test_owner: Principal,
-    now: u64,
 ) {
     let mut token = test_token_with_0_fee_rate.clone();
     let new_desc: HashMap<String, String> = vec![(
@@ -296,10 +294,10 @@ fn test_token_basic_set_desc(
     .into_iter()
     .collect();
     // set desc by other caller will failed
-    let res = token.set_desc(&other_caller(), new_desc.clone(), None, now.clone());
+    let res = token.set_desc(&other_caller(), new_desc.clone());
     assert!(res.is_err(), "set_desc should be err");
     // set desc by owner will ok
-    let res = token.set_desc(&test_owner, new_desc.clone(), None, now.clone());
+    let res = token.set_desc(&test_owner, new_desc.clone());
     assert!(res.is_ok(), "set_desc should be ok");
     assert_eq!(token.desc().get_all(), new_desc);
 
@@ -310,7 +308,7 @@ fn test_token_basic_set_desc(
     )]
     .into_iter()
     .collect();
-    let res = token.set_desc(&test_owner, new_desc1.clone(), None, now);
+    let res = token.set_desc(&test_owner, new_desc1.clone());
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");
     assert_eq!(token.desc().get_all(), new_desc);
@@ -335,7 +333,7 @@ fn test_token_basic_fee_calculation(
     let fee_to = token.token_info().fee_to.clone();
     let fee = token.metadata().fee().clone();
     // mint & approve
-    let mint_val = Nat::from(10000);
+    let mint_val = Nat::from(10000u32);
     let approve_val = Nat::from(1010);
     let _ = token._mint(
         &test_owner,
@@ -389,7 +387,7 @@ fn test_token_basic_fee_calculation(
     assert_eq!(spender_balance, 0);
 
     // transfer from
-    let transfer_val = Nat::from(1000);
+    let transfer_val = Nat::from(1000u32);
     let transfer_from_res = token.transfer_from(
         &test_minter,
         &minter_holder,
@@ -494,8 +492,8 @@ fn test_token_basic_approve(
     let spender_holder = TokenHolder::new(test_spender.clone(), None);
 
     // mint token to owner_holder
-    let mint_val = Nat::from(10000);
-    let approve_val = Nat::from(1000);
+    let mint_val = Nat::from(10000u32);
+    let approve_val = Nat::from(1000u32);
     let mint_res = token._mint(
         &test_owner,
         &minter_holder,
@@ -523,7 +521,7 @@ fn test_token_basic_approve(
     let allowance = token.allowance(&minter_holder, &spender_holder);
     assert_eq!(allowance, approve_val);
     // approve a new value to spender_holder
-    let new_approve_val = Nat::from(2000);
+    let new_approve_val = Nat::from(2000u32);
     let new_approve_rs = token.approve(
         &test_minter,
         &minter_holder,
@@ -537,11 +535,7 @@ fn test_token_basic_approve(
     // check allowance
     let new_allowance = token.allowance(&minter_holder, &spender_holder);
     assert_eq!(new_allowance, new_approve_val);
-    // check token's txs have 3 records
-    let token_payload = token.to_token_payload();
-    let token_txs = token_payload.txs_inner;
-    assert_eq!(token_txs.len(), 3);
-    assert_eq!(token_payload.tx_index_cursor, 3);
+    assert_eq!(token.blockchain().chain_length(), 3);
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val.clone());
@@ -565,8 +559,8 @@ fn test_token_basic_transfer_from(
     let to_holder = TokenHolder::new(other_caller.clone(), None);
     let fee_to = token.token_info().fee_to.clone();
     // mint & approve
-    let mint_val = Nat::from(10000);
-    let approve_val = Nat::from(1000);
+    let mint_val = Nat::from(10000u32);
+    let approve_val = Nat::from(1000u32);
     let _ = token._mint(
         &test_owner,
         &minter_holder,
@@ -584,7 +578,7 @@ fn test_token_basic_transfer_from(
     );
 
     // try transfer_from exceed allowance , should return err
-    let transfer_from_val = Nat::from(1001);
+    let transfer_from_val = Nat::from(1001u32);
     let result = token.transfer_from(
         &test_minter,
         &minter_holder,
@@ -596,7 +590,7 @@ fn test_token_basic_transfer_from(
     );
     assert!(result.is_err());
     // try transfer_from less than allowance , should return ok
-    let transfer_from_val = Nat::from(500);
+    let transfer_from_val = Nat::from(500u32);
     let result = token.transfer_from(
         &test_minter,
         &minter_holder,
@@ -632,11 +626,7 @@ fn test_token_basic_transfer_from(
     let fee_to_balance = token.balance_of(&fee_to);
     let total_fee = transfer_fee + approve_fee;
     assert_eq!(fee_to_balance, total_fee);
-    // check token's txs have 3 records
-    let token_payload = token.to_token_payload();
-    let token_txs = token_payload.txs_inner;
-    assert_eq!(token_txs.len(), 3);
-    assert_eq!(token_payload.tx_index_cursor, 3);
+    assert_eq!(token.blockchain().chain_length(), 3);
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
@@ -658,7 +648,7 @@ fn test_token_basic_transfer(
     let to_holder = TokenHolder::new(other_caller.clone(), None);
     let fee = token.metadata().fee().clone();
     // mint & approve
-    let mint_val = Nat::from(10000);
+    let mint_val = Nat::from(10000u32);
     let _ = token._mint(
         &test_owner,
         &minter_holder,
@@ -667,7 +657,7 @@ fn test_token_basic_transfer(
         now.clone(),
     );
     // transfer token from from_holder to to_holder
-    let transfer_val = Nat::from(1000);
+    let transfer_val = Nat::from(1000u32);
     let transfer_res = token.transfer(
         &test_owner,
         &minter_holder,
@@ -695,11 +685,7 @@ fn test_token_basic_transfer(
     // check to_holder balance
     let to_balance = token.balance_of(&to_holder);
     assert_eq!(to_balance, transfer_val);
-    // check token's txs have 2 records
-    let token_payload = token.to_token_payload();
-    let token_txs = token_payload.txs_inner;
-    assert_eq!(token_txs.len(), 2);
-    assert_eq!(token_payload.tx_index_cursor, 2);
+    assert_eq!(token.blockchain().chain_length(), 2);
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
@@ -719,7 +705,7 @@ fn test_token_basic_mint_burn(
     let minter_holder = TokenHolder::new(test_minter, None);
 
     // mint token to from_holder
-    let mint_val = Nat::from(10000);
+    let mint_val = Nat::from(10000u32);
     // mint with wrong nonce should fail
     let _mint_res = token._mint(
         &test_owner,
@@ -750,7 +736,7 @@ fn test_token_basic_mint_burn(
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
 
-    let burn_val = Nat::from(1000);
+    let burn_val = Nat::from(1000u32);
     let burn_res = token._burn(&minter_holder, burn_val.clone(), 2, now.clone());
 
     // check burn_res is ok, and check minter_holder balance
@@ -786,7 +772,7 @@ fn test_token_basic_approve_transfer_from_transfer(
     let anonymous_caller = Principal::anonymous();
 
     // approve with anonymous should fail
-    let approve_val = Nat::from(1000);
+    let approve_val = Nat::from(1000u32);
     let approve_res = token.approve(
         &anonymous_caller,
         &minter_holder,
@@ -802,7 +788,7 @@ fn test_token_basic_approve_transfer_from_transfer(
     );
 
     // transfer_from with anonymous should fail
-    let transfer_from_val = Nat::from(1000);
+    let transfer_from_val = Nat::from(1000u32);
     let transfer_from_res = token.transfer_from(
         &anonymous_caller,
         &minter_holder,
@@ -817,7 +803,7 @@ fn test_token_basic_approve_transfer_from_transfer(
         DFTError::NotAllowAnonymous.to_string()
     );
     // transfer with anonymous should fail
-    let transfer_val = Nat::from(1000);
+    let transfer_val = Nat::from(1000u32);
     let transfer_res = token.transfer(
         &anonymous_caller,
         &minter_holder,

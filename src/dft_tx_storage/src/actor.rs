@@ -1,6 +1,6 @@
 use crate::state::STORAGE;
 use crate::storage::StorageInfo;
-use candid::{Principal};
+use candid::Principal;
 use candid::{candid_method, Nat};
 use dft_types::*;
 use ic_cdk::api;
@@ -14,48 +14,30 @@ fn canister_init(dft_id: Principal, dft_tx_start_index: Nat) {
     });
 }
 
-#[update(name = "append")]
-#[candid_method(update, rename = "append")]
-fn append(tx: TxRecord) -> BooleanResult {
-    STORAGE.with(|storage| {
-        let mut storage = storage.borrow_mut();
-        storage.append(&api::caller(), tx).into()
-    })
-}
-
 #[update(name = "batchAppend")]
 #[candid_method(update, rename = "batchAppend")]
-fn batch_append(txs: Vec<TxRecord>) -> BooleanResult {
+fn batch_append(blocks: Vec<EncodedBlock>) -> BooleanResult {
     STORAGE.with(|storage| {
         let mut storage = storage.borrow_mut();
-        storage.batch_append(&api::caller(), txs).into()
+        storage.batch_append(&api::caller(), blocks).into()
     })
 }
 
-#[query(name = "transactionByIndex")]
-#[candid_method(query, rename = "transactionByIndex")]
-fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
+#[query(name = "blockByHeight")]
+#[candid_method(query, rename = "blockByIndex")]
+fn block_by_index(block_height: Nat) -> BlockResult {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
-        storage.get_tx_by_index(tx_index).into()
+        storage.get_block_by_height(block_height)
     })
 }
 
-#[query(name = "transactions")]
-#[candid_method(query, rename = "transactions")]
-fn transactions(tx_start_index: Nat, size: usize) -> TxRecordListResult {
+#[query(name = "blocksByQuery")]
+#[candid_method(query, rename = "blocksByQuery")]
+fn blocks(block_height_start: Nat, size: usize) -> BlockListResult {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
-        storage.get_tx_by_index_range(tx_start_index, size).into()
-    })
-}
-
-#[query(name = "transactionById")]
-#[candid_method(query, rename = "transactionById")]
-fn get_transaction_by_id(tx_id: String) -> TxRecordResult {
-    STORAGE.with(|storage| {
-        let storage = storage.borrow();
-        storage.get_tx_by_id(tx_id).into()
+        storage.get_blocks_by_query(block_height_start, size).into()
     })
 }
 

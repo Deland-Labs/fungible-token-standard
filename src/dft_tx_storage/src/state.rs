@@ -14,7 +14,7 @@ thread_local! {
 fn pre_upgrade() {
     STORAGE.with(|data| {
         let data = data.borrow();
-        storage::stable_save((data.clone(), )).unwrap();
+        storage::stable_save((&*data, )).unwrap();
     })
 }
 

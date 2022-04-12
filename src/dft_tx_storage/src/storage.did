@@ -1,49 +1,45 @@
-type ErrorInfo = record { code : nat32; message : text };
+type Block = record {
+  transaction : Transaction;
+  timestamp : nat64;
+  parentHash : opt vec nat8;
+};
+type BlockListResult = variant { Ok : vec Block; Err : ErrorInfo };
+type BlockResult = variant { Ok : Block; Err : ErrorInfo; Forward : principal };
 type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
-type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
-type StorageInfo = record {
-  dft_id : principal;
-  tx_start_index : nat;
-  txs_count : nat;
-  cycles : nat64;
-};
-type TokenHolder = variant { None; Account : text; Principal : principal };
-type TxRecord = variant {
-  FeeToModify : record { nat; principal; TokenHolder; nat64; nat64 };
+type ErrorInfo = record { code : nat32; message : text };
+type Operation = variant {
+  FeeToModify : record { newFeeTo : TokenHolder; caller : principal };
   Approve : record {
-    nat;
-    TokenHolder;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-    nat64;
+    fee : nat;
+    value : nat;
+    owner : TokenHolder;
+    caller : principal;
+    spender : TokenHolder;
   };
-  FeeModify : record { nat; principal; Fee; nat64; nat64 };
+  FeeModify : record { newFee : TokenFee; caller : principal };
   Transfer : record {
-    nat;
-    TokenHolder;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-    nat64;
+    to : TokenHolder;
+    fee : nat;
+    value : nat;
+    from : TokenHolder;
+    caller : TokenHolder;
   };
-  OwnerModify : record { nat; principal; principal; nat64; nat64 };
+  OwnerModify : record { newOwner : principal; caller : principal };
 };
-type TxRecordListResult = variant { Ok : vec TxRecord; Err : ErrorInfo };
-type TxRecordResult = variant {
-  Ok : TxRecord;
-  Err : ErrorInfo;
-  Forward : principal;
+type StorageInfo = record {
+  tokenId : principal;
+  totalBlocksCount : nat;
+  cycles : nat64;
+  totalBlockSizeBytes : nat;
+  blockHeightOffset : nat;
 };
+type TokenFee = record { rate : nat; minimum : nat; rateDecimals : nat8 };
+type TokenHolder = variant { None; Account : text; Principal : principal };
+type Transaction = record { createdAt : nat64; operation : Operation };
+
 service : (principal, nat) -> {  
-  append : (TxRecord) -> (BooleanResult);
-  batchAppend : (vec TxRecord) -> (BooleanResult);
+  batchAppend : (vec vec nat8) -> (BooleanResult);
+  blockByIndex : (nat) -> (BlockResult) query;
+  blocksByQuery : (nat, nat64) -> (BlockListResult) query;
   storageInfo : () -> (StorageInfo) query;
-  transactionById : (text) -> (TxRecordResult) query;
-  transactionByIndex : (nat) -> (TxRecordResult) query;
-  transactions : (nat, nat64) -> (TxRecordListResult) query;
 }

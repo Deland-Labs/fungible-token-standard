@@ -2,7 +2,7 @@ use candid::candid_method;
 use dft_standard::token::TokenStandard;
 use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use dft_types::*;
-use dft_utils::*;
+use ic_cdk::api::{data_certificate, set_certified_data};
 use ic_cdk::{
     api,
     export::{candid::Nat, Principal},
@@ -27,6 +27,7 @@ async fn canister_init(
     // token initialize
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
+
         token.initialize(
             &real_caller,
             api::id(),
@@ -37,13 +38,18 @@ async fn canister_init(
             fee_,
             owner_holder.clone(),
         );
-        let _ = token._mint(
+        match token._mint(
             &real_caller,
             &owner_holder,
             total_supply_,
             None,
             api::time(),
-        );
+        ) {
+            Ok((_, block_hash, _)) => {
+                set_certified_data(&block_hash);
+            }
+            _ => {}
+        }
     });
 }
 
@@ -172,7 +178,7 @@ async fn approve(
     spender: String,
     value: Nat,
     created_at: Option<u64>,
-) -> TransactionResult {
+) -> OperationResult {
     let caller = api::caller();
     let owner_holder = TokenHolder::new(caller.clone(), owner_sub_account);
     match spender.parse::<TokenHolder>() {
@@ -188,21 +194,22 @@ async fn approve(
                     api::time(),
                 )
             }) {
-                Ok(tx_index) => {
-                    let tx_id = encode_tx_id(api::id(), tx_index);
-
-                    TransactionResult::Ok(TransactionResponse {
+                Ok((block_height, block_hash, tx_hash)) => {
+                    set_certified_data(&block_hash);
+                    let tx_id = hex::encode(tx_hash.as_ref());
+                    OperationResult::Ok {
                         tx_id,
+                        block_height,
                         error: match exec_auto_scaling_strategy().await {
                             Ok(_) => None,
-                            Err(e) => Some(e),
+                            Err(e) => Some(e.into()),
                         },
-                    })
+                    }
                 }
-                Err(e) => TransactionResult::Err(e.into()),
+                Err(e) => OperationResult::Err(e.into()),
             }
         }
-        Err(_) => TransactionResult::Err(DFTError::InvalidSpender.into()),
+        Err(_) => OperationResult::Err(DFTError::InvalidSpender.into()),
     }
 }
 
@@ -226,7 +233,7 @@ async fn transfer_from(
     to: String,
     value: Nat,
     created_at: Option<u64>,
-) -> TransactionResult {
+) -> OperationResult {
     let caller = api::caller();
     let now = api::time();
     let spender = TokenHolder::new(caller, spender_sub_account);
@@ -236,7 +243,7 @@ async fn transfer_from(
             Ok(to_token_holder) => {
                 // exec before-transfer check :before_token_sending
                 match before_token_sending(&from_token_holder, &to_token_holder, &value) {
-                    Err(e) => return TransactionResult::Err(e),
+                    Err(e) => return OperationResult::Err(e),
                     _ => {}
                 };
                 match TOKEN.with(|token| {
@@ -251,22 +258,23 @@ async fn transfer_from(
                         now,
                     )
                 }) {
-                    Ok(tx_index) => {
-                        // exec auto scaling strategy
-                        TransactionResult::Ok(TransactionResponse {
-                            tx_id: encode_tx_id(api::id(), tx_index),
+                    Ok((block_height, block_hash, tx_hash)) => {
+                        set_certified_data(&block_hash);
+                        OperationResult::Ok {
+                            tx_id: hex::encode(tx_hash.as_ref()),
+                            block_height,
                             error: match exec_auto_scaling_strategy().await {
-                                Err(e) => Some(e),
+                                Err(e) => Some(e.into()),
                                 _ => None,
                             },
-                        })
+                        }
                     }
-                    Err(e) => TransactionResult::Err(e.into()),
+                    Err(e) => OperationResult::Err(e.into()),
                 }
             }
-            _ => TransactionResult::Err(DFTError::InvalidArgFormatTo.into()),
+            _ => OperationResult::Err(DFTError::InvalidArgFormatTo.into()),
         },
-        _ => TransactionResult::Err(DFTError::InvalidArgFormatFrom.into()),
+        _ => OperationResult::Err(DFTError::InvalidArgFormatFrom.into()),
     }
 }
 
@@ -277,7 +285,7 @@ async fn transfer(
     to: String,
     value: Nat,
     created_at: Option<u64>,
-) -> TransactionResult {
+) -> OperationResult {
     let caller = api::caller();
     let now = api::time();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
@@ -287,7 +295,7 @@ async fn transfer(
         Ok(receiver) => {
             //exec before-transfer check
             match before_token_sending(&transfer_from, &receiver, &value) {
-                Err(e) => return TransactionResult::Err(e),
+                Err(e) => return OperationResult::Err(e),
                 _ => {}
             };
             //transfer token
@@ -302,17 +310,21 @@ async fn transfer(
                     now,
                 )
             }) {
-                Ok(tx_index) => TransactionResult::Ok(TransactionResponse {
-                    tx_id: encode_tx_id(api::id(), tx_index),
-                    error: match exec_auto_scaling_strategy().await {
-                        Ok(_) => None,
-                        Err(e) => Some(e),
-                    },
-                }),
-                Err(e) => TransactionResult::Err(e.into()),
+                Ok((block_height, block_hash, tx_hash)) => {
+                    set_certified_data(&block_hash);
+                    OperationResult::Ok {
+                        tx_id: hex::encode(tx_hash.as_ref()),
+                        block_height,
+                        error: match exec_auto_scaling_strategy().await {
+                            Ok(_) => None,
+                            Err(e) => Some(e.into()),
+                        },
+                    }
+                }
+                Err(e) => OperationResult::Err(e.into()),
             }
         }
-        _ => TransactionResult::Err(DFTError::InvalidArgFormatTo.into()),
+        _ => OperationResult::Err(DFTError::InvalidArgFormatTo.into()),
     }
 }
 
@@ -322,35 +334,29 @@ fn get_token_info() -> TokenInfo {
     TOKEN.with(|token| {
         let token = token.borrow();
         let mut token_info = token.token_info();
+        token_info.certificate = data_certificate().map(serde_bytes::ByteBuf::from);
         token_info.cycles = api::canister_balance();
         token_info
     })
 }
 
-#[query(name = "transactionByIndex")]
-#[candid_method(query, rename = "transactionByIndex")]
-fn transaction_by_index(tx_index: Nat) -> TxRecordResult {
+#[query(name = "blockByHeight")]
+#[candid_method(query, rename = "blockByHeight")]
+fn block_by_height(block_height: Nat) -> BlockResult {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.transaction_by_index(&tx_index).into()
+        token.block_by_height(block_height)
     })
 }
 
-#[query(name = "lastTransactions")]
-#[candid_method(query, rename = "lastTransactions")]
-fn last_transactions(count: usize) -> TxRecordListResult {
+#[query(name = "blocksByQuery")]
+#[candid_method(query, rename = "blocksByQuery")]
+fn blocks_by_query(start: BlockHeight, count: usize) -> QueryBlocksResult {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.last_transactions(count).into()
-    })
-}
-
-#[query(name = "transactionById")]
-#[candid_method(query, rename = "transactionById")]
-fn transaction_by_id(tx_id: String) -> TxRecordResult {
-    TOKEN.with(|token| {
-        let token = token.borrow();
-        token.transaction_by_id(&tx_id).into()
+        let mut res = token.blocks_by_query(start, count);
+        res.certificate = data_certificate().map(serde_bytes::ByteBuf::from);
+        res
     })
 }
 

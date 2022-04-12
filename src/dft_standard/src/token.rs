@@ -1,8 +1,13 @@
-use candid::{Nat, Principal};
+use candid::{CandidType, Deserialize, Nat, Principal};
+use dft_types::constants::{
+    DEFAULT_MAX_TRANSACTIONS_IN_WINDOW, DEFAULT_TRANSACTION_WINDOW, MAX_BLOCKS_PER_REQUEST,
+};
 use dft_types::*;
-use dft_utils::{decode_tx_id, get_logo_type};
+use dft_utils::*;
 use getset::{Getters, Setters};
-use std::{collections::HashMap, time::Duration};
+use std::collections::HashMap;
+use std::collections::{BTreeMap, VecDeque};
+use std::convert::{TryFrom, TryInto};
 
 pub trait TokenStandard {
     fn set_owner(
@@ -31,16 +36,8 @@ pub trait TokenStandard {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
-        created_at: Option<u64>,
-        now: u64,
     ) -> CommonResult<bool>;
-    fn set_logo(
-        &mut self,
-        caller: &Principal,
-        logo: Option<Vec<u8>>,
-        created_at: Option<u64>,
-        now: u64,
-    ) -> CommonResult<bool>;
+    fn set_logo(&mut self, caller: &Principal, logo: Option<Vec<u8>>) -> CommonResult<bool>;
     // total supply
     fn total_supply(&self) -> Nat;
     // balance of
@@ -58,7 +55,7 @@ pub trait TokenStandard {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
     // transfer from
     fn transfer_from(
         &mut self,
@@ -69,7 +66,7 @@ pub trait TokenStandard {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
     // transfer
     fn transfer(
         &mut self,
@@ -79,41 +76,41 @@ pub trait TokenStandard {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
     // token info
     fn token_info(&self) -> TokenInfo;
     fn token_metrics(&self) -> TokenMetrics;
-    // transaction by index
-    fn transaction_by_index(&self, index: &Nat) -> TxRecordCommonResult;
-    // transaction by id
-    fn transaction_by_id(&self, id: &String) -> TxRecordCommonResult;
-    // last transactions
-    fn last_transactions(&self, count: usize) -> CommonResult<Vec<TxRecord>>;
+    fn block_by_height(&self, block_height: Nat) -> BlockResult;
+    fn blocks_by_query(&self, start: BlockHeight, count: usize) -> QueryBlocksResult;
 }
+
 #[derive(Getters, Setters)]
 #[getset(get = "pub")]
-#[derive(Debug, Clone)]
+#[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct TokenBasic {
     // token id
     token_id: Principal,
-    // owner
-    owner: Principal,
-    // fee to
-    fee_to: TokenHolder,
-    // meta data
-    metadata: TokenMetadata,
-    // storage canister ids
-    storage_canister_ids: HashMap<Nat, Principal>,
-    // next tx index
-    next_tx_index: Nat,
-    // tx store inside
-    txs: Vec<TxRecord>,
-    // balances
-    balances: TokenBalances,
-    // allowances
-    allowances: TokenAllowances,
     // token's logo
     logo: Option<Vec<u8>>,
+    owner: Principal,
+    fee_to: TokenHolder,
+    metadata: TokenMetadata,
+    blockchain: Blockchain,
+    balances: TokenBalances,
+    allowances: TokenAllowances,
+    /// Maximum number of transactions which ledger will accept
+    /// within the transaction_window.
+    max_transactions_in_window: usize,
+    /// How long transactions are remembered to detect duplicates.
+    transaction_window: u64,
+    /// For each transaction, record the block in which the
+    /// transaction was created. This only contains transactions from
+    /// the last `transaction_window` period.
+    transactions_by_hash: BTreeMap<TransactionHash, BlockHeight>,
+    /// The transactions in the transaction window, sorted by block
+    /// index / block timestamp. (Block timestamps are monotonically
+    /// non-decreasing, so this is the same.)
+    transactions_by_height: VecDeque<TransactionInfo>,
     // token's desc info : social media, description etc
     desc: TokenDescription,
 }
@@ -122,15 +119,18 @@ impl Default for TokenBasic {
     fn default() -> Self {
         TokenBasic {
             token_id: Principal::anonymous(),
-            metadata: TokenMetadata::default(),
+            logo: None,
             owner: Principal::anonymous(),
             fee_to: TokenHolder::None,
-            storage_canister_ids: HashMap::new(),
-            next_tx_index: Nat::from(0),
-            txs: Vec::new(),
+            blockchain: Blockchain::default(),
+            metadata: TokenMetadata::default(),
             balances: TokenBalances::default(),
             allowances: TokenAllowances::default(),
-            logo: None,
+            max_transactions_in_window: usize::try_from(DEFAULT_MAX_TRANSACTIONS_IN_WINDOW)
+                .unwrap(),
+            transaction_window: DEFAULT_TRANSACTION_WINDOW,
+            transactions_by_hash: BTreeMap::new(),
+            transactions_by_height: VecDeque::new(),
             desc: TokenDescription::default(),
         }
     }
@@ -158,9 +158,9 @@ impl TokenBasic {
         if created_at.is_none() {
             return Ok(());
         }
-        let created_at_time = Duration::from_nanos(created_at.unwrap());
-        let now = Duration::from_nanos(now.clone());
-        if created_at_time + constants::DEFAULT_MAX_TRANSACTIONS_IN_WINDOW < now {
+        let created_at_time = created_at.unwrap();
+        let now = now.clone();
+        if created_at_time + constants::DEFAULT_TRANSACTION_WINDOW < now {
             return Err(DFTError::TxTooOld);
         }
         if created_at_time > now + constants::PERMITTED_DRIFT {
@@ -169,13 +169,32 @@ impl TokenBasic {
         Ok(())
     }
 
-    //generate new tx index
-    fn generate_new_tx_index(&mut self) -> Nat {
-        let rtn = self.next_tx_index.clone();
-        self.next_tx_index = rtn.clone() + 1;
-        rtn
-    }
+    fn throttle_check(&self, now: u64) -> CommonResult<()> {
+        let num_in_window = self.transactions_by_height.len();
+        // We admit the first half of max_transactions_in_window freely.
+        // After that we start throttling on per-second basis.
+        // This way we guarantee that at most max_transactions_in_window will
+        // get through within the transaction window.
+        if num_in_window >= self.max_transactions_in_window / 2 {
+            // max num of transactions allowed per second
+            let max_rate = (0.5 * self.max_transactions_in_window as f64
+                / self.transaction_window as f64)
+                .ceil() as usize;
 
+            if self
+                .transactions_by_height
+                .get(num_in_window.saturating_sub(max_rate))
+                .map(|x| x.block_timestamp)
+                .unwrap_or_else(|| 0)
+                +  10u64.pow(9) // 1 second
+                > now
+            {
+                return Err(DFTError::TooManyTransactionsInReplayPreventionWindow);
+            }
+        }
+
+        Ok(())
+    }
     //charge approve fee
     fn charge_approve_fee(&mut self, approver: &TokenHolder) -> CommonResult<Nat> {
         // check the approver's balance
@@ -232,60 +251,130 @@ impl TokenBasic {
         max_fee
     }
 
-    pub fn get_inner_txs(&self) -> Vec<TxRecord> {
-        self.txs.clone()
+    pub fn last_auto_scaling_storage_canister_id(&self) -> Option<Principal> {
+        self.blockchain.archive.last_storage_canister_id()
     }
 
-    pub fn get_storage_canister_ids(&self) -> HashMap<Nat, Principal> {
-        self.storage_canister_ids.clone()
+    pub fn scaling_storage_block_height_offset(&self) -> Nat {
+        self.blockchain
+            .archive
+            .scaling_storage_block_height_offset()
     }
 
-    pub fn add_storage_canister_ids(&mut self, tx_index_start: Nat, canister_id: Principal) {
-        self.storage_canister_ids
-            .insert(tx_index_start, canister_id);
+    pub fn remove_archived_blocks(&mut self, num_archived: usize) {
+        self.blockchain.remove_archived_blocks(num_archived)
     }
 
-    pub fn remove_inner_txs(&mut self, index: usize) {
-        self.txs.remove(index);
+    pub fn lock_for_archiving(&mut self) -> bool {
+        self.blockchain.archive.lock_for_archiving()
+    }
+
+    pub fn unlock_after_archiving(&mut self) {
+        self.blockchain.archive.unlock_after_archiving()
+    }
+
+    pub fn append_scaling_storage_canister(&mut self, storage_canister_id: Principal) {
+        self.blockchain
+            .archive
+            .append_scaling_storage_canister(storage_canister_id)
+    }
+
+    pub fn update_scaling_storage_blocks_range(
+        &mut self,
+        storage_canister_index: usize,
+        block_height_range: (Nat, Nat),
+    ) {
+        self.blockchain
+            .archive
+            .update_scaling_storage_blocks_range(storage_canister_index, block_height_range)
+    }
+
+    /// Removes at most [MAX_TRANSACTIONS_TO_PURGE] transactions older
+    /// than `now - transaction_window` and returns the number of pruned
+    /// transactions.
+    fn purge_old_transactions(&mut self, now: u64) -> usize {
+        let mut cnt = 0usize;
+        while let Some(TransactionInfo {
+            block_timestamp,
+            tx_hash,
+        }) = self.transactions_by_height.front()
+        {
+            if *block_timestamp + self.transaction_window + constants::PERMITTED_DRIFT >= now {
+                // Stop at a sufficiently recent block.
+                break;
+            }
+            let removed = self.transactions_by_hash.remove(tx_hash);
+            assert!(removed.is_some());
+
+            self.transactions_by_height.pop_front();
+            cnt += 1;
+            if cnt >= constants::MAX_TRANSACTIONS_TO_PURGE {
+                break;
+            }
+        }
+        cnt
+    }
+
+    fn add_tx_to_block(
+        &mut self,
+        tx: Transaction,
+        now: u64,
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
+        let tx_hash = tx.hash_with_token_id(&self.token_id);
+
+        if let Some(_) = self.transactions_by_hash.get(&tx_hash) {
+            return Err(DFTError::TxDuplicate);
+        }
+        let block = Block::new_from_transaction(self.blockchain.last_hash, tx, now);
+        let block_timestamp = block.timestamp;
+
+        let height = self
+            .blockchain
+            .add_block(&self.token_id, block)
+            .expect("failed to add block");
+
+        self.transactions_by_hash.insert(tx_hash, height.clone());
+        self.transactions_by_height.push_back(TransactionInfo {
+            block_timestamp,
+            tx_hash,
+        });
+        Ok((height, self.blockchain.last_hash.unwrap(), tx_hash))
     }
 
     //transfer token
     fn _transfer(
         &mut self,
-        caller: &Principal,
         tx_invoker: &TokenHolder,
         from: &TokenHolder,
         to: &TokenHolder,
         value: Nat,
         created_at: u64,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         // calc the transfer fee
         let transfer_fee = self.calc_transfer_fee(&value);
         //check the transfer_from's balance, if balance is not enough, return error
         if self.balances.balance_of(from) < value.clone() + transfer_fee.clone() {
             Err(DFTError::InsufficientBalance)
         } else {
+            let tx = Transaction {
+                operation: Operation::Transfer {
+                    caller: tx_invoker.clone(),
+                    from: from.clone(),
+                    to: to.clone(),
+                    value: value.clone(),
+                    fee: transfer_fee,
+                },
+                created_at,
+            };
+            let res = self.add_tx_to_block(tx, now)?;
             // charge the transfer fee
             self.charge_transfer_fee(from, &value)?;
             // debit the transfer_from's balance
             self.balances.debit_balance(from, value.clone())?;
             // credit the transfer_to's balance
             self.balances.credit_balance(to, value.clone());
-            // add the transfer tx to txs
-            let tx_index = self.generate_new_tx_index();
-            let tx = TxRecord::Transfer(
-                tx_index.clone(),
-                tx_invoker.clone(),
-                from.clone(),
-                to.clone(),
-                value.clone(),
-                transfer_fee,
-                created_at,
-                now,
-            );
-            self.txs.push(tx);
-            Ok(tx_index)
+            Ok(res)
         }
     }
     // _mint
@@ -296,24 +385,22 @@ impl TokenBasic {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.verified_created_at(&created_at, &now)?;
-        self.balances.credit_balance(to, value.clone());
         let created_at = created_at.unwrap_or(now.clone());
-        // add the mint tx to txs
-        let tx_index = self.generate_new_tx_index();
-        let tx = TxRecord::Transfer(
-            tx_index.clone(),
-            TokenHolder::new(caller.clone(), None),
-            TokenHolder::None,
-            to.clone(),
-            value.clone(),
-            Nat::from(0),
+        let tx = Transaction {
+            operation: Operation::Transfer {
+                caller: TokenHolder::new(caller.clone(), None),
+                from: TokenHolder::None,
+                to: to.clone(),
+                value: value.clone(),
+                fee: 0u32.into(),
+            },
             created_at,
-            now,
-        );
-        self.txs.push(tx);
-        Ok(tx_index)
+        };
+        let res = self.add_tx_to_block(tx, now)?;
+        self.balances.credit_balance(to, value.clone());
+        Ok(res)
     }
 
     // _burn
@@ -323,7 +410,7 @@ impl TokenBasic {
         value: Nat,
         created_at: u64,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         // calc the transfer fee,if the burn amount small than minimum fee,return error
         let fee = self.calc_transfer_fee(&value);
         if value < self.metadata().fee().minimum.clone() {
@@ -333,23 +420,22 @@ impl TokenBasic {
         if self.balances.balance_of(burner) < value.clone() {
             return Err(DFTError::InsufficientBalance);
         }
+
+        let tx = Transaction {
+            operation: Operation::Transfer {
+                caller: burner.clone(),
+                from: burner.clone(),
+                to: TokenHolder::None,
+                value: value.clone(),
+                fee: fee.clone(),
+            },
+            created_at: created_at,
+        };
+        let res = self.add_tx_to_block(tx, now)?;
         // burn does not charge the transfer fee
         // debit the burn from holder's balance
         self.balances.debit_balance(burner, value.clone())?;
-        // add the burn tx to txs
-        let tx_index = self.generate_new_tx_index();
-        let tx = TxRecord::Transfer(
-            tx_index.clone(),
-            burner.clone(),
-            burner.clone(),
-            TokenHolder::None,
-            value.clone(),
-            fee,
-            created_at,
-            now,
-        );
-        self.txs.push(tx);
-        Ok(tx_index)
+        Ok(res)
     }
 
     // _burn_from
@@ -360,7 +446,7 @@ impl TokenBasic {
         value: Nat,
         created_at: u64,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         // calc the transfer fee,if the burn amount small than minimum fee,return error
         let fee = self.calc_transfer_fee(&value);
         if value < self.metadata().fee().minimum.clone() {
@@ -370,24 +456,22 @@ impl TokenBasic {
         if self.balances.balance_of(from) < value.clone() {
             return Err(DFTError::InsufficientBalance);
         } else {
+            let tx = Transaction {
+                operation: Operation::Transfer {
+                    caller: burner.clone(),
+                    from: from.clone(),
+                    to: TokenHolder::None,
+                    value: value.clone(),
+                    fee: fee.clone(),
+                },
+                created_at: created_at,
+            };
+            let res = self.add_tx_to_block(tx, now)?;
             self.allowances.debit(from, burner, value.clone())?;
             // burn does not charge the transfer fee
             // debit the burn from holder's balance
             self.balances.debit_balance(from, value.clone())?;
-            // add the burn tx to txs
-            let tx_index = self.generate_new_tx_index();
-            let tx = TxRecord::Transfer(
-                tx_index.clone(),
-                burner.clone(),
-                from.clone(),
-                TokenHolder::None,
-                value.clone(),
-                fee,
-                created_at,
-                now,
-            );
-            self.txs.push(tx);
-            Ok(tx_index)
+            Ok(res)
         }
     }
 }
@@ -421,121 +505,93 @@ impl TokenBasic {
         self.logo = logo;
         self.fee_to = fee_to;
     }
-    pub fn load_from_token_payload(&mut self, payload: TokenPayload) {
-        self.token_id = payload.token_id;
-        self.owner = payload.owner;
-        self.logo = if payload.logo.len() > 0 {
-            Some(payload.logo)
-        } else {
-            None
-        };
-        self.metadata = payload.meta;
-        self.allowances.restore_from(payload.allowances);
-        self.balances.restore_from(payload.balances);
-        self.desc.restore_from(payload.desc);
-        self.fee_to = payload.fee_to;
-
-        for (k, v) in payload.storage_canister_ids {
-            self.storage_canister_ids.insert(k, v);
-        }
-
-        for v in payload.txs_inner {
-            self.txs.push(v);
-        }
-    }
-    pub fn to_token_payload(&self) -> TokenPayload {
-        let desc = self.desc.to_vec();
-        let balances = self.balances.to_vec();
-        let allowances = self.allowances.to_vec();
-        let mut storage_canister_ids = Vec::new();
-        let mut txs = Vec::new();
-
-        for (k, v) in self.storage_canister_ids.iter() {
-            storage_canister_ids.push((k.clone(), *v));
-        }
-        for v in self.txs.iter() {
-            txs.push(v.clone());
-        }
-        TokenPayload {
-            token_id: self.token_id.clone(),
-            owner: self.owner.clone(),
-            fee_to: self.fee_to.clone(),
-            meta: self.metadata.clone(),
-            desc,
-            logo: self.logo.clone().unwrap_or_else(|| vec![]),
-            balances,
-            allowances,
-            tx_index_cursor: self.next_tx_index.clone(),
-            storage_canister_ids,
-            txs_inner: txs,
-        }
-    }
 }
 
 impl TokenStandard for TokenBasic {
     fn set_owner(
         &mut self,
         caller: &Principal,
-        owner: Principal,
+        new_owner: Principal,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.verified_created_at(&created_at, &now)?;
-        self.owner = owner;
-        // create OwnerModifyTx
-        let tx_index = self.generate_new_tx_index();
+
+        let num_purged = self.purge_old_transactions(now);
+        if num_purged == 0 {
+            self.throttle_check(now)?
+        }
+
         let created_at = created_at.unwrap_or(now.clone());
-        let tx = TxRecord::OwnerModify(
-            tx_index.clone(),
-            caller.clone(),
-            owner.clone(),
+        let tx = Transaction {
+            operation: Operation::OwnerModify {
+                caller: caller.clone(),
+                new_owner: new_owner.clone(),
+            },
             created_at,
-            now,
-        );
-        self.txs.push(tx);
+        };
+
+        self.add_tx_to_block(tx, now)?;
+        self.owner = new_owner;
         Ok(true)
     }
 
     fn set_fee(
         &mut self,
         caller: &Principal,
-        fee: TokenFee,
+        new_fee: TokenFee,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.verified_created_at(&created_at, &now)?;
-        self.metadata.set_fee(fee.clone());
-        // create FeeModifyTx
-        let tx_index = self.generate_new_tx_index();
+
+        let num_purged = self.purge_old_transactions(now);
+        if num_purged == 0 {
+            self.throttle_check(now)?
+        }
+
         let created_at = created_at.unwrap_or(now.clone());
-        let tx = TxRecord::FeeModify(tx_index.clone(), caller.clone(), fee, created_at, now);
-        self.txs.push(tx);
+        let tx = Transaction {
+            operation: Operation::FeeModify {
+                caller: caller.clone(),
+                new_fee: new_fee.clone(),
+            },
+            created_at,
+        };
+
+        self.add_tx_to_block(tx, now)?;
+        self.metadata.set_fee(new_fee);
         Ok(true)
     }
 
     fn set_fee_to(
         &mut self,
         caller: &Principal,
-        fee_to: TokenHolder,
+        new_fee_to: TokenHolder,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.verified_created_at(&created_at, &now)?;
-        self.fee_to = fee_to.clone();
-        // create FeeToModifyTx
-        let tx_index = self.generate_new_tx_index();
+
+        let num_purged = self.purge_old_transactions(now);
+        if num_purged == 0 {
+            self.throttle_check(now)?
+        }
+
         let created_at = created_at.unwrap_or(now.clone());
-        let tx = TxRecord::FeeToModify(
-            tx_index.clone(),
-            caller.clone(),
-            fee_to.clone(),
+        let tx = Transaction {
+            operation: Operation::FeeToModify {
+                caller: caller.clone(),
+                new_fee_to: new_fee_to.clone(),
+            },
             created_at,
-            now,
-        );
-        self.txs.push(tx);
+        };
+
+        self.add_tx_to_block(tx, now)?;
+        self.fee_to = new_fee_to;
         Ok(true)
     }
 
@@ -543,57 +599,19 @@ impl TokenStandard for TokenBasic {
         &mut self,
         caller: &Principal,
         descriptions: HashMap<String, String>,
-        created_at: Option<u64>,
-        now: u64,
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        self.verified_created_at(&created_at, &now)?;
         self.desc.set_all(descriptions.clone());
-        let tx_index = self.generate_new_tx_index();
-        let created_at = created_at.unwrap_or(now.clone());
-        let modify_desc_tx = TxRecord::DescModify(
-            tx_index.clone(),
-            self.owner.clone(),
-            descriptions
-                .iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect(),
-            created_at,
-            now,
-        );
-        self.txs.push(modify_desc_tx);
         Ok(true)
     }
 
-    fn set_logo(
-        &mut self,
-        caller: &Principal,
-        logo: Option<Vec<u8>>,
-        created_at: Option<u64>,
-        now: u64,
-    ) -> CommonResult<bool> {
+    fn set_logo(&mut self, caller: &Principal, logo: Option<Vec<u8>>) -> CommonResult<bool> {
         self.only_owner(caller)?;
-        self.verified_created_at(&created_at, &now)?;
         if logo.is_some() {
             get_logo_type(&logo.clone().unwrap())
                 .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)?;
         }
-
         self.logo = logo.clone();
-        let tx_index = self.generate_new_tx_index();
-        let created_at = created_at.unwrap_or(now.clone());
-        let modify_logo_tx = TxRecord::LogoModify(
-            tx_index.clone(),
-            self.owner.clone(),
-            if logo.is_some() {
-                logo.unwrap()
-            } else {
-                vec![]
-            },
-            created_at,
-            now,
-        );
-        self.txs.push(modify_logo_tx);
         Ok(true)
     }
 
@@ -621,26 +639,30 @@ impl TokenStandard for TokenBasic {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.not_allow_anonymous(caller)?;
         self.verified_created_at(&created_at, &now)?;
-        let approve_fee = self.charge_approve_fee(owner)?;
-        //credit the spender's allowance
-        self.allowances.credit(owner, spender, value.clone());
-        let tx_index = self.generate_new_tx_index();
+
+        let num_purged = self.purge_old_transactions(now);
+        if num_purged == 0 {
+            self.throttle_check(now)?
+        }
+
         let created_at = created_at.unwrap_or(now.clone());
-        let approve_tx = TxRecord::Approve(
-            tx_index.clone(),
-            owner.clone(),
-            owner.clone(),
-            spender.clone(),
-            value.clone(),
-            approve_fee,
+        let approve_fee = self.charge_approve_fee(owner)?;
+        let tx = Transaction {
+            operation: Operation::Approve {
+                caller: caller.clone(),
+                owner: owner.clone(),
+                spender: spender.clone(),
+                value: value.clone(),
+                fee: approve_fee,
+            },
             created_at,
-            now,
-        );
-        self.txs.push(approve_tx);
-        return Ok(tx_index);
+        };
+        let res = self.add_tx_to_block(tx, now)?;
+        self.allowances.credit(owner, spender, value.clone());
+        return Ok(res);
     }
 
     fn transfer_from(
@@ -652,7 +674,7 @@ impl TokenStandard for TokenBasic {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.not_allow_anonymous(caller)?;
         self.verified_created_at(&created_at, &now)?;
         let created_at = created_at.unwrap_or(now.clone());
@@ -668,7 +690,7 @@ impl TokenStandard for TokenBasic {
         self.allowances
             .debit(from, spender, decreased_allowance.clone())?;
 
-        return self._transfer(caller, spender, from, to, value, created_at, now);
+        return self._transfer(spender, from, to, value, created_at, now);
     }
 
     fn transfer(
@@ -679,89 +701,138 @@ impl TokenStandard for TokenBasic {
         value: Nat,
         created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.not_allow_anonymous(caller)?;
         self.verified_created_at(&created_at, &now)?;
+
+        let num_purged = self.purge_old_transactions(now);
+        if num_purged == 0 {
+            self.throttle_check(now)?
+        }
         let created_at = created_at.unwrap_or(now.clone());
-        self._transfer(caller, &from, from, to, value, created_at, now)
+        self._transfer(&from, from, to, value, created_at, now)
     }
 
     fn token_info(&self) -> TokenInfo {
         TokenInfo {
             owner: self.owner.clone(),
-            holders: Nat::from(self.balances.holder_count()),
+            holders: self.balances.holder_count().into(),
             allowance_size: self.allowances.allowance_size(),
             fee_to: self.fee_to.clone(),
-            tx_count: self.next_tx_index.clone(),
+            block_height: self.blockchain.chain_length(),
+            storages: self.blockchain.archive.storage_canisters().to_vec(),
             cycles: 0,
-            storages: self
-                .storage_canister_ids
-                .values()
-                .map(|v| v.clone())
-                .collect(),
+            certificate: None,
         }
     }
 
     fn token_metrics(&self) -> TokenMetrics {
         TokenMetrics {
             holders: self.balances.holder_count(),
-            total_tx_count: self.next_tx_index.clone(),
-            inner_tx_count: Nat::from(self.txs.len()),
+            total_block_count: self.blockchain.chain_length().into(),
+            local_block_count: self.blockchain.blocks.len().into(),
             allowance_size: self.allowances.allowance_size(),
         }
     }
 
-    fn transaction_by_index(&self, index: &Nat) -> TxRecordCommonResult {
-        let inner_start_tx_index = &self.txs[0].get_tx_index();
-        let inner_end_tx_index = self.next_tx_index.clone() - 1;
-
-        // if index > inner_end_tx_index, return error
-        if index > &inner_end_tx_index {
-            return TxRecordCommonResult::Err(DFTError::InvalidTxIndex);
+    fn block_by_height(&self, block_height: Nat) -> BlockResult {
+        if block_height > self.blockchain.chain_length() {
+            return BlockResult::Err(DFTError::NonExistentBlockHeight.into());
         }
-
-        // if the tx record exist in self.txs which has the same index,return it
-        // else find the key in self.storage_canister_ids which has the biggest value
-        // that less than index, get the value of the key ,return it
-        if index < inner_start_tx_index {
-            let mut index_map = self.storage_canister_ids.clone();
-            index_map.retain(|k, _| k <= index);
-            let key = index_map.keys().last().unwrap();
-            let value = index_map.get(key).unwrap();
-            return TxRecordCommonResult::Forward(*value);
-        }
-        if let Some(tx_record) = self.txs.iter().find(|tx| &tx.get_tx_index() == index) {
-            return TxRecordCommonResult::Ok(tx_record.clone());
-        }
-        return TxRecordCommonResult::Err(DFTError::InvalidTxIndex);
-    }
-
-    fn transaction_by_id(&self, id: &String) -> TxRecordCommonResult {
-        match decode_tx_id(id.clone()) {
-            Ok((token_id, tx_index)) => {
-                if token_id != self.token_id {
-                    return TxRecordCommonResult::Err(DFTError::TxIdNotBelongToCurrentDft);
+        if block_height < self.blockchain.num_archived_blocks() {
+            let index = self.blockchain.archive.index();
+            let result = index.binary_search_by(|((from, to), _)| {
+                // If within the range we've found the right node
+                if *from <= block_height && block_height <= *to {
+                    std::cmp::Ordering::Equal
+                } else if *from < block_height {
+                    std::cmp::Ordering::Less
                 } else {
-                    return self.transaction_by_index(&tx_index);
+                    std::cmp::Ordering::Greater
+                }
+            });
+            match result {
+                Ok(i) => {
+                    return BlockResult::Forward(index[i].1);
+                }
+                Err(_) => {
+                    return BlockResult::Err(DFTError::NonExistentBlockHeight.into());
                 }
             }
-            Err(_) => TxRecordCommonResult::Err(DFTError::InvalidTxId),
+        }
+
+        let inner_index: usize =
+            (self.blockchain.chain_length() - self.blockchain.num_archived_blocks() - 1u32)
+                .0
+                .try_into()
+                .unwrap();
+
+        match &self.blockchain.blocks.get(inner_index) {
+            Some(encoded_block) => match encoded_block.clone().decode() {
+                Ok(block) => BlockResult::Ok(block.clone()),
+                Err(e) => BlockResult::Err(e.into()),
+            },
+            _ => BlockResult::Err(DFTError::NonExistentBlockHeight.into()),
         }
     }
 
-    fn last_transactions(&self, count: usize) -> CommonResult<Vec<TxRecord>> {
-        // max return count is 100
-        let count = if count > 100 { 100 } else { count };
+    fn blocks_by_query(&self, start: BlockHeight, count: usize) -> QueryBlocksResult {
+        let requested_range = range_utils::make_range(start, count);
 
-        if self.txs.len() < count {
-            let mut txs = self.txs.clone();
-            txs.reverse();
-            return Ok(txs);
-        } else {
-            let start = self.txs.len() - count;
-            let mut txs = self.txs[start..].to_vec();
-            txs.reverse();
-            Ok(txs)
+        let local_range = self.blockchain.local_block_range();
+        let effective_local_range = range_utils::head(
+            &range_utils::intersect(&requested_range, &local_range),
+            MAX_BLOCKS_PER_REQUEST as usize,
+        );
+
+        let local_start: usize = (effective_local_range.start.clone() - local_range.start)
+            .0
+            .try_into()
+            .unwrap();
+        let range_len: usize = range_utils::range_len(&effective_local_range)
+            .0
+            .try_into()
+            .unwrap();
+        let local_end = local_start + range_len;
+
+        let local_blocks: Vec<Block> = self.blockchain.blocks[local_start..local_end]
+            .iter()
+            .map(|enc_block| -> Block {
+                enc_block
+                    .decode()
+                    .expect("bug: failed to decode encoded block")
+                    .into()
+            })
+            .collect();
+
+        let archived_blocks_range = requested_range.start..effective_local_range.start.clone();
+
+        let archived_blocks = self
+            .blockchain
+            .archive
+            .index()
+            .iter()
+            .filter_map(|((from, to), canister_id)| {
+                let slice = range_utils::intersect(
+                    &(from.clone()..to.clone() + 1u32),
+                    &archived_blocks_range,
+                );
+                (!slice.is_empty()).then(|| ArchivedBlocksRange {
+                    start: slice.start.clone(),
+                    length: range_utils::range_len(&slice).0.try_into().unwrap(),
+                    storage_canister_id: canister_id.clone(),
+                })
+            })
+            .collect();
+
+        let chain_length = self.blockchain.chain_length();
+
+        QueryBlocksResult {
+            chain_length,
+            certificate: None,
+            blocks: local_blocks,
+            first_block_index: effective_local_range.start as BlockHeight,
+            archived_blocks,
         }
     }
 }

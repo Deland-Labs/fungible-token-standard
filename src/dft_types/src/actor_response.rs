@@ -1,7 +1,8 @@
 use crate::{
-    ErrorInfo, ActorResult, CommonResult, TransactionResponse, TxRecord, TxRecordCommonResult,
+    ActorResult, Block, BlockHash, BlockHeight, CommonResult, ErrorInfo, Transaction,
+    TransactionHash, TransactionId,
 };
-use candid::{CandidType, Principal, Deserialize};
+use candid::{CandidType, Deserialize, Nat, Principal};
 
 #[derive(CandidType, Debug, Deserialize)]
 pub enum BooleanResult {
@@ -27,70 +28,91 @@ impl From<ActorResult<bool>> for BooleanResult {
     }
 }
 
-#[derive(CandidType)]
-pub enum TransactionResult {
-    Ok(TransactionResponse),
+#[derive(CandidType, Debug, Deserialize)]
+pub enum OperationResult {
+    Ok {
+        #[serde(rename = "txId")]
+        tx_id: TransactionId,
+        #[serde(rename = "blockHeight")]
+        block_height: BlockHeight,
+        error: Option<ErrorInfo>,
+    },
     Err(ErrorInfo),
 }
 
-impl From<CommonResult<TransactionResponse>> for TransactionResult {
-    fn from(result: CommonResult<TransactionResponse>) -> Self {
+impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for OperationResult {
+    fn from(result: CommonResult<(BlockHeight, BlockHash, TransactionHash)>) -> Self {
         match result {
-            Ok(value) => TransactionResult::Ok(value),
-            Err(error) => TransactionResult::Err(error.into()),
-        }
-    }
-}
-
-impl From<ActorResult<TransactionResponse>> for TransactionResult {
-    fn from(result: ActorResult<TransactionResponse>) -> Self {
-        match result {
-            Ok(value) => TransactionResult::Ok(value),
-            Err(error) => TransactionResult::Err(error.into()),
+            Ok((block_height, _, tx_hash)) => OperationResult::Ok {
+                tx_id: hex::encode(tx_hash.as_ref()),
+                block_height: block_height,
+                error: None,
+            },
+            Err(error) => OperationResult::Err(error.into()),
         }
     }
 }
 
 #[derive(CandidType, Debug, Clone)]
-pub enum TxRecordResult {
+pub enum BlockResult {
     // Return tx record if exist in the DFT cache txs
-    Ok(TxRecord),
+    Ok(Block),
     // If not storage in DFT cache txs, return the storage canister id
     Forward(Principal),
     // Such as out of tx index or tx id not exist
     Err(ErrorInfo),
 }
 
-impl From<TxRecordCommonResult> for TxRecordResult {
-    fn from(r: TxRecordCommonResult) -> Self {
-        match r {
-            TxRecordCommonResult::Ok(tx) => TxRecordResult::Ok(tx),
-            TxRecordCommonResult::Forward(p) => TxRecordResult::Forward(p),
-            TxRecordCommonResult::Err(e) => TxRecordResult::Err(e.into()),
-        }
-    }
-}
-
-#[derive(CandidType)]
-pub enum TxRecordListResult {
-    Ok(Vec<TxRecord>),
+#[derive(CandidType, Debug, Clone)]
+pub enum BlockListResult {
+    // Return tx record if exist in the DFT cache txs
+    Ok(Vec<Block>),
+    // Such as out of tx index or tx id not exist
     Err(ErrorInfo),
 }
 
-impl From<CommonResult<Vec<TxRecord>>> for TxRecordListResult {
-    fn from(result: CommonResult<Vec<TxRecord>>) -> Self {
-        match result {
-            Ok(value) => TxRecordListResult::Ok(value),
-            Err(error) => TxRecordListResult::Err(error.into()),
-        }
-    }
+#[derive(Debug, CandidType, Deserialize)]
+pub struct ArchivedBlocksRange {
+    pub start: BlockHeight,
+    pub length: u64,
+    #[serde(rename = "storageCanisterId")]
+    pub storage_canister_id: Principal,
 }
 
-impl From<ActorResult<Vec<TxRecord>>> for TxRecordListResult {
-    fn from(result: ActorResult<Vec<TxRecord>>) -> Self {
+#[derive(Debug, CandidType, Deserialize)]
+pub struct QueryBlocksResult {
+    #[serde(rename = "chainLength")]
+    pub chain_length: Nat,
+    pub certificate: Option<serde_bytes::ByteBuf>,
+    pub blocks: Vec<Block>,
+    #[serde(rename = "firstBlockIndex")]
+    pub first_block_index: BlockHeight,
+    #[serde(rename = "archivedBlocks")]
+    pub archived_blocks: Vec<ArchivedBlocksRange>,
+}
+
+pub type TransactionList = Vec<Transaction>;
+
+#[derive(CandidType, Debug, Clone)]
+pub enum TransactionResult {
+    // Return tx if exist in the DFT cache txs
+    Ok(Transaction),
+    // If not storage in DFT cache txs, return the storage canister id
+    Forward(Principal),
+    // Such as out of tx index or tx id not exist
+    Err(ErrorInfo),
+}
+#[derive(CandidType)]
+pub enum TransactionListResult {
+    Ok(TransactionList),
+    Err(ErrorInfo),
+}
+
+impl From<CommonResult<TransactionList>> for TransactionListResult {
+    fn from(result: CommonResult<TransactionList>) -> Self {
         match result {
-            Ok(value) => TxRecordListResult::Ok(value),
-            Err(error) => TxRecordListResult::Err(error.into()),
+            Ok(value) => TransactionListResult::Ok(value),
+            Err(error) => TransactionListResult::Err(error.into()),
         }
     }
 }

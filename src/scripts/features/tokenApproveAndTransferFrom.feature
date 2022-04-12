@@ -1,3 +1,4 @@
+@dft
 Feature: token approve and transfer from
 
   Background:
