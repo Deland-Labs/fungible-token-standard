@@ -1,4 +1,10 @@
 import type { Principal } from "@dfinity/principal";
+export interface ArchiveInfo {
+  startBlockHeight: bigint;
+  numBlocks: bigint;
+  canisterId: Principal;
+  endBlockHeight: bigint;
+}
 export interface ArchivedBlocksRange {
   storageCanisterId: Principal;
   start: bigint;
@@ -96,6 +102,7 @@ export interface _SERVICE {
     arg_2: bigint,
     arg_3: [] | [bigint]
   ) => Promise<OperationResult>;
+  archives: () => Promise<Array<ArchiveInfo>>;
   balanceOf: (arg_0: string) => Promise<bigint>;
   blockByHeight: (arg_0: bigint) => Promise<BlockResult>;
   blocksByQuery: (arg_0: bigint, arg_1: bigint) => Promise<QueryBlocksResult>;

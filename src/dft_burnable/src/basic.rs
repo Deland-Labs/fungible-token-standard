@@ -20,6 +20,7 @@ async fn canister_init(
     total_supply_: Nat,
     fee_: TokenFee,
     caller: Option<Principal>,
+    archive_option: Option<TokenArchiveOptions>,
 ) {
     let real_caller = caller.unwrap_or_else(|| api::caller());
     let owner_holder = TokenHolder::new(real_caller, sub_account);
@@ -37,6 +38,7 @@ async fn canister_init(
             decimals_,
             fee_,
             owner_holder.clone(),
+            archive_option,
         );
         match token._mint(
             &real_caller,
@@ -360,6 +362,14 @@ fn blocks_by_query(start: BlockHeight, count: usize) -> QueryBlocksResult {
     })
 }
 
+#[query(name = "archives")]
+#[candid_method(query, rename = "archives")]
+fn archives() -> Vec<ArchiveInfo> {
+    TOKEN.with(|token| {
+        let token = token.borrow();
+        token.archives()
+    })
+}
 // do something before sending
 fn before_token_sending(
     _transfer_from: &TokenHolder,

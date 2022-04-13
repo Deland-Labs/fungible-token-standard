@@ -26,9 +26,11 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
         blocks_to_archive
     });
 
-    let archive_size_bytes = std::mem::size_of_val(&blocks_to_archive) as u32;
+    let archive_size_bytes = blocks_to_archive
+        .iter()
+        .fold(0, |acc, block| acc + block.size_bytes());
     let max_msg_size = MAX_MESSAGE_SIZE_BYTES;
-    if archive_size_bytes > max_msg_size {
+    if archive_size_bytes > max_msg_size as usize {
         return Err(DFTError::ExceedTheByteSizeLimitOfOneRequest);
     }
 
@@ -37,6 +39,13 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
     if num_blocks == 0 {
         return Ok(());
     }
+
+    api::print(format!(
+        "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
+        archive_size_bytes,
+        max_msg_size,
+        blocks_to_archive.len()
+    ));
 
     // mark archiving
     let lock_res = TOKEN.with(|token| {
@@ -53,6 +62,9 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
 
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
+        let last_storage_index = token.blockchain().archive.last_storage_canister_index();
+        let archived_end_block_height = token.blockchain().num_archived_blocks.clone() + num_blocks;
+        token.update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
         token.remove_archived_blocks(num_blocks);
         token.unlock_after_archiving();
     });

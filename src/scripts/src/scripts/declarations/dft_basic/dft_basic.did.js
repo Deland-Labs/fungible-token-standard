@@ -18,6 +18,12 @@ export const idlFactory = ({ IDL }) => {
     }),
     'Err' : ErrorInfo,
   });
+  const ArchiveInfo = IDL.Record({
+    'startBlockHeight' : IDL.Nat,
+    'numBlocks' : IDL.Nat,
+    'canisterId' : IDL.Principal,
+    'endBlockHeight' : IDL.Nat,
+  });
   const Operation = IDL.Variant({
     'FeeToModify': IDL.Record({
       'newFeeTo': TokenHolder,
@@ -98,6 +104,7 @@ export const idlFactory = ({ IDL }) => {
       [OperationResult],
       [],
     ),
+    'archives' : IDL.Func([], [IDL.Vec(ArchiveInfo)], ['query']),
     'balanceOf': IDL.Func([IDL.Text], [IDL.Nat], ['query']),
     'blockByHeight': IDL.Func([IDL.Nat], [BlockResult], ['query']),
     'blocksByQuery': IDL.Func(

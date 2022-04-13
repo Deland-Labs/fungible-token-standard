@@ -12,7 +12,7 @@ fn pre_upgrade() {
     TOKEN.with(|token| {
         let token = token.borrow();
         let token_bytes = candid::encode_one(&*token).unwrap();
-        stable64_write(0, &token_bytes);
+        stable64_write(0, token_bytes.as_slice());
     })
 }
 
@@ -21,6 +21,6 @@ fn post_upgrade() {
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
         let token_bytes = stable_bytes();
-        *token = candid::decode_one(&token_bytes).unwrap();
+        *token = candid::decode_one(token_bytes.as_slice()).unwrap();
     })
 }

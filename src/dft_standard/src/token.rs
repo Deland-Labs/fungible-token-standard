@@ -82,6 +82,7 @@ pub trait TokenStandard {
     fn token_metrics(&self) -> TokenMetrics;
     fn block_by_height(&self, block_height: Nat) -> BlockResult;
     fn blocks_by_query(&self, start: BlockHeight, count: usize) -> QueryBlocksResult;
+    fn archives(&self) -> Vec<ArchiveInfo>;
 }
 
 #[derive(Getters, Setters)]
@@ -282,11 +283,11 @@ impl TokenBasic {
     pub fn update_scaling_storage_blocks_range(
         &mut self,
         storage_canister_index: usize,
-        block_height_range: (Nat, Nat),
+        end_block_height: Nat,
     ) {
         self.blockchain
             .archive
-            .update_scaling_storage_blocks_range(storage_canister_index, block_height_range)
+            .update_scaling_storage_blocks_range(storage_canister_index, end_block_height)
     }
 
     /// Removes at most [MAX_TRANSACTIONS_TO_PURGE] transactions older
@@ -489,6 +490,7 @@ impl TokenBasic {
         decimals: u8,
         fee: TokenFee,
         fee_to: TokenHolder,
+        archive_options: Option<TokenArchiveOptions>,
     ) {
         // check logo type
         if logo.is_some() {
@@ -504,6 +506,9 @@ impl TokenBasic {
             TokenMetadata::new(name.clone(), symbol.clone(), decimals.clone(), fee.clone());
         self.logo = logo;
         self.fee_to = fee_to;
+        if archive_options.is_some() {
+            self.blockchain.archive = Archive::new(archive_options.unwrap());
+        }
     }
 }
 
@@ -761,11 +766,10 @@ impl TokenStandard for TokenBasic {
             }
         }
 
-        let inner_index: usize =
-            (self.blockchain.chain_length() - self.blockchain.num_archived_blocks() - 1u32)
-                .0
-                .try_into()
-                .unwrap();
+        let inner_index: usize = (block_height - self.blockchain.num_archived_blocks())
+            .0
+            .try_into()
+            .unwrap();
 
         match &self.blockchain.blocks.get(inner_index) {
             Some(encoded_block) => match encoded_block.clone().decode() {
@@ -834,5 +838,9 @@ impl TokenStandard for TokenBasic {
             first_block_index: effective_local_range.start as BlockHeight,
             archived_blocks,
         }
+    }
+
+    fn archives(&self) -> Vec<ArchiveInfo> {
+        self.blockchain.archive.archives()
     }
 }

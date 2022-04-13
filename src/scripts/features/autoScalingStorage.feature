@@ -14,7 +14,7 @@ Feature: token tx auto scaling storage
     Then Check the block height "1999" transfer transaction of "dft_basic", the amount should be 1998
     Then Check the block height "999" transfer transaction of "dft_basic", the result should be a forward result
     Then Check the block height "1000" transfer transaction of "dft_basic", the result should not be a forward result
-    Then Check the blocks query of "dft_basic", start block height "2009",size "2", check each transaction is correct
+    Then Check the blocks query of "dft_basic", start block height "2010",size "2", check each transaction is correct
       | caller   | from     | to        | amount | fee  |
       | dft_main | dft_main | dft_user1 | 2009   | 0.01 |
       | dft_main | dft_main | dft_user1 | 2010   | 0.01 |

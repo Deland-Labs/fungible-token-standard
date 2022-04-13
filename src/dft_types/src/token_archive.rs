@@ -1,9 +1,12 @@
 use candid::{CandidType, Nat, Principal};
 use serde::{Deserialize, Serialize};
 
-use crate::constants::{
-    BLOCK_ARCHIVE_SIZE, BLOCK_ARCHIVE_TRIGGER_THRESHOLD, CYCLES_PER_AUTO_SCALING,
-    MAX_CANISTER_STORAGE_BYTES,
+use crate::{
+    constants::{
+        BLOCK_ARCHIVE_SIZE, BLOCK_ARCHIVE_TRIGGER_THRESHOLD, CYCLES_PER_AUTO_SCALING,
+        MAX_CANISTER_STORAGE_BYTES,
+    },
+    BlockHeight,
 };
 
 #[derive(Serialize, Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
@@ -15,8 +18,19 @@ pub struct TokenArchiveOptions {
     pub num_blocks_to_archive: u32,
     pub node_max_memory_size_bytes: Option<u32>,
     pub max_message_size_bytes: Option<u32>,
-    pub controller_id: Principal,
     pub cycles_for_archive_creation: Option<u64>,
+}
+
+#[derive(CandidType, Deserialize, Debug, Clone)]
+pub struct ArchiveInfo {
+    #[serde(rename="canisterId")]
+    canister_id: Principal,
+    #[serde(rename="startBlockHeight")]
+    start_block_height: BlockHeight,
+    #[serde(rename="endBlockHeight")]
+    end_block_height: BlockHeight,
+    #[serde(rename="numBlocks")]
+    num_blocks: Nat,
 }
 
 #[derive(CandidType, Deserialize, Debug, Clone)]
@@ -25,7 +39,6 @@ pub struct Archive {
     storage_canisters_block_ranges: Vec<(Nat, Nat)>,
     node_max_memory_size_bytes: u32,
     max_message_size_bytes: u32,
-    num_archived_blocks: Nat,
     pub trigger_threshold: u32,
     /// The number of blocks to archive when trigger threshold is exceeded
     pub num_blocks_to_archive: u32,
@@ -42,7 +55,6 @@ impl Default for Archive {
             storage_canisters_block_ranges: Vec::new(),
             node_max_memory_size_bytes: MAX_CANISTER_STORAGE_BYTES,
             max_message_size_bytes: 0,
-            num_archived_blocks: 0.into(),
             trigger_threshold: BLOCK_ARCHIVE_TRIGGER_THRESHOLD,
             num_blocks_to_archive: BLOCK_ARCHIVE_SIZE,
             cycles_for_archive_creation: CYCLES_PER_AUTO_SCALING,
@@ -60,7 +72,6 @@ impl Archive {
                 .node_max_memory_size_bytes
                 .unwrap_or(1024 * 1024 * 1024),
             max_message_size_bytes: options.max_message_size_bytes.unwrap_or(2 * 1024 * 1024),
-            num_archived_blocks: 0.into(),
             trigger_threshold: options.trigger_threshold,
             num_blocks_to_archive: options.num_blocks_to_archive,
             cycles_for_archive_creation: options.cycles_for_archive_creation.unwrap_or(0),
@@ -75,11 +86,36 @@ impl Archive {
         }
     }
 
+    pub fn last_storage_canister_index(&self) -> usize {
+        self.storage_canisters.len() - 1
+    }
+
+    pub fn last_storage_canister_range(&self) -> Option<(Nat, Nat)> {
+        match self.storage_canisters_block_ranges.last() {
+            Some(range) => Some(range.clone()),
+            None => None,
+        }
+    }
+
     pub fn index(&self) -> Vec<((Nat, Nat), Principal)> {
         self.storage_canisters_block_ranges
             .iter()
             .cloned()
             .zip(self.storage_canisters.clone())
+            .collect()
+    }
+
+    pub fn archives(&self) -> Vec<ArchiveInfo> {
+        self.storage_canisters_block_ranges
+            .iter()
+            .cloned()
+            .zip(self.storage_canisters.clone())
+            .map(|((start, end), id)| ArchiveInfo {
+                canister_id: id,
+                start_block_height: start.clone(),
+                end_block_height: end.clone(),
+                num_blocks: end - start,
+            })
             .collect()
     }
 
@@ -107,7 +143,7 @@ impl Archive {
     pub fn update_scaling_storage_blocks_range(
         &mut self,
         storage_index: usize,
-        block_range: (Nat, Nat),
+        end_block_height: Nat,
     ) {
         if !self.archiving_in_progress {
             return;
@@ -128,17 +164,19 @@ impl Archive {
                     // starts with Block at height 0
                     None => self
                         .storage_canisters_block_ranges
-                        .push((0u32.into(), block_range.1)),
+                        .push((0u32.into(), end_block_height)),
                     // If we haven't recorded any heights for this node but
                     // a previous node exists then the current heights
                     // start one above those in the previous node
-                    Some((_, _)) => self.storage_canisters_block_ranges.push(block_range),
+                    Some((_, last_range_end_block_height)) => self
+                        .storage_canisters_block_ranges
+                        .push((last_range_end_block_height + 1u32, end_block_height)),
                 }
             }
             // We have already inserted some Blocks into this archive node.
             // Hence, we already have a value to work with
             Some(heights) => {
-                heights.1 = block_range.1;
+                heights.1 = end_block_height;
             }
         }
     }
