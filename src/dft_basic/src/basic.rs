@@ -11,6 +11,7 @@ use ic_cdk_macros::*;
 use std::string::String;
 
 #[init]
+#[candid_method(init)]
 async fn canister_init(
     sub_account: Option<Subaccount>,
     logo_: Option<Vec<u8>>,
