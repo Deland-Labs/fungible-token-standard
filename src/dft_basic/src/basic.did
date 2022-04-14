@@ -1,87 +1,103 @@
-type ErrorInfo = record { code : nat32; message : text };
-type Fee = record { rate : nat; minimum : nat; rate_decimals : nat8 };
-type Metadata = record {
-  fee : Fee;
-  decimals : nat8;
-  name : text;
-  totalSupply : nat;
-  symbol : text;
+type ArchiveInfo = record {
+  startBlockHeight : nat;
+  numBlocks : nat;
+  canisterId : principal;
+  endBlockHeight : nat;
 };
+type ArchiveOptions = record {
+  num_blocks_to_archive : nat32;
+  trigger_threshold : nat32;
+  max_message_size_bytes : opt nat32;
+  cycles_for_archive_creation : opt nat64;
+  node_max_memory_size_bytes : opt nat32;
+};
+type ArchivedBlocksRange = record {
+  storageCanisterId : principal;
+  start : nat;
+  length : nat64;
+};
+type Block = record {
+  transaction : Transaction;
+  timestamp : nat64;
+  parentHash : opt vec nat8;
+};
+type BlockResult = variant { Ok : Block; Err : ErrorInfo; Forward : principal };
+type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
+type ErrorInfo = record { code : nat32; message : text };
+type Operation = variant {
+  FeeToModify : record { newFeeTo : TokenHolder; caller : principal };
+  Approve : record {
+    fee : nat;
+    value : nat;
+    owner : TokenHolder;
+    caller : principal;
+    spender : TokenHolder;
+  };
+  FeeModify : record { newFee : TokenFee; caller : principal };
+  Transfer : record {
+    to : TokenHolder;
+    fee : nat;
+    value : nat;
+    from : TokenHolder;
+    caller : TokenHolder;
+  };
+  OwnerModify : record { newOwner : principal; caller : principal };
+};
+type OperationResult = variant {
+  Ok : record { txId : text; error : opt ErrorInfo; blockHeight : nat };
+  Err : ErrorInfo;
+};
+type QueryBlocksResult = record {
+  chainLength : nat;
+  certificate : opt vec nat8;
+  archivedBlocks : vec ArchivedBlocksRange;
+  blocks : vec Block;
+  firstBlockIndex : nat;
+};
+type TokenFee = record { rate : nat; minimum : nat; rateDecimals : nat8 };
 type TokenHolder = variant { None; Account : text; Principal : principal };
 type TokenInfo = record {
+  certificate : opt vec nat8;
   owner : principal;
   allowanceSize : nat;
   cycles : nat64;
-  txCount : nat;
+  blockHeight : nat;
   holders : nat;
   storages : vec principal;
   feeTo : TokenHolder;
 };
-type TransactionResponse = record { txId : text; error : opt ErrorInfo };
-type TransactionResult = variant { Ok : TransactionResponse; Err : ErrorInfo };
-type TxRecord = variant {
-  DescModify : record {
-    nat;
-    principal;
-    vec record { text; text };
-    nat64;
-    nat64;
-  };
-  FeeToModify : record { nat; principal; TokenHolder; nat64; nat64 };
-  Approve : record {
-    nat;
-    TokenHolder;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-    nat64;
-  };
-  LogoModify : record { nat; principal; vec nat8; nat64; nat64 };
-  FeeModify : record { nat; principal; Fee; nat64; nat64 };
-  Transfer : record {
-    nat;
-    TokenHolder;
-    TokenHolder;
-    TokenHolder;
-    nat;
-    nat;
-    nat64;
-    nat64;
-  };
-  OwnerModify : record { nat; principal; principal; nat64; nat64 };
+type TokenMetadata = record {
+  fee : TokenFee;
+  decimals : nat8;
+  name : text;
+  symbol : text;
 };
-type TxRecordListResult = variant { Ok : vec TxRecord; Err : ErrorInfo };
-type TxRecordResult = variant {
-  Ok : TxRecord;
-  Err : ErrorInfo;
-  Forward : principal;
-};
-service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, Fee, opt principal) -> {
+type Transaction = record { createdAt : nat64; operation : Operation };
+service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, TokenFee, opt principal, opt ArchiveOptions) -> {
   allowance : (text, text) -> (nat) query;
   allowancesOf : (text) -> (vec record { TokenHolder; nat }) query;
-  approve : (opt vec nat8, text, nat, opt nat64) -> (TransactionResult);
+  approve : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
+  archives : () -> (vec ArchiveInfo) query;
   balanceOf : (text) -> (nat) query;
+  blockByHeight : (nat) -> (BlockResult) query;
+  blocksByQuery : (nat, nat64) -> (QueryBlocksResult) query;
   decimals : () -> (nat8) query;
   desc : () -> (vec record { text; text }) query;
-  fee : () -> (Fee) query;
-  lastTransactions : (nat64) -> (TxRecordListResult) query;
+  fee : () -> (TokenFee) query;
   logo : () -> (vec nat8) query;
-  meta : () -> (Metadata) query;
+  meta : () -> (TokenMetadata) query;
   name : () -> (text) query;
-  nonceOf : (principal) -> (nat64) query;
   owner : () -> (principal) query;
-  setDesc : (vec record { text; text }, opt nat64) -> (BooleanResult);
-  setFee : (Fee, opt nat64) -> (BooleanResult);
-  setFeeTo : (text, opt nat64) -> (BooleanResult);
-  setLogo : (opt vec nat8, opt nat64) -> (BooleanResult);
-  setOwner : (principal, opt nat64) -> (BooleanResult);
   symbol : () -> (text) query;
   tokenInfo : () -> (TokenInfo) query;
   totalSupply : () -> (nat) query;
-  transactionById : (text) -> (TxRecordResult) query;
-  transactionByIndex : (nat) -> (TxRecordResult) query;
-  transfer : (opt vec nat8, text, nat, opt nat64) -> (TransactionResult);
-  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (TransactionResult);
+  transfer : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
+  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (OperationResult);
+
+  setDesc : (vec record { text; text }) -> (BooleanResult);
+  setFee : (TokenFee, opt nat64) -> (BooleanResult);
+  setFeeTo : (text, opt nat64) -> (BooleanResult);
+  setLogo : (opt vec nat8) -> (BooleanResult);
+  setOwner : (principal, opt nat64) -> (BooleanResult);
 }
+ 

@@ -14,25 +14,30 @@ fn http_request(req: HttpRequest) -> HttpResponse {
     let cycles = ic_cdk::api::canister_balance();
     match path.as_str() {
         "/" => {
-            let (token_info, metrics) = TOKEN.with(|token| {
+            let (token_info, metrics, total_supply) = TOKEN.with(|token| {
                 let token = token.borrow();
-                (token.metadata(), token.token_metrics())
+                (
+                    token.metadata().clone(),
+                    token.token_metrics().clone(),
+                    token.total_supply().clone(),
+                )
             });
+            let fee = token_info.fee().clone();
             // convert token_info to json
             let token_info_json = format!(
                 "{{name : \"{}\",symbol : \"{}\",decimals : {},totalSupply : {},fee :{{minimum: {},rate:{}}}}}",
-                token_info.name,
-                token_info.symbol,
-                token_info.decimals,
-                token_info.total_supply,
-                token_info.fee.minimum,
-                format!("{} %", token_info.fee.rate * 100 / 10u64.pow(token_info.fee.rate_decimals.into()))
+                token_info.name(),
+                token_info.symbol(),
+                token_info.decimals(),
+                total_supply ,
+                fee.minimum,
+                format!("{} %", fee.rate * 100 / 10u64.pow(fee.rate_decimals.into()))
             );
 
             let metrics_json = format!(
-                "{{totalTxCount : {},innerTxCount : {},cycles : {},holders : {},allowanceSize : {}}}",
-                metrics.total_tx_count,
-                metrics.inner_tx_count,
+                "{{totalBlockHeight : {},localBlockCount : {},cycles : {},holders : {},allowanceSize : {}}}",
+                metrics.total_block_count,
+                metrics.local_block_count,
                 cycles,
                 metrics.holders,
                 metrics.allowance_size,
@@ -45,7 +50,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         "/logo" => {
             let logo = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.logo()
+                token.logo().clone().unwrap_or(vec![])
             });
 
             // if logo is empty, return 404
@@ -53,40 +58,43 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 HttpResponse::not_found()
             } else {
                 // if logo is not empty, mean it is a valid image
-                let logo_type = get_logo_type(&logo).unwrap();
+                let logo_type = get_logo_type(logo.as_slice()).unwrap();
 
                 if logo_type.is_empty() {
                     HttpResponse::not_found()
                 } else {
-                    HttpResponse::ok(vec![("Content-Type".into(), logo_type.into())], logo)
+                    HttpResponse::ok(
+                        vec![("Content-Type".into(), logo_type.into())],
+                        logo.clone(),
+                    )
                 }
             }
         }
         "/name" => {
             let name = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.name()
+                token.metadata().name().clone()
             });
             HttpResponse::ok(vec![], name.into_bytes())
         }
         "/symbol" => {
             let symbol = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.symbol()
+                token.metadata().symbol().clone()
             });
             HttpResponse::ok(vec![], symbol.into_bytes())
         }
         "/decimals" => {
             let decimals = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.decimals()
+                token.metadata().decimals().clone()
             });
             HttpResponse::ok(vec![], decimals.to_string().into_bytes())
         }
         "/totalsupply" => {
             let total_supply = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.total_supply()
+                token.total_supply().clone()
             });
             HttpResponse::ok(vec![], total_supply.to_string().into_bytes())
         }

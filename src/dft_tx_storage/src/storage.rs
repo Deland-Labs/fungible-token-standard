@@ -3,151 +3,138 @@ use std::convert::TryInto;
 use candid::Nat;
 use candid::{CandidType, Deserialize, Principal};
 use dft_types::*;
-use dft_utils::decode_tx_id;
 
 #[derive(CandidType, Debug, Deserialize)]
 pub struct StorageInfo {
-    pub dft_id: Principal,
-    pub tx_start_index: Nat,
-    pub txs_count: Nat,
+    #[serde(rename = "tokenId")]
+    pub token_id: Principal,
+    #[serde(rename = "blockHeightOffset")]
+    pub block_height_offset: Nat,
+    #[serde(rename = "totalBlocksCount")]
+    pub total_blocks_count: Nat,
+    #[serde(rename = "totalBlockSizeBytes")]
+    pub total_block_size_bytes: Nat,
     pub cycles: u64,
 }
 
-#[derive(CandidType, Clone, Debug, Deserialize)]
+#[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct AutoScalingStorage {
-    pub dft_id: Principal,
-    pub tx_start_index: Nat,
-    pub txs: Txs,
+    pub token_id: Principal,
+    pub block_height_offset: Nat,
+    pub blocks: Vec<EncodedBlock>,
+    pub total_block_size_bytes: usize,
+    pub last_update_timestamp: u64,
 }
 
 impl Default for AutoScalingStorage {
     fn default() -> Self {
         AutoScalingStorage {
-            dft_id: Principal::anonymous(),
-            tx_start_index: Nat::from(0),
-            txs: Txs::new(),
+            token_id: Principal::anonymous(),
+            block_height_offset: 0.into(),
+            blocks: Vec::new(),
+            total_block_size_bytes: 0,
+            last_update_timestamp: 0,
         }
     }
 }
 
 impl AutoScalingStorage {
     // fn init
-    pub fn initialize(&mut self, dft_id: Principal, tx_start_index: Nat) {
-        self.dft_id = dft_id;
-        self.tx_start_index = tx_start_index;
+    pub fn initialize(&mut self, token_id: Principal, block_height_offset: Nat) {
+        self.token_id = token_id;
+        self.block_height_offset = block_height_offset;
     }
 
     // fn only allow token canister
     fn _only_allow_token_canister(&self, caller: &Principal) -> CommonResult<()> {
-        if &self.dft_id != caller {
+        if &self.token_id != caller {
             return Err(DFTError::OnlyAllowTokenCanisterCallThisFunction);
         }
         Ok(())
     }
 
-    // fn append
-    pub fn append(&mut self, caller: &Principal, tx: TxRecord) -> CommonResult<bool> {
-        self._only_allow_token_canister(caller)?;
-        // check tx index
-        self._check_tx_index(&tx)?;
-        self.txs.push(tx);
-        Ok(true)
-    }
-
     // fn batch_append
-    pub fn batch_append(&mut self, caller: &Principal, txs: Vec<TxRecord>) -> CommonResult<bool> {
+    pub fn batch_append(
+        &mut self,
+        caller: &Principal,
+        blocks: Vec<EncodedBlock>,
+    ) -> CommonResult<bool> {
         self._only_allow_token_canister(caller)?;
-        // insert txs to self.txs, check the tx index first
-        for tx in &txs {
-            self._check_tx_index(tx)?;
+
+        // update total block_size_bytes
+        for block in &blocks {
+            self.total_block_size_bytes += block.size_bytes();
         }
-        self.txs.extend(txs);
+
+        self.blocks.extend(blocks);
         Ok(true)
     }
 
-    // check tx index
-    fn _check_tx_index(&self, tx: &TxRecord) -> CommonResult<()> {
-        if tx.get_tx_index() < self.tx_start_index {
-            return Err(DFTError::InvalidTxIndex);
-        }
-        Ok(())
-    }
-
-    // fn get_tx_by_index
-    pub fn get_tx_by_index(&self, tx_index: Nat) -> TxRecordCommonResult {
-        if tx_index < self.tx_start_index
-            || tx_index > (self.tx_start_index.clone() + self.txs.len() as u128)
+    pub fn get_block_by_height(&self, block_height: Nat) -> BlockResult {
+        if block_height < self.block_height_offset
+            || block_height > (self.block_height_offset.clone() + self.blocks.len())
         {
-            TxRecordCommonResult::Err(DFTError::InvalidTxIndex)
+            BlockResult::Err(DFTError::NonExistentBlockHeight.into())
         } else {
-            let inner_index: usize = (tx_index - self.tx_start_index.clone())
+            let inner_index: usize = (block_height - self.block_height_offset.clone())
                 .0
                 .try_into()
                 .unwrap();
-            TxRecordCommonResult::Ok(self.txs[inner_index].clone())
-        }
-    }
 
-    // fn get_tx_by_id
-    pub fn get_tx_by_id(&self, tx_id: String) -> TxRecordCommonResult {
-        let decode_res = decode_tx_id(tx_id);
-        match decode_res {
-            Ok((dft_id, tx_index)) => {
-                if dft_id != self.dft_id {
-                    TxRecordCommonResult::Err(DFTError::TxIdNotBelongToCurrentDft)
-                } else {
-                    self.get_tx_by_index(tx_index)
-                }
+            match self.blocks.get(inner_index) {
+                Some(block) => match block.decode() {
+                    Ok(de_block) => BlockResult::Ok(de_block),
+                    Err(e) => BlockResult::Err(e.into()),
+                },
+                None => BlockResult::Err(DFTError::NonExistentBlockHeight.into()),
             }
-            Err(_) => TxRecordCommonResult::Err(DFTError::InvalidTxId),
         }
     }
 
-    // fn get_tx_by_index_range
-    pub fn get_tx_by_index_range(
-        &self,
-        tx_index_start: Nat,
-        size: usize,
-    ) -> CommonResult<Vec<TxRecord>> {
-        if tx_index_start < self.tx_start_index
-            || tx_index_start > (self.tx_start_index.clone() + self.txs.len() as u128)
+    pub fn get_blocks_by_query(&self, start: Nat, size: usize) -> BlockListResult {
+        if start < self.block_height_offset
+            || start > (self.block_height_offset.clone() + self.blocks.len() as u64)
         {
-            Err(DFTError::InvalidTxIndex)
+            BlockListResult::Err(DFTError::NonExistentBlockHeight.into())
         } else {
-            let inner_index_start: usize = (tx_index_start - self.tx_start_index.clone())
+            let inner_index_start: usize = (start - self.block_height_offset.clone())
                 .0
                 .try_into()
                 .unwrap();
+
             let inner_index_end = inner_index_start + size;
-            let inner_index_end = if inner_index_end > self.txs.len() {
-                self.txs.len()
+            let inner_index_end = if inner_index_end > self.blocks.len() {
+                self.blocks.len()
             } else {
                 inner_index_end
             };
 
             let mut res = Vec::new();
             for i in inner_index_start..inner_index_end {
-                res.push(self.txs[i].clone());
+                res.push(self.blocks[i].decode().unwrap());
             }
-            Ok(res)
+            BlockListResult::Ok(res)
         }
     }
 
     // fn get storage info
     pub fn get_storage_info(&self) -> StorageInfo {
         StorageInfo {
-            dft_id: self.dft_id.clone(),
-            tx_start_index: self.tx_start_index.clone(),
-            txs_count: self.txs.len().into(),
-            cycles: 0,
+            token_id: self.token_id.clone(),
+            block_height_offset: self.block_height_offset.clone(),
+            total_blocks_count: self.blocks.len().into(),
+            total_block_size_bytes: self.total_block_size_bytes.into(),
+            cycles: self.last_update_timestamp,
         }
     }
 
     // fn restore
     pub fn restore(&mut self, data: AutoScalingStorage) {
-        self.dft_id = data.dft_id;
-        self.tx_start_index = data.tx_start_index;
-        self.txs = data.txs;
+        self.token_id = data.token_id;
+        self.block_height_offset = data.block_height_offset;
+        self.blocks = data.blocks;
+        self.total_block_size_bytes = data.total_block_size_bytes;
+        self.last_update_timestamp = data.last_update_timestamp;
     }
 }
 
@@ -155,7 +142,6 @@ impl AutoScalingStorage {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dft_utils::encode_tx_id;
     use rstest::*;
 
     #[fixture]
@@ -169,13 +155,13 @@ mod tests {
     }
 
     #[fixture]
-    fn test_start_index() -> Nat {
+    fn test_start_block_height() -> Nat {
         Nat::from(1234)
     }
 
     #[fixture]
-    fn next_tx_index(test_start_index: Nat) -> Nat {
-        test_start_index + 1
+    fn next_tx_index(test_start_block_height: Nat) -> Nat {
+        test_start_block_height + 1
     }
 
     #[fixture]
@@ -188,14 +174,14 @@ mod tests {
     }
 
     #[fixture]
-    fn test_storage(test_token_id: Principal, test_start_index: Nat) -> AutoScalingStorage {
+    fn test_storage(test_token_id: Principal, test_start_block_height: Nat) -> AutoScalingStorage {
         let mut storage = AutoScalingStorage::default();
-        storage.initialize(test_token_id, test_start_index);
+        storage.initialize(test_token_id, test_start_block_height);
         storage
     }
 
     #[fixture]
-    fn test_tx_record(test_start_index: Nat, now: u64) -> TxRecord {
+    fn test_block(now: u64) -> Block {
         let from =
             Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
                 .unwrap();
@@ -204,42 +190,24 @@ mod tests {
                 .unwrap();
         let from_holder = TokenHolder::new(from.clone(), None);
         let to_holder = TokenHolder::new(to.clone(), None);
-        TxRecord::Transfer(
-            test_start_index,
-            from_holder.clone(),
-            from_holder,
-            to_holder,
-            Nat::from(1000),
-            Nat::from(1),
-            1u64,
+        Block::new_from_transaction(
+            None,
+            Transaction {
+                operation: Operation::Transfer {
+                    caller: from_holder.clone(),
+                    from: from_holder,
+                    to: to_holder,
+                    value: 1000u32.into(),
+                    fee: 1u32.into(),
+                },
+                created_at: now,
+            },
             now,
         )
     }
 
     #[fixture]
-    fn invalid_tx_record(test_start_index: Nat, now: u64) -> TxRecord {
-        let from =
-            Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
-                .unwrap();
-        let to =
-            Principal::from_text("qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe")
-                .unwrap();
-        let from_holder = TokenHolder::new(from.clone(), None);
-        let to_holder = TokenHolder::new(to.clone(), None);
-        TxRecord::Transfer(
-            test_start_index - 1,
-            from_holder.clone(),
-            from_holder,
-            to_holder,
-            Nat::from(1000),
-            Nat::from(1),
-            1u64,
-            now,
-        )
-    }
-
-    #[fixture]
-    fn test_tx_records(test_start_index: Nat, now: u64) -> Vec<TxRecord> {
+    fn test_blocks(test_token_id: Principal, now: u64) -> Vec<EncodedBlock> {
         let from =
             Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
                 .unwrap();
@@ -249,95 +217,39 @@ mod tests {
         let from_holder = TokenHolder::new(from.clone(), None);
         let to_holder = TokenHolder::new(to.clone(), None);
         // generate 3 tx records
-        let mut tx_records = Vec::new();
+        let mut blocks = Vec::new();
+        let mut last_block: Option<Block> = None;
         for i in 0..3 {
-            tx_records.push(TxRecord::Transfer(
-                test_start_index.clone() + i,
-                from_holder.clone(),
-                from_holder.clone(),
-                to_holder.clone(),
-                Nat::from(1000),
-                Nat::from(1),
-                1u64,
-                now,
-            ));
-        }
-
-        tx_records
-    }
-
-    #[fixture]
-    fn test_invalid_tx_records(test_start_index: Nat, now: u64) -> Vec<TxRecord> {
-        let from =
-            Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
-                .unwrap();
-        let to =
-            Principal::from_text("qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe")
-                .unwrap();
-        let from_holder = TokenHolder::new(from.clone(), None);
-        let to_holder = TokenHolder::new(to.clone(), None);
-        // generate 3 tx records
-        let mut tx_records = Vec::new();
-        for i in 0..3 {
-            let ti = if i == 2 {
-                test_start_index.clone() - 100
+            let parent_hash = if last_block.is_none() {
+                None
             } else {
-                test_start_index.clone() + i
+                Some(
+                    last_block
+                        .unwrap()
+                        .encode()
+                        .unwrap()
+                        .hash_with_token_id(&test_token_id),
+                )
             };
-
-            tx_records.push(TxRecord::Transfer(
-                ti,
-                from_holder.clone(),
-                from_holder.clone(),
-                to_holder.clone(),
-                Nat::from(1000),
-                Nat::from(1),
-                1u64,
+            let block = Block::new_from_transaction(
+                parent_hash,
+                Transaction {
+                    operation: Operation::Transfer {
+                        caller: from_holder.clone(),
+                        from: from_holder.clone(),
+                        to: to_holder.clone(),
+                        value: (1000u32 + i).into(),
+                        fee: 1u32.into(),
+                    },
+                    created_at: now,
+                },
                 now,
-            ));
+            );
+            last_block = Some(block.clone());
+            blocks.push(block.encode().unwrap());
         }
 
-        tx_records
-    }
-
-    // test append
-    #[rstest]
-    fn test_append(
-        test_storage: AutoScalingStorage,
-        test_token_id: Principal,
-        other_token_id: Principal,
-        test_tx_record: TxRecord,
-        invalid_tx_record: TxRecord,
-    ) {
-        let mut storage = test_storage.clone();
-        // append with other token id should fail
-        let res = storage.append(&other_token_id, test_tx_record.clone());
-        assert!(res.is_err());
-        assert_eq!(
-            res.unwrap_err(),
-            DFTError::OnlyAllowTokenCanisterCallThisFunction
-        );
-        // append with invalid tx record should fail
-        let res = storage.append(&test_token_id, invalid_tx_record.clone());
-        assert!(res.is_err());
-        assert_eq!(res.unwrap_err(), DFTError::InvalidTxIndex);
-        // append with test token id should succeed
-        let res = storage.append(&test_token_id, test_tx_record.clone());
-        assert!(res.is_ok());
-        assert_eq!(storage.txs.len(), 1);
-        // test get tx by index
-        let res = storage.get_tx_by_index(test_tx_record.get_tx_index());
-        match res {
-            TxRecordCommonResult::Ok(tx) => assert_eq!(tx, test_tx_record),
-            _ => assert!(false),
-        }
-        // test get tx by id
-        let tx_id = encode_tx_id(test_token_id, test_tx_record.get_tx_index());
-        let res = storage.get_tx_by_id(tx_id);
-        match res {
-            TxRecordCommonResult::Ok(tx) => assert_eq!(tx, test_tx_record),
-            _ => assert!(false),
-        }
+        blocks
     }
 
     // test batch_append
@@ -346,41 +258,21 @@ mod tests {
         test_storage: AutoScalingStorage,
         test_token_id: Principal,
         other_token_id: Principal,
-        test_tx_records: Vec<TxRecord>,
-        test_invalid_tx_records: Vec<TxRecord>,
+        test_blocks: Vec<EncodedBlock>,
     ) {
         let mut storage = test_storage.clone();
         // append with other token id should fail
-        let res = storage.batch_append(&other_token_id, test_tx_records.clone());
+        let res = storage.batch_append(&other_token_id, test_blocks.clone());
         assert!(res.is_err());
         assert_eq!(
             res.unwrap_err(),
             DFTError::OnlyAllowTokenCanisterCallThisFunction
         );
         // append with invalid tx record should fail
-        let res = storage.batch_append(&test_token_id, test_invalid_tx_records);
-        assert!(res.is_err());
-        assert_eq!(res.unwrap_err(), DFTError::InvalidTxIndex);
+
         // append with test token id should succeed
-        let res = storage.batch_append(&test_token_id, test_tx_records.clone());
+        let res = storage.batch_append(&test_token_id, test_blocks.clone());
         assert!(res.is_ok());
-        assert_eq!(storage.txs.len(), test_tx_records.len());
-        // test get tx by index
-        for tx_record in &test_tx_records {
-            let res = storage.get_tx_by_index(tx_record.get_tx_index());
-            match res {
-                TxRecordCommonResult::Ok(tx) => assert_eq!(tx, *tx_record),
-                _ => assert!(false),
-            }
-        }
-        // test get tx by id
-        for tx_record in &test_tx_records {
-            let tx_id = encode_tx_id(test_token_id, tx_record.get_tx_index());
-            let res = storage.get_tx_by_id(tx_id);
-            match res {
-                TxRecordCommonResult::Ok(tx) => assert_eq!(tx, *tx_record),
-                _ => assert!(false),
-            }
-        }
+        assert_eq!(storage.blocks.len(), test_blocks.len());
     }
 }

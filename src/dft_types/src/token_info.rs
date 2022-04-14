@@ -5,12 +5,13 @@ use candid::{CandidType, Deserialize, Nat, Principal};
 pub struct TokenInfo {
     pub owner: Principal,
     pub holders: Nat,
-    #[serde(rename="allowanceSize")]
+    #[serde(rename = "allowanceSize")]
     pub allowance_size: Nat,
-    #[serde(rename="feeTo")]
+    #[serde(rename = "feeTo")]
     pub fee_to: TokenHolder,
-    #[serde(rename="txCount")]
-    pub tx_count: Nat,
-    pub cycles: u64,
+    #[serde(rename = "blockHeight")]
+    pub block_height: Nat,
     pub storages: Vec<Principal>,
+    pub cycles: u64,
+    pub certificate: Option<serde_bytes::ByteBuf>,
 }

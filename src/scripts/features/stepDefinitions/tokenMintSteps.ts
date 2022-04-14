@@ -23,7 +23,7 @@ When(/^"([^"]*)" mint (\d+) "([^"]*)" for "([^"]*)" token will success$/, async 
     const decimals = await actor.decimals();
     const amountBN = parseToOrigin(amount, decimals);
     const res = await actor.mint(mintToPrincipal, amountBN, []);
-    assert.isTrue("Ok" in res);
+    assert.isTrue("Ok" in res,`Minting token should success, but ${JSON.stringify(res)}`);
 });
 
 Then(/^Check that the fees of "([^"]*)" is "([^"]*)" by "([^"]*)", that means mint does not charge fee$/, async function (token, fee, user) {

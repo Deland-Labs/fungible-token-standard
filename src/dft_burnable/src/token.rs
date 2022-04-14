@@ -9,9 +9,9 @@ pub trait BurnableExtension {
         caller: &Principal,
         owner: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
     //burn from
     fn burn_from(
         &mut self,
@@ -19,24 +19,25 @@ pub trait BurnableExtension {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
 }
 
-// imple BurnableExtension for TokenBasic
+// impl BurnableExtension for TokenBasic
 impl BurnableExtension for TokenBasic {
     fn burn(
         &mut self,
         caller: &Principal,
         owner: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.not_allow_anonymous(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
-        self._burn(caller, owner, owner, value, nonce, now)
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now.clone());
+        self._burn(owner, value, created_at, now)
     }
     fn burn_from(
         &mut self,
@@ -44,13 +45,13 @@ impl BurnableExtension for TokenBasic {
         owner: &TokenHolder,
         spender: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.not_allow_anonymous(caller)?;
-        let nonce = self.get_verified_nonce(caller, nonce)?;
-        // debit spender's allowance
-        self.debit_allowance(owner, spender, value.clone())?;
-        self._burn(caller, spender, owner, value, nonce, now)
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now.clone());
+        self._burn_from(spender, owner, value, created_at, now)
+            .into()
     }
 }

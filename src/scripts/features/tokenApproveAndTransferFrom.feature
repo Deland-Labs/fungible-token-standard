@@ -1,3 +1,4 @@
+@dft
 Feature: token approve and transfer from
 
   Background:
@@ -48,3 +49,17 @@ Feature: token approve and transfer from
     And Check the "dft_basic" allowance of "dft_miner" "dft_user1" should be "0.09"
     And Check the dft_basic balance of dft_user1 should be 0
     And Check the dft_basic balance of dft_user2 should be 100
+
+  Scenario:Approve twice with same property will fail
+    When "dft_miner" approve "dft_basic" to "dft_user1", "100" twice , the second will failed
+
+  Scenario:Approve with pass 1 day will fail
+    When "dft_miner" approve "dft_basic" to "dft_user1", "100" with timestamp passed "1" day, will failed
+
+  Scenario:TransferFrom twice with same property will fail
+    When "dft_miner" approve "dft_basic" to "dft_user1", "200"
+    And "dft_user1" transfer "dft_basic" from "dft_miner" to "dft_user2" "100" twice, the second will failed
+
+  Scenario:TransferFrom with pass 1 day will fail
+    When  "dft_miner" approve "dft_basic" to "dft_user1", "200"
+    And "dft_user1" transfer "dft_basic" from "dft_miner" to "dft_user2" "100" with timestamp passed "1" day, will failed

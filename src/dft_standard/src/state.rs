@@ -1,9 +1,10 @@
 use crate::token::*;
-use dft_types::*;
-use ic_cdk::storage;
+use ic_cdk::api::{
+    self,
+    stable::{stable_bytes, StableWriter},
+};
 use ic_cdk_macros::*;
-use std::cell::RefCell;
-
+use std::{cell::RefCell};
 
 thread_local! {
     pub static TOKEN: std::cell::RefCell<TokenBasic>  = RefCell::new(TokenBasic::default());
@@ -13,17 +14,25 @@ thread_local! {
 fn pre_upgrade() {
     TOKEN.with(|token| {
         let token = token.borrow();
-        storage::stable_save((token.to_token_payload(),)).unwrap();
+        let token_bytes = candid::encode_one(&*token).unwrap();
+        let bytes_array = token_bytes.as_slice();
+
+        match StableWriter::default().write(bytes_array) {
+            Ok(size) => {
+                api::print(&format!("after pre_upgrade stable_write size{}", size));
+            }
+            Err(_) => {
+                api::print("stable_write error");
+            }
+        }
     })
 }
 
 #[post_upgrade]
 fn post_upgrade() {
-    // There can only be one value in stable memory, currently. otherwise, lifetime error.
-    // https://docs.rs/ic-cdk/0.3.0/ic_cdk/storage/fn.stable_restore.html
-    let (payload,): (TokenPayload,) = storage::stable_restore().unwrap();
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        token.load_from_token_payload(payload);
+        let token_bytes = stable_bytes();
+        *token = candid::decode_one(&*token_bytes).expect("decode_one failed");
     })
 }

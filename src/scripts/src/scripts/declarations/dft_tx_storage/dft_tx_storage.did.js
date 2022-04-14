@@ -1,79 +1,75 @@
 export const idlFactory = ({ IDL }) => {
+  const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
+  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const TokenHolder = IDL.Variant({
     'None' : IDL.Null,
     'Account' : IDL.Text,
     'Principal' : IDL.Principal,
   });
-  const Fee = IDL.Record({
+  const TokenFee = IDL.Record({
     'rate' : IDL.Nat,
     'minimum' : IDL.Nat,
-    'rate_decimals' : IDL.Nat8,
+    'rateDecimals' : IDL.Nat8,
   });
-  const TxRecord = IDL.Variant({
-    'FeeToModify' : IDL.Tuple(
-      IDL.Nat,
-      IDL.Principal,
-      TokenHolder,
-      IDL.Nat64,
-      IDL.Nat64,
-    ),
-    'Approve' : IDL.Tuple(
-      IDL.Nat,
-      TokenHolder,
-      TokenHolder,
-      TokenHolder,
-      IDL.Nat,
-      IDL.Nat,
-      IDL.Nat64,
-      IDL.Nat64,
-    ),
-    'FeeModify' : IDL.Tuple(IDL.Nat, IDL.Principal, Fee, IDL.Nat64, IDL.Nat64),
-    'Transfer' : IDL.Tuple(
-      IDL.Nat,
-      TokenHolder,
-      TokenHolder,
-      TokenHolder,
-      IDL.Nat,
-      IDL.Nat,
-      IDL.Nat64,
-      IDL.Nat64,
-    ),
-    'OwnerModify' : IDL.Tuple(
-      IDL.Nat,
-      IDL.Principal,
-      IDL.Principal,
-      IDL.Nat64,
-      IDL.Nat64,
-    ),
+  const Operation = IDL.Variant({
+    'FeeToModify' : IDL.Record({
+      'newFeeTo' : TokenHolder,
+      'caller' : IDL.Principal,
+    }),
+    'Approve' : IDL.Record({
+      'fee' : IDL.Nat,
+      'value' : IDL.Nat,
+      'owner' : TokenHolder,
+      'caller' : IDL.Principal,
+      'spender' : TokenHolder,
+    }),
+    'FeeModify' : IDL.Record({ 'newFee' : TokenFee, 'caller' : IDL.Principal }),
+    'Transfer' : IDL.Record({
+      'to' : TokenHolder,
+      'fee' : IDL.Nat,
+      'value' : IDL.Nat,
+      'from' : TokenHolder,
+      'caller' : TokenHolder,
+    }),
+    'OwnerModify' : IDL.Record({
+      'newOwner' : IDL.Principal,
+      'caller' : IDL.Principal,
+    }),
   });
-  const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
-  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
-  const StorageInfo = IDL.Record({
-    'dft_id' : IDL.Principal,
-    'tx_start_index' : IDL.Nat,
-    'txs_count' : IDL.Nat,
-    'cycles' : IDL.Nat64,
+  const Transaction = IDL.Record({
+    'createdAt' : IDL.Nat64,
+    'operation' : Operation,
   });
-  const TxRecordResult = IDL.Variant({
-    'Ok' : TxRecord,
+  const Block = IDL.Record({
+    'transaction' : Transaction,
+    'timestamp' : IDL.Nat64,
+    'parentHash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+  });
+  const BlockResult = IDL.Variant({
+    'Ok' : Block,
     'Err' : ErrorInfo,
     'Forward' : IDL.Principal,
   });
-  const TxRecordListResult = IDL.Variant({
-    'Ok' : IDL.Vec(TxRecord),
+  const BlockListResult = IDL.Variant({
+    'Ok' : IDL.Vec(Block),
     'Err' : ErrorInfo,
   });
+  const StorageInfo = IDL.Record({
+    'tokenId' : IDL.Principal,
+    'totalBlocksCount' : IDL.Nat,
+    'cycles' : IDL.Nat64,
+    'totalBlockSizeBytes' : IDL.Nat,
+    'blockHeightOffset' : IDL.Nat,
+  });
   return IDL.Service({
-    'append' : IDL.Func([TxRecord], [BooleanResult], []),
-    'batchAppend' : IDL.Func([IDL.Vec(TxRecord)], [BooleanResult], []),
-    'storageInfo' : IDL.Func([], [StorageInfo], ['query']),
-    'transactionById' : IDL.Func([IDL.Text], [TxRecordResult], ['query']),
-    'transactionByIndex' : IDL.Func([IDL.Nat], [TxRecordResult], ['query']),
-    'transactions' : IDL.Func(
+    'batchAppend' : IDL.Func([IDL.Vec(IDL.Vec(IDL.Nat8))], [BooleanResult], []),
+    'blockByHeight' : IDL.Func([IDL.Nat], [BlockResult], ['query']),
+    'blocksByQuery' : IDL.Func(
         [IDL.Nat, IDL.Nat64],
-        [TxRecordListResult],
+        [BlockListResult],
         ['query'],
       ),
+    'storageInfo' : IDL.Func([], [StorageInfo], ['query']),
   });
 };
-export const init = ({ IDL }) => { return []; };
+export const init = ({ IDL }) => { return [IDL.Principal, IDL.Nat]; };

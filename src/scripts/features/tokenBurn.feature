@@ -1,3 +1,4 @@
+@dft
 Feature: token burn and burn from
 
   Background:

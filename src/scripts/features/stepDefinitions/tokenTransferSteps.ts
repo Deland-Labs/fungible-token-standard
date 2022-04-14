@@ -63,3 +63,57 @@ Then(/^"([^"]*)" transfer "([^"]*)" from "([^"]*)" to "([^"]*)" "([^"]*)" will s
     const res = await actor!.transferFrom([], ownerPrincipal, toPrincipal, amountBN, []);
     assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
 });
+When(/^"([^"]*)" transfer "([^"]*)" from "([^"]*)" to "([^"]*)" "([^"]*)" twice, the second will failed$/, async function (spender, token, owner, to, amount) {
+    const ownerPrincipal = identityFactory.getPrincipal(owner)!.toText();
+    const toPrincipal = identityFactory.getPrincipal(to)!.toText();
+    const actor = createDFTActor(token, spender);
+    const decimals = await actor!.decimals();
+    const amountBN = parseToOrigin(amount, decimals);
+    //  set created_at as nanos timestamp
+    const created_at = BigInt(new Date().getTime()) * 1000000n;
+    logger.debug(`${spender} transfer from ${owner} to ${to},${amount} ${token}`);
+    const res = await actor!.transferFrom([], ownerPrincipal, toPrincipal, amountBN, [created_at]);
+    assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
+    const res2 = await actor!.transferFrom([], ownerPrincipal, toPrincipal, amountBN, [created_at]);
+    assert.isTrue('Err' in res2, `transfer failed: ${JSON.stringify(res2)}`);
+});
+
+When(/^"([^"]*)" transfer "([^"]*)" "([^"]*)" to "([^"]*)" twice, the second will fail$/, async function (from, amount, token, to) {
+    const fromPrincipal = identityFactory.getPrincipal(from)!.toText();
+    const toPrincipal = identityFactory.getPrincipal(to)!.toText();
+    const actor = createDFTActor(token, from);
+    const decimals = await actor!.decimals();
+    //  set created_at as nanos timestamp
+    const created_at = BigInt(new Date().getTime()) * 1000000n;
+    const amountBN = parseToOrigin(amount, decimals);
+    logger.debug(`${from} Transfer from ${from} to ${to},${amount} ${token}`);
+    const res = await actor!.transfer([], toPrincipal, amountBN, [created_at]);
+    assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
+    const res2 = await actor!.transfer([], toPrincipal, amountBN, [created_at]);
+    assert.isTrue('Err' in res2, `transfer succeed: ${JSON.stringify(res2)}`);
+});
+When(/^"([^"]*)" transfer "([^"]*)" "([^"]*)" to "([^"]*)" passed "(\d+)" days will fail$/, async function (from, amount, token, to, passedDays) {
+    const toPrincipal = identityFactory.getPrincipal(to)!.toText();
+    const actor = createDFTActor(token, from);
+    const decimals = await actor!.decimals();
+    //  set created_at as nanos timestamp
+    const created_at = BigInt(new Date().getTime()) * 1000000n;
+    const passedNanos = created_at - BigInt(passedDays) * 24n * 60n * 60n * 1000000000n;
+    const amountBN = parseToOrigin(amount, decimals);
+    logger.debug(`${from} Transfer from ${from} to ${to},${amount} ${token}`);
+    const res = await actor!.transfer([], toPrincipal, amountBN, [passedNanos]);
+    assert.isTrue('Err' in res, `transfer succeed: ${JSON.stringify(res)}`);
+});
+When(/^"([^"]*)" transfer "([^"]*)" from "([^"]*)" to "([^"]*)" "([^"]*)" with timestamp passed "([^"]*)" day, will failed$/,async function (spender,token,owner,to,amount,passedDays) {
+    const ownerPrincipal = identityFactory.getPrincipal(owner)!.toText();
+    const toPrincipal = identityFactory.getPrincipal(to)!.toText();
+    const actor = createDFTActor(token, spender);
+    const decimals = await actor!.decimals();
+    //  set created_at as nanos timestamp
+    const created_at = BigInt(new Date().getTime()) * 1000000n;
+    const passedNanos = created_at - BigInt(passedDays) * 24n * 60n * 60n * 1000000000n;
+    const amountBN = parseToOrigin(amount, decimals);
+    logger.debug(`${spender} transfer from ${owner} to ${to},${amount} ${token}`);
+    const res = await actor!.transferFrom([], ownerPrincipal, toPrincipal, amountBN, [passedNanos]);
+    assert.isTrue('Err' in res, `transfer succeed: ${JSON.stringify(res)}`);
+});

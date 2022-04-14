@@ -11,7 +11,7 @@ pub trait MintableExtension {
         value: Nat,
         nonce: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex>;
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
 }
 
 // impl MintableExtension for TokenBasic
@@ -21,10 +21,10 @@ impl MintableExtension for TokenBasic {
         caller: &Principal,
         to: &TokenHolder,
         value: Nat,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
-    ) -> CommonResult<TransactionIndex> {
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         self.only_owner(caller)?;
-        self._mint(caller, to, value, nonce, now)
+        self._mint(caller, to, value, created_at, now)
     }
 }

@@ -1,3 +1,4 @@
+@dft
 Feature: token management
 
   Background:
@@ -47,7 +48,41 @@ Feature: token management
       | minimum | rate | rate_decimals |
       | 0.001   | 0.1  | 8             |
 
+  Scenario: Update token fee twice, the second will fail
+    When I update token "dft_basic"'s fee with owner "dft_main" twice, the second will fail
+      | minimum | rate | rate_decimals |
+      | 0.001   | 0.1  | 8             |
+    Then Get token "dft_basic"'s fee by "dft_main",will include blow fields and value
+      | minimum | rate | rate_decimals |
+      | 0.001   | 0.1  | 8             |
+
+  Scenario: Update token fee with passed 1 days will fail
+    When I update token "dft_basic"'s fee with owner "dft_main" with passed "1" days, will failed
+      | minimum | rate | rate_decimals |
+      | 0.001   | 0.99 | 8             |
+    Then Get token "dft_basic"'s fee by "dft_main",will include blow fields and value
+      | minimum | rate | rate_decimals |
+      | 0.01    | 0    | 8             |
+
   Scenario: Update token feeTo
     When I update token "dft_basic"'s feeTo as "dft_user1" with owner "dft_main", will success
     Then Get token "dft_basic"'s feeTo by "dft_main", should be "dft_user1"
     When I update token "dft_basic"'s feeTo as "dft_user2" with not owner "dft_user1", will failed
+
+  Scenario: Update token feeTo twice, the second will fail
+    When I update token "dft_basic"'s feeTo as "dft_user1" with owner "dft_main" twice, the second will fail
+    Then Get token "dft_basic"'s feeTo by "dft_main", should be "dft_user1"
+
+  Scenario: Update token feeTo with passed 1 days will fail
+    When I update token "dft_basic"'s feeTo as "dft_user1" with owner "dft_main" with passed "1" days, will failed
+    Then Get token "dft_basic"'s feeTo by "dft_main", should be "dft_main"
+
+  Scenario: Update token owner
+    When I update token "dft_basic"'s owner to "dft_user1" with owner "dft_main", will success
+    Then Get token "dft_basic"'s owner by "dft_main", should be "dft_user1"
+    When I update token "dft_basic"'s to "dft_user1" owner with not owner "dft_user2", will failed
+    Then Get token "dft_basic"'s owner by "dft_main", should be "dft_user1"
+
+  Scenario: Update token owner with passed 1 days will fail
+    When I update token "dft_basic"'s owner to "dft_user1" with owner "dft_main" with passed "1" days, will failed
+    Then Get token "dft_basic"'s owner by "dft_main", should be "dft_main"
