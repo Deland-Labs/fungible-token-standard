@@ -63,7 +63,8 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
         let last_storage_index = token.blockchain().archive.last_storage_canister_index();
-        let archived_end_block_height = token.blockchain().num_archived_blocks.clone() + num_blocks;
+        let archived_end_block_height =
+            token.blockchain().num_archived_blocks.clone() + num_blocks - 1;
         token.update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
         token.remove_archived_blocks(num_blocks);
         token.unlock_after_archiving();
@@ -89,7 +90,7 @@ async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonRe
         match status {
             Ok(res) => {
                 ic_cdk::print(format!(
-                    "currency scaling storage used memory_size is {}",
+                    "current scaling storage used memory_size is {}",
                     res.memory_size
                 ));
                 if (Nat::from(MAX_CANISTER_STORAGE_BYTES) - res.memory_size).lt(&archive_size_bytes)

@@ -11,6 +11,7 @@ use ic_cdk_macros::*;
 use std::string::String;
 
 #[init]
+#[candid_method(init)]
 async fn canister_init(
     sub_account: Option<Subaccount>,
     logo_: Option<Vec<u8>>,
@@ -20,7 +21,7 @@ async fn canister_init(
     total_supply_: Nat,
     fee_: TokenFee,
     caller: Option<Principal>,
-    archive_option: Option<TokenArchiveOptions>,
+    archive_option: Option<ArchiveOptions>,
 ) {
     let real_caller = caller.unwrap_or_else(|| api::caller());
     let owner_holder = TokenHolder::new(real_caller, sub_account);

@@ -27,3 +27,9 @@ Feature: token transfer
       | dft_user1 | dft_receiver | dft_fee_charger | 100  | dft_basic2   | 99899.99 | 100     | 10.01   |
       | dft_user2 | dft_receiver | dft_fee_charger | 100  | dft_burnable | 99898    | 100     | 2002.00 |
       | dft_user3 | dft_receiver | dft_fee_charger | 100  | dft_mintable | 99890    | 100     | 10010   |
+
+  Scenario:Transfer twice with same property will fail
+    When "dft_miner" transfer "100" "dft_basic" to "dft_receiver" twice, the second will fail
+
+  Scenario:Transfer passed 1 days will fail
+    When "dft_miner" transfer "100" "dft_basic" to "dft_receiver" passed "1" days will fail

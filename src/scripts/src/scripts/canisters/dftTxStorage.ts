@@ -1,11 +1,6 @@
 import "../setup"
 import {canister} from "../utils";
 import {ReInstallOptions} from "~/utils/canister";
-import {DFTInitOptions} from "../../tasks";
-import {parseToCommon} from "~/utils/uint";
-import BigNumber from "bignumber.js";
-import logger from "node-color-log";
-
 const build = () => {
     canister.build("dft_tx_storage");
 }

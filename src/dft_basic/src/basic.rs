@@ -21,7 +21,7 @@ async fn canister_init(
     total_supply_: Nat,
     fee_: TokenFee,
     caller: Option<Principal>,
-    archive_option: Option<TokenArchiveOptions>,
+    archive_option: Option<ArchiveOptions>,
 ) {
     let real_caller = caller.unwrap_or_else(|| api::caller());
     let owner_holder = TokenHolder::new(real_caller, sub_account);
@@ -371,6 +371,7 @@ fn archives() -> Vec<ArchiveInfo> {
         token.archives()
     })
 }
+
 // do something before sending
 fn before_token_sending(
     _transfer_from: &TokenHolder,

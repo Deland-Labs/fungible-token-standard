@@ -112,6 +112,7 @@ fn test_token_with_0_fee_rate() -> TokenBasic {
         test_decimals(),
         test_fee_0_rate(),
         fee_to,
+        None,
     );
     token
 }
@@ -129,6 +130,7 @@ fn test_token_with_non_0_fee_rate() -> TokenBasic {
         test_decimals(),
         test_fee_non_0_rate(),
         fee_to,
+        None,
     );
     token
 }
@@ -140,6 +142,17 @@ fn now() -> u64 {
         .unwrap()
         .as_nanos();
     now as u64
+}
+
+// test verified_created_at
+#[rstest]
+fn test_verified_created_at() {
+    let token = TokenBasic::default();
+    let created_at = 1_649_925_852_452_000_000u64;
+    let timestamp = 1_649_925_938_944_884_000u64;
+    let res = token.verified_created_at(&Some(created_at.clone()), &timestamp);
+
+    assert_eq!(res, Ok(()));
 }
 
 // test default TokenBasic value
@@ -195,6 +208,7 @@ fn test_token_basic_logo_invalid_image(
         test_decimals,
         test_fee_0_rate,
         fee_to,
+        None,
     );
     // will panic if logo is a unsupported image type
     assert_eq!(token.metadata().name(), &test_name);
@@ -291,8 +305,8 @@ fn test_token_basic_set_desc(
         "TWITTER".to_owned(),
         "https://twitter.com/DelandLabs".to_owned(),
     )]
-    .into_iter()
-    .collect();
+        .into_iter()
+        .collect();
     // set desc by other caller will failed
     let res = token.set_desc(&other_caller(), new_desc.clone());
     assert!(res.is_err(), "set_desc should be err");
@@ -306,8 +320,8 @@ fn test_token_basic_set_desc(
         "TWITTER1".to_owned(),
         "https://twitter.com/DelandLabs1".to_owned(),
     )]
-    .into_iter()
-    .collect();
+        .into_iter()
+        .collect();
     let res = token.set_desc(&test_owner, new_desc1.clone());
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");

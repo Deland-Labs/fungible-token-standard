@@ -7,6 +7,7 @@ use ic_cdk::api;
 use ic_cdk_macros::*;
 
 #[init]
+#[candid_method(init)]
 fn canister_init(dft_id: Principal, dft_tx_start_index: Nat) {
     STORAGE.with(|storage| {
         let mut storage = storage.borrow_mut();
@@ -24,7 +25,7 @@ fn batch_append(blocks: Vec<EncodedBlock>) -> BooleanResult {
 }
 
 #[query(name = "blockByHeight")]
-#[candid_method(query, rename = "blockByIndex")]
+#[candid_method(query, rename = "blockByHeight")]
 fn block_by_index(block_height: Nat) -> BlockResult {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
@@ -46,7 +47,9 @@ fn blocks(block_height_start: Nat, size: usize) -> BlockListResult {
 fn storage_info() -> StorageInfo {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
-        storage.get_storage_info()
+        let mut storage_info = storage.get_storage_info();
+        storage_info.cycles = api::canister_balance();
+        storage_info
     })
 }
 

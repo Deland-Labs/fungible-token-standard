@@ -490,7 +490,7 @@ impl TokenBasic {
         decimals: u8,
         fee: TokenFee,
         fee_to: TokenHolder,
-        archive_options: Option<TokenArchiveOptions>,
+        archive_options: Option<ArchiveOptions>,
     ) {
         // check logo type
         if logo.is_some() {
@@ -522,6 +522,10 @@ impl TokenStandard for TokenBasic {
     ) -> CommonResult<bool> {
         self.only_owner(caller)?;
         self.verified_created_at(&created_at, &now)?;
+
+        if self.owner == new_owner {
+            return Ok(true);
+        }
 
         let num_purged = self.purge_old_transactions(now);
         if num_purged == 0 {

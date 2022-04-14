@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Serialize, Deserialize, CandidType, Clone, Debug, PartialEq, Eq)]
-pub struct TokenArchiveOptions {
+pub struct ArchiveOptions {
     /// The number of blocks which, when exceeded, will trigger an archiving
     /// operation
     pub trigger_threshold: u32,
@@ -64,7 +64,7 @@ impl Default for Archive {
 }
 
 impl Archive {
-    pub fn new(options: TokenArchiveOptions) -> Self {
+    pub fn new(options: ArchiveOptions) -> Self {
         Self {
             storage_canisters: vec![],
             storage_canisters_block_ranges: vec![],

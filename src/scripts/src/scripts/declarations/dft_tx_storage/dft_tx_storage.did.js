@@ -63,7 +63,7 @@ export const idlFactory = ({ IDL }) => {
   });
   return IDL.Service({
     'batchAppend' : IDL.Func([IDL.Vec(IDL.Vec(IDL.Nat8))], [BooleanResult], []),
-    'blockByIndex' : IDL.Func([IDL.Nat], [BlockResult], ['query']),
+    'blockByHeight' : IDL.Func([IDL.Nat], [BlockResult], ['query']),
     'blocksByQuery' : IDL.Func(
         [IDL.Nat, IDL.Nat64],
         [BlockListResult],

@@ -29,7 +29,7 @@ export const reinstall = async (options?: ReInstallOptions, initOption?: DFTInit
         rate_decimals: 8,
     };
     const owner = initOption?.owner ? `opt principal "${initOption?.owner}"` : "null";
-    const args = `'(null ,null ,"${name}", "${symbol}", ${decimals}:nat8, ${supply}:nat, record { minimum =${fee.minimum} : nat; rate = ${fee.rate} : nat; rateDecimals= ${fee.rate_decimals}:nat8 } , ${owner})'`;
+    const args = `'(null ,null ,"${name}", "${symbol}", ${decimals}:nat8, ${supply}:nat, record { minimum =${fee.minimum} : nat; rate = ${fee.rate} : nat; rateDecimals= ${fee.rate_decimals}:nat8 } , ${owner},null)'`;
     logger.debug(`Reinstall by dfx: ${args}`);
     await reinstall_by_dfx(args);
 }

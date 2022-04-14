@@ -53,7 +53,7 @@ export type TokenHolder = { 'None' : null } |
 export interface Transaction { 'createdAt' : bigint, 'operation' : Operation }
 export interface _SERVICE {
   'batchAppend' : (arg_0: Array<Array<number>>) => Promise<BooleanResult>,
-  'blockByIndex' : (arg_0: bigint) => Promise<BlockResult>,
+  'blockByHeight' : (arg_0: bigint) => Promise<BlockResult>,
   'blocksByQuery' : (arg_0: bigint, arg_1: bigint) => Promise<BlockListResult>,
   'storageInfo' : () => Promise<StorageInfo>,
 }

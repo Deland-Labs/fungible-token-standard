@@ -36,10 +36,9 @@ type StorageInfo = record {
 type TokenFee = record { rate : nat; minimum : nat; rateDecimals : nat8 };
 type TokenHolder = variant { None; Account : text; Principal : principal };
 type Transaction = record { createdAt : nat64; operation : Operation };
-
-service : (principal, nat) -> {  
+service : (principal, nat) -> {
   batchAppend : (vec vec nat8) -> (BooleanResult);
-  blockByIndex : (nat) -> (BlockResult) query;
+  blockByHeight : (nat) -> (BlockResult) query;
   blocksByQuery : (nat, nat64) -> (BlockListResult) query;
   storageInfo : () -> (StorageInfo) query;
 }
