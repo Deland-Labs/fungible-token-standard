@@ -18,9 +18,11 @@ mod token_transaction;
 
 use candid::Nat;
 use candid::Principal;
+use num_bigint::BigUint;
 use std::collections::HashMap;
 use std::string::String;
 
+pub type TokenAmount = BigUint;
 pub type TransactionId = String;
 pub type ExtendData = HashMap<String, String>;
 pub type Balances = HashMap<TokenHolder, Nat>;
@@ -30,17 +32,14 @@ pub type Allowances = HashMap<TokenHolder, HashMap<TokenHolder, Nat>>;
 pub use account_identifier::AccountIdentifier;
 pub use account_identifier::Subaccount;
 pub use account_identifier::SUB_ACCOUNT_ZERO;
-pub use token_fee::TokenFee;
+pub use token_fee::*;
 pub use token_holder::TokenHolder;
-pub use token_metadata::TokenMetadata;
-
+pub use token_metadata::*;
 pub type TransferFrom = TokenHolder;
 pub type TokenReceiver = TokenHolder;
-
 pub type BlockHash = [u8; 32];
-pub type BlockHeight = Nat;
+pub type BlockHeight = BigUint;
 pub type TransactionHash = [u8; 32];
-
 pub use actor_response::*;
 pub use block::*;
 pub use blockchain::*;

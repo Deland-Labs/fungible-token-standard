@@ -1,4 +1,5 @@
 use candid::{CandidType, Deserialize, Principal};
+use serde::Serialize;
 use std::{
     fmt::{self, Display},
     str::FromStr,
@@ -7,7 +8,9 @@ use std::{
 
 use super::{AccountIdentifier, Subaccount};
 
-#[derive(CandidType, Debug, Clone, Deserialize, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    CandidType, Debug, Clone, Deserialize, Serialize, Hash, PartialEq, Eq, PartialOrd, Ord,
+)]
 pub enum TokenHolder {
     Account(AccountIdentifier),
     Principal(Principal),

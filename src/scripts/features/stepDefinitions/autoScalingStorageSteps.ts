@@ -13,7 +13,6 @@ When(
     async function (count, user) {
         const actor = createDFTBasicActor(user);
         const tokenInfo = await actor.tokenInfo();
-        logger.debug(`tokenInfo: ${JSON.stringify(tokenInfo)}`);
         assert.equal(tokenInfo.storages.length, parseInt(count));
     }
 );

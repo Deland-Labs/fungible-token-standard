@@ -1,8 +1,8 @@
 use crate::{
-    ActorResult, Block, BlockHash, BlockHeight, CommonResult, ErrorInfo, Transaction,
-    TransactionHash, TransactionId,
+    ActorResult, BlockHash, BlockHeight, CandidBlock, CandidTransaction, CommonResult, ErrorInfo,
+    Transaction, TransactionHash, TransactionId,
 };
-use candid::{CandidType, Deserialize, Nat, Principal};
+use candid::{CandidType, Deserialize, Principal, Nat};
 
 #[derive(CandidType, Debug, Deserialize)]
 pub enum BooleanResult {
@@ -34,7 +34,7 @@ pub enum OperationResult {
         #[serde(rename = "txId")]
         tx_id: TransactionId,
         #[serde(rename = "blockHeight")]
-        block_height: BlockHeight,
+        block_height: Nat,
         error: Option<ErrorInfo>,
     },
     Err(ErrorInfo),
@@ -45,7 +45,7 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
         match result {
             Ok((block_height, _, tx_hash)) => OperationResult::Ok {
                 tx_id: hex::encode(tx_hash.as_ref()),
-                block_height: block_height,
+                block_height: block_height.into(),
                 error: None,
             },
             Err(error) => OperationResult::Err(error.into()),
@@ -56,7 +56,7 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
 #[derive(CandidType, Debug, Clone)]
 pub enum BlockResult {
     // Return tx record if exist in the DFT cache txs
-    Ok(Block),
+    Ok(CandidBlock),
     // If not storage in DFT cache txs, return the storage canister id
     Forward(Principal),
     // Such as out of tx index or tx id not exist
@@ -66,14 +66,14 @@ pub enum BlockResult {
 #[derive(CandidType, Debug, Clone)]
 pub enum BlockListResult {
     // Return tx record if exist in the DFT cache txs
-    Ok(Vec<Block>),
+    Ok(Vec<CandidBlock>),
     // Such as out of tx index or tx id not exist
     Err(ErrorInfo),
 }
 
 #[derive(Debug, CandidType, Deserialize)]
 pub struct ArchivedBlocksRange {
-    pub start: BlockHeight,
+    pub start: Nat,
     pub length: u64,
     #[serde(rename = "storageCanisterId")]
     pub storage_canister_id: Principal,
@@ -84,19 +84,19 @@ pub struct QueryBlocksResult {
     #[serde(rename = "chainLength")]
     pub chain_length: Nat,
     pub certificate: Option<serde_bytes::ByteBuf>,
-    pub blocks: Vec<Block>,
+    pub blocks: Vec<CandidBlock>,
     #[serde(rename = "firstBlockIndex")]
-    pub first_block_index: BlockHeight,
+    pub first_block_index: Nat,
     #[serde(rename = "archivedBlocks")]
     pub archived_blocks: Vec<ArchivedBlocksRange>,
 }
 
 pub type TransactionList = Vec<Transaction>;
-
+pub type CandidTransactionList = Vec<CandidTransaction>;
 #[derive(CandidType, Debug, Clone)]
 pub enum TransactionResult {
     // Return tx if exist in the DFT cache txs
-    Ok(Transaction),
+    Ok(CandidTransaction),
     // If not storage in DFT cache txs, return the storage canister id
     Forward(Principal),
     // Such as out of tx index or tx id not exist
@@ -104,14 +104,20 @@ pub enum TransactionResult {
 }
 #[derive(CandidType)]
 pub enum TransactionListResult {
-    Ok(TransactionList),
+    Ok(CandidTransactionList),
     Err(ErrorInfo),
 }
 
 impl From<CommonResult<TransactionList>> for TransactionListResult {
     fn from(result: CommonResult<TransactionList>) -> Self {
         match result {
-            Ok(value) => TransactionListResult::Ok(value),
+            Ok(value) => {
+                let mut txs = Vec::with_capacity(value.len());
+                for tx in value {
+                    txs.push(tx.into());
+                }
+                TransactionListResult::Ok(txs)
+            }
             Err(error) => TransactionListResult::Err(error.into()),
         }
     }

@@ -1,6 +1,6 @@
-use std::collections::HashMap;
-
 use candid::{CandidType, Deserialize};
+use serde::Serialize;
+use std::collections::HashMap;
 
 const OFFICIAL_SITE: &str = "OFFICIAL_SITE";
 const MEDIUM: &str = "MEDIUM";
@@ -45,7 +45,7 @@ const DESC_KEYS: [&str; 19] = [
     WHITE_PAPER,
 ];
 
-#[derive(CandidType, Clone, Default, Debug, Deserialize)]
+#[derive(CandidType, Clone, Default, Debug, Deserialize, Serialize)]
 pub struct TokenDescription {
     desc: HashMap<String, String>,
 }
@@ -76,8 +76,11 @@ impl TokenDescription {
             self.set(key, value)
         }
     }
-    pub fn to_vec(&self)-> Vec<(String, String)> {
-        self.desc.iter().map(|(k, v)| (k.clone(), v.clone())).collect()
+    pub fn to_vec(&self) -> Vec<(String, String)> {
+        self.desc
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect()
     }
     pub fn restore_from(&mut self, vec: Vec<(String, String)>) {
         self.desc = HashMap::new();

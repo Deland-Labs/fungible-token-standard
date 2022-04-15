@@ -1,4 +1,4 @@
-use candid::{Nat, Principal};
+use candid::Principal;
 use dft_standard::token::TokenBasic;
 use dft_types::*;
 
@@ -8,7 +8,7 @@ pub trait MintableExtension {
         &mut self,
         caller: &Principal,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         nonce: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
@@ -20,7 +20,7 @@ impl MintableExtension for TokenBasic {
         &mut self,
         caller: &Principal,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {

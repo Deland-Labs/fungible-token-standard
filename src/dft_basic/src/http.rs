@@ -1,6 +1,6 @@
-use crate::state::TOKEN;
-use crate::token::TokenStandard;
 use candid::candid_method;
+use dft_standard::state::TOKEN;
+use dft_standard::token::TokenStandard;
 use dft_types::{HttpRequest, HttpResponse};
 use dft_utils::get_logo_type;
 use ic_cdk_macros::query;
@@ -31,7 +31,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 token_info.decimals(),
                 total_supply ,
                 fee.minimum,
-                format!("{} %", fee.rate * 100 / 10u64.pow(fee.rate_decimals.into()))
+                format!("{} %", fee.rate as u128 * 100 / 10u128.pow(fee.rate_decimals.into()))
             );
 
             let metrics_json = format!(

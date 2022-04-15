@@ -1,12 +1,12 @@
-use candid::candid_method;
+use candid::{candid_method, Nat};
 use dft_types::*;
-use ic_cdk::{
-    export::{candid::Nat, Principal},
-};
+use ic_cdk::export::Principal;
 use ic_cdk_macros::*;
 use std::string::String;
 
 mod basic;
+mod http;
+mod management;
 
 candid::export_service!();
 

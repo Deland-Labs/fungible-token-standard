@@ -35,6 +35,7 @@ Feature: token approve and transfer from
       | dft_user3 | dft_user2 | dft_receiver | dft_fee_charger | 100  | dft_burnable | 99897.8     | 0             | 100            | 2002.2  |
       | dft_miner | dft_user3 | dft_receiver | dft_fee_charger | 100  | dft_mintable | 99889.7     | 0             | 100            | 10010.3 |
 
+  @dev
   Scenario:Approve from the owner to a spender
     When "dft_miner" approve "dft_basic" to "dft_user1", "1"
     Then Check the "dft_basic" allowance of "dft_miner" "dft_user1" should be "1"
