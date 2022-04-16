@@ -3,7 +3,6 @@ import {reinstall as reinstallDFTBasic} from "~/canisters/dftBasic";
 import {reinstall as reinstallDFTBasic2} from "~/canisters/dftBasic2";
 import {reinstall as reinstallDFTBurnable} from "~/canisters/dfBurnable";
 import {reinstall as reinstallDFTMintable} from "~/canisters/dftMintable";
-import {reinstall as reinstallDFTReceiver} from "~/canisters/dftReceiver";
 import {reinstall as reinstallDFTTxStorage} from "~/canisters/dftTxStorage";
 
 
@@ -31,10 +30,6 @@ export const reinstall_all = async (options?: CanisterReinstallOptions) => {
     if (options && options.canisters?.dft_mintable) {
         jobs.push(reinstallDFTMintable({...options,},
             options.canisters.dft_mintable.initOptions));
-    }
-    // dft receiver
-    if (options && options.canisters?.dft_receiver) {
-        jobs.push(reinstallDFTReceiver({...options}));
     }
 
     // dfx tx storage
@@ -75,7 +70,6 @@ export interface DFTInitOptions {
 export interface CommonInstallOptions {
     reinstall: boolean;
 }
-
 
 export interface DFTInstallOptions extends CommonInstallOptions {
     initOptions: DFTInitOptions;

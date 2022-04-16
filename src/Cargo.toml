@@ -3,7 +3,6 @@ members = [
     "dft_basic",
     "dft_burnable",
     "dft_mintable",
-    "dft_receiver",
     "dft_standard",
     "dft_types",
     "dft_utils",
