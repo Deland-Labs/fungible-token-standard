@@ -12,6 +12,7 @@ use ic_cdk::{
     api,
     export::{candid::Nat, Principal},
 };
+
 const STORAGE_WASM: &[u8] =
     std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
 
@@ -111,10 +112,6 @@ async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonRe
     if is_necessary_create_new_storage_canister {
         let new_scaling_storage_canister_id = create_new_scaling_storage_canister().await?;
         last_storage_id = Some(new_scaling_storage_canister_id);
-        TOKEN.with(|token| {
-            let mut token = token.borrow_mut();
-            token.append_scaling_storage_canister(new_scaling_storage_canister_id);
-        });
     }
     return Ok(last_storage_id.unwrap());
 }
@@ -140,6 +137,11 @@ async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
                 token.scaling_storage_block_height_offset().into()
             });
 
+            TOKEN.with(|token| {
+                let mut token = token.borrow_mut();
+                token.pre_append_scaling_storage_canister(cdr.canister_id);
+            });
+
             api::print(format!(
                 "token new storage canister id : {} , block height offset : {}",
                 cdr.canister_id.clone().to_string(),
@@ -150,7 +152,13 @@ async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
                     match install_canister(&cdr.canister_id, STORAGE_WASM.to_vec(), install_args)
                         .await
                     {
-                        Ok(_) => Ok(cdr.canister_id),
+                        Ok(_) => {
+                            TOKEN.with(|token| {
+                                let mut token = token.borrow_mut();
+                                token.append_scaling_storage_canister(cdr.canister_id);
+                            });
+                            Ok(cdr.canister_id)
+                        }
                         Err(emsg) => {
                             let emsg = format!(
                                 "install auto-scaling storage canister failed. details:{}",
@@ -162,7 +170,7 @@ async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
                     }
                 }
                 Err(emsg) => {
-                    let emsg = format!("encode_args failed. details:{}", emsg);
+                    let emsg = format!("encode_args failed. details:{:?}", emsg);
                     api::print(emsg.clone());
                     return Err(DFTError::StorageScalingFailed { detail: emsg });
                 }
@@ -185,10 +193,10 @@ async fn send_blocks_to_archive(blocks_to_archive: VecDeque<EncodedBlock>) -> Co
         storage_canister_id.to_text()
     ));
     //save the txs to auto-scaling storage
-    let res: Result<(BooleanResult,), (RejectionCode, String)> =
-        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive,)).await;
+    let res: Result<(BooleanResult, ), (RejectionCode, String)> =
+        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive, )).await;
     match res {
-        Ok((res,)) => match res {
+        Ok((res, )) => match res {
             BooleanResult::Ok(sucess) => {
                 if sucess {
                     api::print("batchAppend success");

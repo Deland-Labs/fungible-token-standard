@@ -14,6 +14,15 @@ Feature: token tx auto scaling storage
       | dft_basic | dft_user3 | 1000000 |
       | dft_basic | dft_user4 | 1000000 |
       | dft_basic | dft_user5 | 1000000 |
+      | dft_basic | dft_user6 | 1000000 |
+      | dft_basic | dft_user7 | 1000000 |
+      | dft_basic | dft_user8 | 1000000 |
+      | dft_basic | dft_user9 | 1000000 |
+      | dft_basic | dft_user10 | 1000000 |
+      | dft_basic | dft_user11 | 1000000 |
+      | dft_basic | dft_user12 | 1000000 |
+      | dft_basic | dft_user13 | 1000000 |
+
 
   Scenario:Auto scaling storage when tx count is more than 3000 times
     When Check the storage canisters count is equal to "0" ,by "dft_main"
@@ -25,13 +34,21 @@ Feature: token tx auto scaling storage
       | dft_basic | dft_user2 | dft_user3 |
       | dft_basic | dft_user3 | dft_user4 |
       | dft_basic | dft_user4 | dft_user5 |
-      | dft_basic | dft_user5 | dft_main  |
+      | dft_basic | dft_user5 | dft_user6  |
+      | dft_basic | dft_user6 | dft_user7  |
+      | dft_basic | dft_user7 | dft_user8  |
+      | dft_basic | dft_user8 | dft_user9  |
+      | dft_basic | dft_user9 | dft_user10  |
+      | dft_basic | dft_user10 | dft_user11  |
+      | dft_basic | dft_user11 | dft_user12  |
+      | dft_basic | dft_user12 | dft_user13  |
+      | dft_basic | dft_user13 | dft_main  |
     Then Check the storage canisters count is equal to "1" ,by "dft_main"
-    Then Check the block height "2004" transfer transaction of "dft_basic", the amount should be 1998
+    Then Check the block height "2004" transfer transaction of "dft_basic", the amount should be 1988
     Then Check the block height "999" transfer transaction of "dft_basic", the result should be a forward result
-    Then Get the block height "999" transfer transaction of "dft_basic" from archive canister, the amount should be "993"
+    Then Get the block height "999" transfer transaction of "dft_basic" from archive canister, the amount should be "983"
     Then Check the block height "2010" transfer transaction of "dft_basic", the result should not be a forward result
-    Then Check the blocks query of "dft_basic", start block height "3014",size "2", check each transaction is correct
+    Then Check the blocks query of "dft_basic", start block height "3024",size "2", check each transaction is correct
       | amount | fee  |
       | 3008   | 0.01 |
       | 3009   | 0.01 |
