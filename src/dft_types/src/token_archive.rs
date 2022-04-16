@@ -84,6 +84,9 @@ impl Archive {
         }
     }
 
+    pub fn latest_storage_canister(&self) -> Option<Principal> {
+        self.latest_storage_canister
+    }
     pub fn last_storage_canister_id(&self) -> Option<Principal> {
         match self.storage_canisters.last() {
             Some(id) => Some(id.clone()),
