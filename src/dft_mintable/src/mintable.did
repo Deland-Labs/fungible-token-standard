@@ -28,21 +28,21 @@ type CandidBlock = record {
   parentHash : opt vec nat8;
 };
 type CandidOperation = variant {
-  FeeToModify : record { newFeeTo : TokenHolder; caller : principal };
+  FeeToModify : record { newFeeTo : text; caller : principal };
   Approve : record {
     fee : nat;
     value : nat;
-    owner : TokenHolder;
+    owner : text;
     caller : principal;
-    spender : TokenHolder;
+    spender : text;
   };
   FeeModify : record { newFee : CandidTokenFee; caller : principal };
   Transfer : record {
-    to : TokenHolder;
+    to : text;
     fee : nat;
     value : nat;
-    from : TokenHolder;
-    caller : TokenHolder;
+    from : text;
+    caller : text;
   };
   OwnerModify : record { newOwner : principal; caller : principal };
 };
@@ -88,7 +88,6 @@ type QueryBlocksResult = record {
 type StreamingStrategy = variant {
   Callback : record { token : record {}; callback : func () -> () };
 };
-type TokenHolder = variant { None; Account : text; Principal : principal };
 type TokenInfo = record {
   certificate : opt vec nat8;
   owner : principal;
@@ -97,7 +96,7 @@ type TokenInfo = record {
   blockHeight : nat;
   holders : nat64;
   storages : vec principal;
-  feeTo : TokenHolder;
+  feeTo : text;
 };
 service : (
   opt vec nat8,
@@ -111,7 +110,7 @@ service : (
   opt ArchiveOptions,
 ) -> {
   allowance : (text, text) -> (nat) query;
-  allowancesOf : (text) -> (vec record { TokenHolder; nat }) query;
+  allowancesOf : (text) -> (vec record { text; nat }) query;
   approve : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
   archives : () -> (vec ArchiveInfo) query;
   balanceOf : (text) -> (nat) query;

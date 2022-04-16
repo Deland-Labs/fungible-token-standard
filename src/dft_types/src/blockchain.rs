@@ -24,6 +24,7 @@ impl Default for Blockchain {
         }
     }
 }
+
 impl Blockchain {
     pub fn add_block(&mut self, token_id: &Principal, block: Block) -> CommonResult<BlockHeight> {
         let raw_block = block.clone().encode()?;

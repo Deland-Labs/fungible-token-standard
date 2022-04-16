@@ -43,7 +43,7 @@ impl TokenBalances {
             // calc new balance
             let new_balance = self.balance_of(holder) - value.clone();
 
-            if new_balance>  TokenAmount::from(0u32) {
+            if new_balance > TokenAmount::from(0u32) {
                 self.balances.insert(holder.clone(), new_balance);
             } else {
                 self.balances.remove(holder);

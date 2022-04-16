@@ -12,25 +12,25 @@ export interface CandidBlock {
   'parentHash' : [] | [Array<number>],
 }
 export type CandidOperation = {
-    'FeeToModify' : { 'newFeeTo' : TokenHolder, 'caller' : Principal }
+    'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }
   } |
   {
     'Approve' : {
       'fee' : bigint,
       'value' : bigint,
-      'owner' : TokenHolder,
+      'owner' : string,
       'caller' : Principal,
-      'spender' : TokenHolder,
+      'spender' : string,
     }
   } |
   { 'FeeModify' : { 'newFee' : CandidTokenFee, 'caller' : Principal } } |
   {
     'Transfer' : {
-      'to' : TokenHolder,
+      'to' : string,
       'fee' : bigint,
       'value' : bigint,
-      'from' : TokenHolder,
-      'caller' : TokenHolder,
+      'from' : string,
+      'caller' : string,
     }
   } |
   { 'OwnerModify' : { 'newOwner' : Principal, 'caller' : Principal } };
@@ -51,9 +51,6 @@ export interface StorageInfo {
   'totalBlockSizeBytes' : bigint,
   'blockHeightOffset' : bigint,
 }
-export type TokenHolder = { 'None' : null } |
-  { 'Account' : string } |
-  { 'Principal' : Principal };
 export interface _SERVICE {
   'batchAppend' : (arg_0: Array<Array<number>>) => Promise<BooleanResult>,
   'blockByHeight' : (arg_0: bigint) => Promise<BlockResult>,

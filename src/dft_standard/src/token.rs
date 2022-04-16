@@ -123,7 +123,7 @@ impl Default for TokenBasic {
             token_id: Principal::anonymous(),
             logo: None,
             owner: Principal::anonymous(),
-            fee_to: TokenHolder::None,
+            fee_to: TokenHolder::empty(),
             blockchain: Blockchain::default(),
             metadata: TokenMetadata::default(),
             balances: TokenBalances::default(),
@@ -393,7 +393,7 @@ impl TokenBasic {
         let tx = Transaction {
             operation: Operation::Transfer {
                 caller: TokenHolder::new(caller.clone(), None),
-                from: TokenHolder::None,
+                from: TokenHolder::empty(),
                 to: to.clone(),
                 value: value.clone(),
                 fee: 0u32.into(),
@@ -427,7 +427,7 @@ impl TokenBasic {
             operation: Operation::Transfer {
                 caller: burner.clone(),
                 from: burner.clone(),
-                to: TokenHolder::None,
+                to: TokenHolder::empty(),
                 value: value.clone(),
                 fee: fee.clone(),
             },
@@ -462,7 +462,7 @@ impl TokenBasic {
                 operation: Operation::Transfer {
                     caller: burner.clone(),
                     from: from.clone(),
-                    to: TokenHolder::None,
+                    to: TokenHolder::empty(),
                     value: value.clone(),
                     fee: fee.clone(),
                 },

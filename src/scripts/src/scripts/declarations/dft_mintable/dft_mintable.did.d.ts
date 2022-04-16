@@ -28,25 +28,25 @@ export interface CandidBlock {
   'parentHash' : [] | [Array<number>],
 }
 export type CandidOperation = {
-    'FeeToModify' : { 'newFeeTo' : TokenHolder, 'caller' : Principal }
+    'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }
   } |
   {
     'Approve' : {
       'fee' : bigint,
       'value' : bigint,
-      'owner' : TokenHolder,
+      'owner' : string,
       'caller' : Principal,
-      'spender' : TokenHolder,
+      'spender' : string,
     }
   } |
   { 'FeeModify' : { 'newFee' : CandidTokenFee, 'caller' : Principal } } |
   {
     'Transfer' : {
-      'to' : TokenHolder,
+      'to' : string,
       'fee' : bigint,
       'value' : bigint,
-      'from' : TokenHolder,
-      'caller' : TokenHolder,
+      'from' : string,
+      'caller' : string,
     }
   } |
   { 'OwnerModify' : { 'newOwner' : Principal, 'caller' : Principal } };
@@ -96,9 +96,6 @@ export interface QueryBlocksResult {
 export type StreamingStrategy = {
     'Callback' : { 'token' : {}, 'callback' : [Principal, string] }
   };
-export type TokenHolder = { 'None' : null } |
-  { 'Account' : string } |
-  { 'Principal' : Principal };
 export interface TokenInfo {
   'certificate' : [] | [Array<number>],
   'owner' : Principal,
@@ -107,11 +104,11 @@ export interface TokenInfo {
   'blockHeight' : bigint,
   'holders' : bigint,
   'storages' : Array<Principal>,
-  'feeTo' : TokenHolder,
+  'feeTo' : string,
 }
 export interface _SERVICE {
   'allowance' : (arg_0: string, arg_1: string) => Promise<bigint>,
-  'allowancesOf' : (arg_0: string) => Promise<Array<[TokenHolder, bigint]>>,
+  'allowancesOf' : (arg_0: string) => Promise<Array<[string, bigint]>>,
   'approve' : (
       arg_0: [] | [Array<number>],
       arg_1: string,

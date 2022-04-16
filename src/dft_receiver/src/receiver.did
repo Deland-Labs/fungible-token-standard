@@ -1,2 +1,1 @@
-type TokenHolder = variant { None; Account : text; Principal : principal };
-service : { onTokenReceived : (TokenHolder, nat) -> (bool) }
+service : { onTokenReceived : (text, nat) -> (bool) }

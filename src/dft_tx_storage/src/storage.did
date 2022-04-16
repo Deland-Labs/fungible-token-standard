@@ -11,21 +11,21 @@ type CandidBlock = record {
   parentHash : opt vec nat8;
 };
 type CandidOperation = variant {
-  FeeToModify : record { newFeeTo : TokenHolder; caller : principal };
+  FeeToModify : record { newFeeTo : text; caller : principal };
   Approve : record {
     fee : nat;
     value : nat;
-    owner : TokenHolder;
+    owner : text;
     caller : principal;
-    spender : TokenHolder;
+    spender : text;
   };
   FeeModify : record { newFee : CandidTokenFee; caller : principal };
   Transfer : record {
-    to : TokenHolder;
+    to : text;
     fee : nat;
     value : nat;
-    from : TokenHolder;
-    caller : TokenHolder;
+    from : text;
+    caller : text;
   };
   OwnerModify : record { newOwner : principal; caller : principal };
 };
@@ -46,7 +46,6 @@ type StorageInfo = record {
   totalBlockSizeBytes : nat;
   blockHeightOffset : nat;
 };
-type TokenHolder = variant { None; Account : text; Principal : principal };
 service : (principal, nat) -> {
   batchAppend : (vec vec nat8) -> (BooleanResult);
   blockByHeight : (nat) -> (BlockResult) query;

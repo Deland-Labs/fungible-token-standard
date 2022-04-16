@@ -107,6 +107,7 @@ Given(/^owner "([^"]*)" set "([^"]*)" as fee_to$/, async function (owner, feeTo)
     const dftBurnAble = createDFTBurnableActor(owner);
     const dftMintAble = createDFTMintableActor(owner);
     const feeToPrincipal = identityFactory.getPrincipal(feeTo)!.toText();
+    const feeToAccountId = identityFactory.getAccountIdHex(feeTo);
     logger.debug(`feeToPrincipal: ${feeToPrincipal}`);
     const dftActors = [dftBasic, dftBasic2, dftBurnAble, dftMintAble];
     for (let i = 0; i < dftActors.length; i++) {
@@ -117,8 +118,7 @@ Given(/^owner "([^"]*)" set "([^"]*)" as fee_to$/, async function (owner, feeTo)
                 const res = await dftActor.setFeeTo(feeToPrincipal, []);
                 assert.isTrue('Ok' in res, `set fee_to failed: ${JSON.stringify(res)}`);
                 const result = await dftBasic.tokenInfo();
-                assert.isTrue('Principal' in result.feeTo, `tokenInfo failed: ${JSON.stringify(result)}`);
-                assert.equal(result.feeTo['Principal'].toText(), feeToPrincipal);
+                assert.equal(result.feeTo, feeToAccountId);
             } catch {
             }
         }

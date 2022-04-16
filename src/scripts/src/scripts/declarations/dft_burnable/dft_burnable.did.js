@@ -11,11 +11,6 @@ export const idlFactory = ({ IDL }) => {
     'cycles_for_archive_creation' : IDL.Opt(IDL.Nat64),
     'node_max_memory_size_bytes' : IDL.Opt(IDL.Nat32),
   });
-  const TokenHolder = IDL.Variant({
-    'None' : IDL.Null,
-    'Account' : IDL.Text,
-    'Principal' : IDL.Principal,
-  });
   const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
   const OperationResult = IDL.Variant({
     'Ok' : IDL.Record({
@@ -33,26 +28,26 @@ export const idlFactory = ({ IDL }) => {
   });
   const CandidOperation = IDL.Variant({
     'FeeToModify' : IDL.Record({
-      'newFeeTo' : TokenHolder,
+      'newFeeTo' : IDL.Text,
       'caller' : IDL.Principal,
     }),
     'Approve' : IDL.Record({
       'fee' : IDL.Nat,
       'value' : IDL.Nat,
-      'owner' : TokenHolder,
+      'owner' : IDL.Text,
       'caller' : IDL.Principal,
-      'spender' : TokenHolder,
+      'spender' : IDL.Text,
     }),
     'FeeModify' : IDL.Record({
       'newFee' : CandidTokenFee,
       'caller' : IDL.Principal,
     }),
     'Transfer' : IDL.Record({
-      'to' : TokenHolder,
+      'to' : IDL.Text,
       'fee' : IDL.Nat,
       'value' : IDL.Nat,
-      'from' : TokenHolder,
-      'caller' : TokenHolder,
+      'from' : IDL.Text,
+      'caller' : IDL.Text,
     }),
     'OwnerModify' : IDL.Record({
       'newOwner' : IDL.Principal,
@@ -118,13 +113,13 @@ export const idlFactory = ({ IDL }) => {
     'blockHeight' : IDL.Nat,
     'holders' : IDL.Nat64,
     'storages' : IDL.Vec(IDL.Principal),
-    'feeTo' : TokenHolder,
+    'feeTo' : IDL.Text,
   });
   return IDL.Service({
     'allowance' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], ['query']),
     'allowancesOf' : IDL.Func(
         [IDL.Text],
-        [IDL.Vec(IDL.Tuple(TokenHolder, IDL.Nat))],
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat))],
         ['query'],
       ),
     'approve' : IDL.Func(
