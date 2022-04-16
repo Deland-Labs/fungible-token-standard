@@ -6,12 +6,12 @@ export const idlFactory = ({ IDL }) => {
     'Account' : IDL.Text,
     'Principal' : IDL.Principal,
   });
-  const TokenFee = IDL.Record({
-    'rate' : IDL.Nat,
+  const CandidTokenFee = IDL.Record({
+    'rate' : IDL.Nat32,
     'minimum' : IDL.Nat,
     'rateDecimals' : IDL.Nat8,
   });
-  const Operation = IDL.Variant({
+  const CandidOperation = IDL.Variant({
     'FeeToModify' : IDL.Record({
       'newFeeTo' : TokenHolder,
       'caller' : IDL.Principal,
@@ -23,7 +23,10 @@ export const idlFactory = ({ IDL }) => {
       'caller' : IDL.Principal,
       'spender' : TokenHolder,
     }),
-    'FeeModify' : IDL.Record({ 'newFee' : TokenFee, 'caller' : IDL.Principal }),
+    'FeeModify' : IDL.Record({
+      'newFee' : CandidTokenFee,
+      'caller' : IDL.Principal,
+    }),
     'Transfer' : IDL.Record({
       'to' : TokenHolder,
       'fee' : IDL.Nat,
@@ -36,22 +39,22 @@ export const idlFactory = ({ IDL }) => {
       'caller' : IDL.Principal,
     }),
   });
-  const Transaction = IDL.Record({
+  const CandidTransaction = IDL.Record({
     'createdAt' : IDL.Nat64,
-    'operation' : Operation,
+    'operation' : CandidOperation,
   });
-  const Block = IDL.Record({
-    'transaction' : Transaction,
+  const CandidBlock = IDL.Record({
+    'transaction' : CandidTransaction,
     'timestamp' : IDL.Nat64,
     'parentHash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
   });
   const BlockResult = IDL.Variant({
-    'Ok' : Block,
+    'Ok' : CandidBlock,
     'Err' : ErrorInfo,
     'Forward' : IDL.Principal,
   });
   const BlockListResult = IDL.Variant({
-    'Ok' : IDL.Vec(Block),
+    'Ok' : IDL.Vec(CandidBlock),
     'Err' : ErrorInfo,
   });
   const StorageInfo = IDL.Record({

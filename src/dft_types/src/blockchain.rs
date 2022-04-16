@@ -1,15 +1,16 @@
 use crate::{Archive, Block, BlockHash, BlockHeight, CommonResult, DFTError, EncodedBlock};
-use candid::{CandidType, Deserialize, Nat, Principal};
+use candid::{Deserialize, Principal};
+use serde::Serialize;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 
-#[derive(CandidType, Clone, Deserialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug)]
 pub struct Blockchain {
     pub blocks: Vec<EncodedBlock>,
     pub last_hash: Option<BlockHash>,
     pub last_timestamp: u64,
     pub archive: Archive,
-    pub num_archived_blocks: Nat,
+    pub num_archived_blocks: BlockHeight,
 }
 
 impl Default for Blockchain {
@@ -44,14 +45,14 @@ impl Blockchain {
         self.last_hash = Some(encoded_block.hash_with_token_id(token_id));
         self.last_timestamp = block.timestamp;
         self.blocks.push(encoded_block);
-        Ok(self.chain_length() - 1)
+        Ok(self.chain_length() - 1u32)
     }
 
     pub fn get(&self, height: BlockHeight) -> Option<&EncodedBlock> {
         if height < self.num_archived_blocks() {
             None
         } else {
-            let index: usize = (height - self.num_archived_blocks()).0.try_into().unwrap();
+            let index: usize = (height - self.num_archived_blocks()).try_into().unwrap();
             self.blocks.get(index)
         }
     }
@@ -60,7 +61,7 @@ impl Blockchain {
         self.blocks.last()
     }
 
-    pub fn num_archived_blocks(&self) -> Nat {
+    pub fn num_archived_blocks(&self) -> BlockHeight {
         self.num_archived_blocks.clone()
     }
 
@@ -68,9 +69,8 @@ impl Blockchain {
         self.blocks.len() as u64
     }
 
-    pub fn local_block_range(&self) -> std::ops::Range<Nat> {
-        self.num_archived_blocks.clone()
-            ..self.num_archived_blocks.clone() + self.blocks.len() as u64
+    pub fn local_block_range(&self) -> std::ops::Range<BlockHeight> {
+        self.num_archived_blocks.clone()..self.num_archived_blocks.clone() + self.blocks.len()
     }
 
     pub fn chain_length(&self) -> BlockHeight {
@@ -86,7 +86,7 @@ impl Blockchain {
             );
         }
         self.blocks = self.blocks.split_off(len.clone());
-        self.num_archived_blocks += len as u64;
+        self.num_archived_blocks += len;
     }
 
     pub fn get_blocks_for_archiving(

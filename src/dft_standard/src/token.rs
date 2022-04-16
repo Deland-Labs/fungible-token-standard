@@ -1,10 +1,11 @@
-use candid::{CandidType, Deserialize, Nat, Principal};
+use candid::{Deserialize, Principal};
 use dft_types::constants::{
     DEFAULT_MAX_TRANSACTIONS_IN_WINDOW, DEFAULT_TRANSACTION_WINDOW, MAX_BLOCKS_PER_REQUEST,
 };
 use dft_types::*;
 use dft_utils::*;
 use getset::{Getters, Setters};
+use serde::Serialize;
 use std::collections::HashMap;
 use std::collections::{BTreeMap, VecDeque};
 use std::convert::{TryFrom, TryInto};
@@ -39,20 +40,20 @@ pub trait TokenStandard {
     ) -> CommonResult<bool>;
     fn set_logo(&mut self, caller: &Principal, logo: Option<Vec<u8>>) -> CommonResult<bool>;
     // total supply
-    fn total_supply(&self) -> Nat;
+    fn total_supply(&self) -> TokenAmount;
     // balance of
-    fn balance_of(&self, owner: &TokenHolder) -> Nat;
+    fn balance_of(&self, owner: &TokenHolder) -> TokenAmount;
     // allowance
-    fn allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> Nat;
+    fn allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> TokenAmount;
     // allowances of
-    fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, Nat)>;
+    fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, TokenAmount)>;
     // approve
     fn approve(
         &mut self,
         caller: &Principal,
         owner: &TokenHolder,
         spender: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
@@ -63,7 +64,7 @@ pub trait TokenStandard {
         from: &TokenHolder,
         spender: &TokenHolder,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
@@ -73,21 +74,21 @@ pub trait TokenStandard {
         caller: &Principal,
         from: &TokenHolder,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
     // token info
     fn token_info(&self) -> TokenInfo;
     fn token_metrics(&self) -> TokenMetrics;
-    fn block_by_height(&self, block_height: Nat) -> BlockResult;
+    fn block_by_height(&self, block_height: BlockHeight) -> BlockResult;
     fn blocks_by_query(&self, start: BlockHeight, count: usize) -> QueryBlocksResult;
     fn archives(&self) -> Vec<ArchiveInfo>;
 }
 
 #[derive(Getters, Setters)]
 #[getset(get = "pub")]
-#[derive(CandidType, Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct TokenBasic {
     // token id
     token_id: Principal,
@@ -187,7 +188,7 @@ impl TokenBasic {
                 .get(num_in_window.saturating_sub(max_rate))
                 .map(|x| x.block_timestamp)
                 .unwrap_or_else(|| 0)
-                +  10u64.pow(9) // 1 second
+                + 10u64.pow(9) // 1 second
                 > now
             {
                 return Err(DFTError::TooManyTransactionsInReplayPreventionWindow);
@@ -197,7 +198,7 @@ impl TokenBasic {
         Ok(())
     }
     //charge approve fee
-    fn charge_approve_fee(&mut self, approver: &TokenHolder) -> CommonResult<Nat> {
+    fn charge_approve_fee(&mut self, approver: &TokenHolder) -> CommonResult<TokenAmount> {
         // check the approver's balance
         // if balance is not enough, return error
         if self.balances.balance_of(approver) < self.metadata().fee().minimum {
@@ -216,12 +217,12 @@ impl TokenBasic {
     fn charge_transfer_fee(
         &mut self,
         transfer_from: &TokenHolder,
-        transfer_value: &Nat,
-    ) -> CommonResult<Nat> {
+        transfer_value: &TokenAmount,
+    ) -> CommonResult<TokenAmount> {
         // calc the transfer fee: rate * value
         // compare the transfer fee and minimum fee,get the max value
         let rate_fee = self.metadata().fee().rate.clone() * transfer_value.clone()
-            / 10u64.pow(self.metadata().fee().rate_decimals.into());
+            / 10u128.pow(self.metadata().fee().rate_decimals.into());
         let min_fee = self.metadata().fee().minimum.clone();
         let transfer_fee = if rate_fee > min_fee {
             rate_fee
@@ -242,11 +243,11 @@ impl TokenBasic {
         }
     }
     // calc transfer fee
-    fn calc_transfer_fee(&self, transfer_value: &Nat) -> Nat {
+    fn calc_transfer_fee(&self, transfer_value: &TokenAmount) -> TokenAmount {
         // calc the transfer fee: rate * value
         // compare the transfer fee and minimum fee,get the max value
         let fee = self.metadata().fee().rate.clone() * transfer_value.clone()
-            / 10u64.pow(self.metadata().fee().rate_decimals.into());
+            / 10u128.pow(self.metadata().fee().rate_decimals.into());
         let min_fee = self.metadata().fee().minimum.clone();
         let max_fee = if fee > min_fee { fee } else { min_fee };
         max_fee
@@ -256,7 +257,7 @@ impl TokenBasic {
         self.blockchain.archive.last_storage_canister_id()
     }
 
-    pub fn scaling_storage_block_height_offset(&self) -> Nat {
+    pub fn scaling_storage_block_height_offset(&self) -> BlockHeight {
         self.blockchain
             .archive
             .scaling_storage_block_height_offset()
@@ -283,7 +284,7 @@ impl TokenBasic {
     pub fn update_scaling_storage_blocks_range(
         &mut self,
         storage_canister_index: usize,
-        end_block_height: Nat,
+        end_block_height: BlockHeight,
     ) {
         self.blockchain
             .archive
@@ -296,9 +297,9 @@ impl TokenBasic {
     fn purge_old_transactions(&mut self, now: u64) -> usize {
         let mut cnt = 0usize;
         while let Some(TransactionInfo {
-            block_timestamp,
-            tx_hash,
-        }) = self.transactions_by_height.front()
+                           block_timestamp,
+                           tx_hash,
+                       }) = self.transactions_by_height.front()
         {
             if *block_timestamp + self.transaction_window + constants::PERMITTED_DRIFT >= now {
                 // Stop at a sufficiently recent block.
@@ -348,7 +349,7 @@ impl TokenBasic {
         tx_invoker: &TokenHolder,
         from: &TokenHolder,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: u64,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
@@ -383,7 +384,7 @@ impl TokenBasic {
         &mut self,
         caller: &Principal,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
@@ -408,7 +409,7 @@ impl TokenBasic {
     pub fn _burn(
         &mut self,
         burner: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: u64,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
@@ -430,7 +431,7 @@ impl TokenBasic {
                 value: value.clone(),
                 fee: fee.clone(),
             },
-            created_at: created_at,
+            created_at,
         };
         let res = self.add_tx_to_block(tx, now)?;
         // burn does not charge the transfer fee
@@ -444,7 +445,7 @@ impl TokenBasic {
         &mut self,
         burner: &TokenHolder,
         from: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: u64,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
@@ -465,7 +466,7 @@ impl TokenBasic {
                     value: value.clone(),
                     fee: fee.clone(),
                 },
-                created_at: created_at,
+                created_at,
             };
             let res = self.add_tx_to_block(tx, now)?;
             self.allowances.debit(from, burner, value.clone())?;
@@ -624,19 +625,19 @@ impl TokenStandard for TokenBasic {
         Ok(true)
     }
 
-    fn total_supply(&self) -> Nat {
+    fn total_supply(&self) -> TokenAmount {
         self.balances.total_supply()
     }
 
-    fn balance_of(&self, holder: &TokenHolder) -> Nat {
+    fn balance_of(&self, holder: &TokenHolder) -> TokenAmount {
         self.balances.balance_of(holder)
     }
 
-    fn allowance(&self, holder: &TokenHolder, spender: &TokenHolder) -> Nat {
+    fn allowance(&self, holder: &TokenHolder, spender: &TokenHolder) -> TokenAmount {
         self.allowances.allowance(holder, spender)
     }
 
-    fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, Nat)> {
+    fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, TokenAmount)> {
         self.allowances.allowances_of(owner)
     }
 
@@ -645,7 +646,7 @@ impl TokenStandard for TokenBasic {
         caller: &Principal,
         owner: &TokenHolder,
         spender: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
@@ -680,7 +681,7 @@ impl TokenStandard for TokenBasic {
         from: &TokenHolder,
         spender: &TokenHolder,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
@@ -707,7 +708,7 @@ impl TokenStandard for TokenBasic {
         caller: &Principal,
         from: &TokenHolder,
         to: &TokenHolder,
-        value: Nat,
+        value: TokenAmount,
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
@@ -725,10 +726,10 @@ impl TokenStandard for TokenBasic {
     fn token_info(&self) -> TokenInfo {
         TokenInfo {
             owner: self.owner.clone(),
-            holders: self.balances.holder_count().into(),
+            holders: self.balances.holder_count(),
             allowance_size: self.allowances.allowance_size(),
             fee_to: self.fee_to.clone(),
-            block_height: self.blockchain.chain_length(),
+            block_height: self.blockchain.chain_length().into(),
             storages: self.blockchain.archive.storage_canisters().to_vec(),
             cycles: 0,
             certificate: None,
@@ -739,12 +740,12 @@ impl TokenStandard for TokenBasic {
         TokenMetrics {
             holders: self.balances.holder_count(),
             total_block_count: self.blockchain.chain_length().into(),
-            local_block_count: self.blockchain.blocks.len().into(),
+            local_block_count: (self.blockchain.blocks.len() as u64).into(),
             allowance_size: self.allowances.allowance_size(),
         }
     }
 
-    fn block_by_height(&self, block_height: Nat) -> BlockResult {
+    fn block_by_height(&self, block_height: BlockHeight) -> BlockResult {
         if block_height > self.blockchain.chain_length() {
             return BlockResult::Err(DFTError::NonExistentBlockHeight.into());
         }
@@ -760,24 +761,23 @@ impl TokenStandard for TokenBasic {
                     std::cmp::Ordering::Greater
                 }
             });
-            match result {
+            return match result {
                 Ok(i) => {
-                    return BlockResult::Forward(index[i].1);
+                    BlockResult::Forward(index[i].1)
                 }
                 Err(_) => {
-                    return BlockResult::Err(DFTError::NonExistentBlockHeight.into());
+                    BlockResult::Err(DFTError::NonExistentBlockHeight.into())
                 }
-            }
+            };
         }
 
         let inner_index: usize = (block_height - self.blockchain.num_archived_blocks())
-            .0
             .try_into()
             .unwrap();
 
         match &self.blockchain.blocks.get(inner_index) {
             Some(encoded_block) => match encoded_block.clone().decode() {
-                Ok(block) => BlockResult::Ok(block.clone()),
+                Ok(block) => BlockResult::Ok(block.into()),
                 Err(e) => BlockResult::Err(e.into()),
             },
             _ => BlockResult::Err(DFTError::NonExistentBlockHeight.into()),
@@ -794,18 +794,16 @@ impl TokenStandard for TokenBasic {
         );
 
         let local_start: usize = (effective_local_range.start.clone() - local_range.start)
-            .0
             .try_into()
             .unwrap();
         let range_len: usize = range_utils::range_len(&effective_local_range)
-            .0
             .try_into()
             .unwrap();
         let local_end = local_start + range_len;
 
-        let local_blocks: Vec<Block> = self.blockchain.blocks[local_start..local_end]
+        let local_blocks: Vec<CandidBlock> = self.blockchain.blocks[local_start..local_end]
             .iter()
-            .map(|enc_block| -> Block {
+            .map(|enc_block| -> CandidBlock {
                 enc_block
                     .decode()
                     .expect("bug: failed to decode encoded block")
@@ -826,8 +824,8 @@ impl TokenStandard for TokenBasic {
                     &archived_blocks_range,
                 );
                 (!slice.is_empty()).then(|| ArchivedBlocksRange {
-                    start: slice.start.clone(),
-                    length: range_utils::range_len(&slice).0.try_into().unwrap(),
+                    start: slice.start.clone().into(),
+                    length: range_utils::range_len(&slice).try_into().unwrap(),
                     storage_canister_id: canister_id.clone(),
                 })
             })
@@ -836,10 +834,10 @@ impl TokenStandard for TokenBasic {
         let chain_length = self.blockchain.chain_length();
 
         QueryBlocksResult {
-            chain_length,
+            chain_length: chain_length.into(),
             certificate: None,
             blocks: local_blocks,
-            first_block_index: effective_local_range.start as BlockHeight,
+            first_block_index: effective_local_range.start.into(),
             archived_blocks,
         }
     }

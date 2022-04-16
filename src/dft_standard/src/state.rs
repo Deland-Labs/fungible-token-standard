@@ -4,7 +4,7 @@ use ic_cdk::api::{
     stable::{stable_bytes, StableWriter},
 };
 use ic_cdk_macros::*;
-use std::{cell::RefCell};
+use std::cell::RefCell;
 
 thread_local! {
     pub static TOKEN: std::cell::RefCell<TokenBasic>  = RefCell::new(TokenBasic::default());
@@ -14,10 +14,9 @@ thread_local! {
 fn pre_upgrade() {
     TOKEN.with(|token| {
         let token = token.borrow();
-        let token_bytes = candid::encode_one(&*token).unwrap();
-        let bytes_array = token_bytes.as_slice();
+        let token_bytes = bincode::serialize(&*token).unwrap();
 
-        match StableWriter::default().write(bytes_array) {
+        match StableWriter::default().write(token_bytes.as_slice()) {
             Ok(size) => {
                 api::print(&format!("after pre_upgrade stable_write size{}", size));
             }
@@ -33,6 +32,6 @@ fn post_upgrade() {
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
         let token_bytes = stable_bytes();
-        *token = candid::decode_one(&*token_bytes).expect("decode_one failed");
+        *token = bincode::deserialize(&*token_bytes).expect("deserialize failed");
     })
 }

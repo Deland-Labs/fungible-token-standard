@@ -1,6 +1,6 @@
-use crate::state::TOKEN;
-use crate::token::TokenStandard;
 use candid::candid_method;
+use dft_standard::state::TOKEN;
+use dft_standard::token::TokenStandard;
 use dft_types::*;
 use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
@@ -42,11 +42,13 @@ fn set_desc_info(desc_data: Vec<(String, String)>) -> BooleanResult {
 
 #[update(name = "setFee")]
 #[candid_method(update, rename = "setFee")]
-fn set_fee(fee: TokenFee, created_at: Option<u64>) -> BooleanResult {
+fn set_fee(fee: CandidTokenFee, created_at: Option<u64>) -> BooleanResult {
     let caller = api::caller();
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        token.set_fee(&caller, fee, created_at, api::time()).into()
+        token
+            .set_fee(&caller, fee.into(), created_at, api::time())
+            .into()
     })
 }
 

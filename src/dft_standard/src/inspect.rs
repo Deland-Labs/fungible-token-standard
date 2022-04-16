@@ -61,7 +61,7 @@ fn inspect_message() {
 
             // check caller's balance
             let balance = TOKEN.with(|token| token.borrow().balance_of(&holder));
-            if balance > Nat::from(0) {
+            if balance.gt(&TokenAmount::default()) {
                 api::call::accept_message();
             } else if caller == Principal::anonymous() {
                 let err: ErrorInfo = DFTError::NotAllowAnonymous.into();

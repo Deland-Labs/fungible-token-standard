@@ -83,7 +83,7 @@ impl AutoScalingStorage {
 
             match self.blocks.get(inner_index) {
                 Some(block) => match block.decode() {
-                    Ok(de_block) => BlockResult::Ok(de_block),
+                    Ok(de_block) => BlockResult::Ok(de_block.into()),
                     Err(e) => BlockResult::Err(e.into()),
                 },
                 None => BlockResult::Err(DFTError::NonExistentBlockHeight.into()),
@@ -109,9 +109,9 @@ impl AutoScalingStorage {
                 inner_index_end
             };
 
-            let mut res = Vec::new();
+            let mut res: Vec<CandidBlock> = Vec::new();
             for i in inner_index_start..inner_index_end {
-                res.push(self.blocks[i].decode().unwrap());
+                res.push(self.blocks[i].decode().unwrap().into());
             }
             BlockListResult::Ok(res)
         }

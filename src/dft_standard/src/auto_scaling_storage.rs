@@ -64,7 +64,7 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
         let mut token = token.borrow_mut();
         let last_storage_index = token.blockchain().archive.last_storage_canister_index();
         let archived_end_block_height =
-            token.blockchain().num_archived_blocks.clone() + num_blocks - 1;
+            token.blockchain().num_archived_blocks.clone() + num_blocks as u128 - 1u32;
         token.update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
         token.remove_archived_blocks(num_blocks);
         token.unlock_after_archiving();
@@ -135,9 +135,9 @@ async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
 
     match create_result {
         Ok(cdr) => {
-            let block_height_offset = TOKEN.with(|token| {
+            let block_height_offset: Nat = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.scaling_storage_block_height_offset()
+                token.scaling_storage_block_height_offset().into()
             });
 
             api::print(format!(

@@ -4,9 +4,9 @@ use candid::{CandidType, Deserialize, Nat, Principal};
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TokenInfo {
     pub owner: Principal,
-    pub holders: Nat,
+    pub holders: usize,
     #[serde(rename = "allowanceSize")]
-    pub allowance_size: Nat,
+    pub allowance_size: usize,
     #[serde(rename = "feeTo")]
     pub fee_to: TokenHolder,
     #[serde(rename = "blockHeight")]

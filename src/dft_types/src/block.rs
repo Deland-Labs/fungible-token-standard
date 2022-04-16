@@ -1,15 +1,33 @@
-use crate::{BlockHash, CommonResult, DFTError, Operation, Transaction};
+use crate::{BlockHash, CandidTransaction, CommonResult, DFTError, Operation, Transaction};
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 
-#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Deserialize,Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Block {
     #[serde(rename = "parentHash")]
     pub parent_hash: Option<BlockHash>,
     pub transaction: Transaction,
     pub timestamp: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
+pub struct CandidBlock {
+    #[serde(rename = "parentHash")]
+    pub parent_hash: Option<BlockHash>,
+    pub transaction: CandidTransaction,
+    pub timestamp: u64,
+}
+
+impl From<Block> for CandidBlock {
+    fn from(block: Block) -> Self {
+        CandidBlock {
+            parent_hash: block.parent_hash,
+            transaction: block.transaction.into(),
+            timestamp: block.timestamp,
+        }
+    }
 }
 
 impl Block {
@@ -43,7 +61,7 @@ impl Block {
     }
 
     pub fn encode(self) -> CommonResult<EncodedBlock> {
-        let bytes = candid::encode_one(&self);
+        let bytes = bincode::serialize(&self) ;
         match bytes {
             Ok(b) => Ok(EncodedBlock::from(b)),
             Err(e) => Err(DFTError::Unknown {
@@ -78,7 +96,7 @@ impl EncodedBlock {
     // hash token id + block bytes, ensuring that the block hash of different tokens is unique.
     pub fn hash_with_token_id(&self, token_id: &Principal) -> BlockHash {
         let mut sha = Sha256::new();
-        let tx_bytes = candid::encode_one(&self).unwrap();
+        let tx_bytes = bincode::serialize(&self).unwrap();
         let combine_bytes = [token_id.as_slice(), &tx_bytes[..]].concat();
         sha.update(combine_bytes);
         sha.finalize().into()
@@ -86,7 +104,7 @@ impl EncodedBlock {
 
     pub fn decode(&self) -> CommonResult<Block> {
         let bytes = self.0.to_vec();
-        let block = candid::decode_one::<Block>(&bytes);
+        let block = bincode::deserialize::<Block>(&bytes[..]);
         match block {
             Ok(b) => Ok(b),
             Err(e) => Err(DFTError::Unknown {

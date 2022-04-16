@@ -23,20 +23,20 @@ pub struct ArchiveOptions {
 
 #[derive(CandidType, Deserialize, Debug, Clone)]
 pub struct ArchiveInfo {
-    #[serde(rename="canisterId")]
+    #[serde(rename = "canisterId")]
     canister_id: Principal,
-    #[serde(rename="startBlockHeight")]
-    start_block_height: BlockHeight,
-    #[serde(rename="endBlockHeight")]
-    end_block_height: BlockHeight,
-    #[serde(rename="numBlocks")]
+    #[serde(rename = "startBlockHeight")]
+    start_block_height: Nat,
+    #[serde(rename = "endBlockHeight")]
+    end_block_height: Nat,
+    #[serde(rename = "numBlocks")]
     num_blocks: Nat,
 }
 
-#[derive(CandidType, Deserialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Archive {
     storage_canisters: Vec<Principal>,
-    storage_canisters_block_ranges: Vec<(Nat, Nat)>,
+    storage_canisters_block_ranges: Vec<(BlockHeight, BlockHeight)>,
     node_max_memory_size_bytes: u32,
     max_message_size_bytes: u32,
     pub trigger_threshold: u32,
@@ -90,14 +90,14 @@ impl Archive {
         self.storage_canisters.len() - 1
     }
 
-    pub fn last_storage_canister_range(&self) -> Option<(Nat, Nat)> {
+    pub fn last_storage_canister_range(&self) -> Option<(BlockHeight, BlockHeight)> {
         match self.storage_canisters_block_ranges.last() {
             Some(range) => Some(range.clone()),
             None => None,
         }
     }
 
-    pub fn index(&self) -> Vec<((Nat, Nat), Principal)> {
+    pub fn index(&self) -> Vec<((BlockHeight, BlockHeight), Principal)> {
         self.storage_canisters_block_ranges
             .iter()
             .cloned()
@@ -112,14 +112,14 @@ impl Archive {
             .zip(self.storage_canisters.clone())
             .map(|((start, end), id)| ArchiveInfo {
                 canister_id: id,
-                start_block_height: start.clone(),
-                end_block_height: end.clone(),
-                num_blocks: end - start,
+                start_block_height: start.clone().into(),
+                end_block_height: end.clone().into(),
+                num_blocks: (end - start).into(),
             })
             .collect()
     }
 
-    pub fn scaling_storage_block_height_offset(&self) -> Nat {
+    pub fn scaling_storage_block_height_offset(&self) -> BlockHeight {
         self.storage_canisters_block_ranges
             .last()
             .map(|(_, height_to)| height_to.clone() + 1u32)
@@ -130,7 +130,7 @@ impl Archive {
         &self.storage_canisters
     }
 
-    pub fn storage_canisters_block_ranges(&self) -> &[(Nat, Nat)] {
+    pub fn storage_canisters_block_ranges(&self) -> &[(BlockHeight, BlockHeight)] {
         &self.storage_canisters_block_ranges
     }
 
@@ -143,12 +143,12 @@ impl Archive {
     pub fn update_scaling_storage_blocks_range(
         &mut self,
         storage_index: usize,
-        end_block_height: Nat,
+        end_block_height: BlockHeight,
     ) {
         if !self.archiving_in_progress {
             return;
         }
-        let last_range: Option<(Nat, Nat)> = self
+        let last_range: Option<(BlockHeight, BlockHeight)> = self
             .storage_canisters_block_ranges
             .last()
             .map(|(start, end)| (start.clone(), end.clone()));

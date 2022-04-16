@@ -1,12 +1,9 @@
-use candid::candid_method;
+use candid::{candid_method, Nat};
 use dft_standard::token::TokenStandard;
 use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use dft_types::*;
 use ic_cdk::api::{data_certificate, set_certified_data};
-use ic_cdk::{
-    api,
-    export::{candid::Nat, Principal},
-};
+use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
 use std::string::String;
 
@@ -14,12 +11,12 @@ use std::string::String;
 #[candid_method(init)]
 async fn canister_init(
     sub_account: Option<Subaccount>,
-    logo_: Option<Vec<u8>>,
-    name_: String,
-    symbol_: String,
-    decimals_: u8,
-    total_supply_: Nat,
-    fee_: TokenFee,
+    logo: Option<Vec<u8>>,
+    name: String,
+    symbol: String,
+    decimals: u8,
+    total_supply: Nat,
+    fee: CandidTokenFee,
     caller: Option<Principal>,
     archive_option: Option<ArchiveOptions>,
 ) {
@@ -33,18 +30,18 @@ async fn canister_init(
         token.initialize(
             &real_caller,
             api::id(),
-            logo_,
-            name_,
-            symbol_,
-            decimals_,
-            fee_,
+            logo,
+            name,
+            symbol,
+            decimals,
+            fee.into(),
             owner_holder.clone(),
             archive_option,
         );
         match token._mint(
             &real_caller,
             &owner_holder,
-            total_supply_,
+            total_supply.0,
             None,
             api::time(),
         ) {
@@ -97,25 +94,25 @@ fn get_decimals() -> u8 {
 fn get_total_supply() -> Nat {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.total_supply().clone()
+        token.total_supply().into()
     })
 }
 
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
-fn get_fee_setting() -> TokenFee {
+fn get_fee_setting() -> CandidTokenFee {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.metadata().fee().clone()
+        token.metadata().fee().clone().into()
     })
 }
 
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
-fn get_meta_data() -> TokenMetadata {
+fn get_meta_data() -> CandidTokenMetadata {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.metadata().clone()
+        token.metadata().clone().into()
     })
 }
 
@@ -150,9 +147,9 @@ fn balance_of(holder: String) -> Nat {
     match token_holder_parse_result {
         Ok(token_holder) => TOKEN.with(|token| {
             let token = token.borrow();
-            token.balance_of(&token_holder)
+            token.balance_of(&token_holder).into()
         }),
-        _ => Nat::from(0),
+        _ => 0u32.into(),
     }
 }
 
@@ -166,12 +163,14 @@ fn allowance(owner: String, spender: String) -> Nat {
         if let Ok(token_holder_spender) = token_holder_spender_parse_result {
             return TOKEN.with(|token| {
                 let token = token.borrow();
-                token.allowance(&token_holder_owner, &token_holder_spender)
+                token
+                    .allowance(&token_holder_owner, &token_holder_spender)
+                    .into()
             });
         }
     }
 
-    Nat::from(0)
+    0u32.into()
 }
 
 #[update(name = "approve")]
@@ -192,7 +191,7 @@ async fn approve(
                     &caller,
                     &owner_holder,
                     &spender_holder,
-                    value,
+                    value.0,
                     created_at,
                     api::time(),
                 )
@@ -202,7 +201,7 @@ async fn approve(
                     let tx_id = hex::encode(tx_hash.as_ref());
                     OperationResult::Ok {
                         tx_id,
-                        block_height,
+                        block_height: block_height.into(),
                         error: match exec_auto_scaling_strategy().await {
                             Ok(_) => None,
                             Err(e) => Some(e.into()),
@@ -222,7 +221,11 @@ fn allowances_of_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
     match holder.parse::<TokenHolder>() {
         Ok(token_holder) => TOKEN.with(|token| {
             let token = token.borrow();
-            token.allowances_of(&token_holder)
+            token
+                .allowances_of(&token_holder)
+                .into_iter()
+                .map(|(v, n)| (v, n.into()))
+                .collect()
         }),
         Err(_) => Vec::new(),
     }
@@ -245,7 +248,7 @@ async fn transfer_from(
         Ok(from_token_holder) => match to.parse::<TokenHolder>() {
             Ok(to_token_holder) => {
                 // exec before-transfer check :before_token_sending
-                match before_token_sending(&from_token_holder, &to_token_holder, &value) {
+                match before_token_sending(&from_token_holder, &to_token_holder, &value.0) {
                     Err(e) => return OperationResult::Err(e),
                     _ => {}
                 };
@@ -256,7 +259,7 @@ async fn transfer_from(
                         &from_token_holder,
                         &spender,
                         &to_token_holder,
-                        value.clone(),
+                        value.0.clone(),
                         created_at,
                         now,
                     )
@@ -265,7 +268,7 @@ async fn transfer_from(
                         set_certified_data(&block_hash);
                         OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
-                            block_height,
+                            block_height: block_height.into(),
                             error: match exec_auto_scaling_strategy().await {
                                 Err(e) => Some(e.into()),
                                 _ => None,
@@ -297,7 +300,7 @@ async fn transfer(
     match receiver_parse_result {
         Ok(receiver) => {
             //exec before-transfer check
-            match before_token_sending(&transfer_from, &receiver, &value) {
+            match before_token_sending(&transfer_from, &receiver, &value.0) {
                 Err(e) => return OperationResult::Err(e),
                 _ => {}
             };
@@ -308,7 +311,7 @@ async fn transfer(
                     &caller,
                     &transfer_from,
                     &receiver,
-                    value.clone(),
+                    value.0.clone(),
                     created_at,
                     now,
                 )
@@ -317,7 +320,7 @@ async fn transfer(
                     set_certified_data(&block_hash);
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
-                        block_height,
+                        block_height: block_height.into(),
                         error: match exec_auto_scaling_strategy().await {
                             Ok(_) => None,
                             Err(e) => Some(e.into()),
@@ -348,16 +351,16 @@ fn get_token_info() -> TokenInfo {
 fn block_by_height(block_height: Nat) -> BlockResult {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.block_by_height(block_height)
+        token.block_by_height(block_height.0)
     })
 }
 
 #[query(name = "blocksByQuery")]
 #[candid_method(query, rename = "blocksByQuery")]
-fn blocks_by_query(start: BlockHeight, count: usize) -> QueryBlocksResult {
+fn blocks_by_query(start: Nat, count: usize) -> QueryBlocksResult {
     TOKEN.with(|token| {
         let token = token.borrow();
-        let mut res = token.blocks_by_query(start, count);
+        let mut res = token.blocks_by_query(start.0, count);
         res.certificate = data_certificate().map(serde_bytes::ByteBuf::from);
         res
     })
@@ -376,7 +379,7 @@ fn archives() -> Vec<ArchiveInfo> {
 fn before_token_sending(
     _transfer_from: &TokenHolder,
     _receiver: &TokenReceiver,
-    _value: &Nat,
+    _value: &TokenAmount,
 ) -> ActorResult<()> {
     Ok(())
 }

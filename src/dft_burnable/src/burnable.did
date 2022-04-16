@@ -16,15 +16,18 @@ type ArchivedBlocksRange = record {
   start : nat;
   length : nat64;
 };
-type Block = record {
-  transaction : Transaction;
+type BlockResult = variant {
+  Ok : CandidBlock;
+  Err : ErrorInfo;
+  Forward : principal;
+};
+type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
+type CandidBlock = record {
+  transaction : CandidTransaction;
   timestamp : nat64;
   parentHash : opt vec nat8;
 };
-type BlockResult = variant { Ok : Block; Err : ErrorInfo; Forward : principal };
-type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
-type ErrorInfo = record { code : nat32; message : text };
-type Operation = variant {
+type CandidOperation = variant {
   FeeToModify : record { newFeeTo : TokenHolder; caller : principal };
   Approve : record {
     fee : nat;
@@ -33,7 +36,7 @@ type Operation = variant {
     caller : principal;
     spender : TokenHolder;
   };
-  FeeModify : record { newFee : TokenFee; caller : principal };
+  FeeModify : record { newFee : CandidTokenFee; caller : principal };
   Transfer : record {
     to : TokenHolder;
     fee : nat;
@@ -43,6 +46,34 @@ type Operation = variant {
   };
   OwnerModify : record { newOwner : principal; caller : principal };
 };
+type CandidTokenFee = record {
+  rate : nat32;
+  minimum : nat;
+  rateDecimals : nat8;
+};
+type CandidTokenMetadata = record {
+  fee : CandidTokenFee;
+  decimals : nat8;
+  name : text;
+  symbol : text;
+};
+type CandidTransaction = record {
+  createdAt : nat64;
+  operation : CandidOperation;
+};
+type ErrorInfo = record { code : nat32; message : text };
+type HttpRequest = record {
+  url : text;
+  method : text;
+  body : vec nat8;
+  headers : vec record { text; text };
+};
+type HttpResponse = record {
+  body : vec nat8;
+  headers : vec record { text; text };
+  streaming_strategy : opt StreamingStrategy;
+  status_code : nat16;
+};
 type OperationResult = variant {
   Ok : record { txId : text; error : opt ErrorInfo; blockHeight : nat };
   Err : ErrorInfo;
@@ -51,29 +82,34 @@ type QueryBlocksResult = record {
   chainLength : nat;
   certificate : opt vec nat8;
   archivedBlocks : vec ArchivedBlocksRange;
-  blocks : vec Block;
+  blocks : vec CandidBlock;
   firstBlockIndex : nat;
 };
-type TokenFee = record { rate : nat; minimum : nat; rateDecimals : nat8 };
+type StreamingStrategy = variant {
+  Callback : record { token : record {}; callback : func () -> () };
+};
 type TokenHolder = variant { None; Account : text; Principal : principal };
 type TokenInfo = record {
   certificate : opt vec nat8;
   owner : principal;
-  allowanceSize : nat;
+  allowanceSize : nat64;
   cycles : nat64;
   blockHeight : nat;
-  holders : nat;
+  holders : nat64;
   storages : vec principal;
   feeTo : TokenHolder;
 };
-type TokenMetadata = record {
-  fee : TokenFee;
-  decimals : nat8;
-  name : text;
-  symbol : text;
-};
-type Transaction = record { createdAt : nat64; operation : Operation };
-service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, TokenFee, opt principal, opt ArchiveOptions) -> {
+service : (
+  opt vec nat8,
+  opt vec nat8,
+  text,
+  text,
+  nat8,
+  nat,
+  CandidTokenFee,
+  opt principal,
+  opt ArchiveOptions,
+) -> {
   allowance : (text, text) -> (nat) query;
   allowancesOf : (text) -> (vec record { TokenHolder; nat }) query;
   approve : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
@@ -81,26 +117,26 @@ service : (opt vec nat8, opt vec nat8, text, text, nat8, nat, TokenFee, opt prin
   balanceOf : (text) -> (nat) query;
   blockByHeight : (nat) -> (BlockResult) query;
   blocksByQuery : (nat, nat64) -> (QueryBlocksResult) query;
+  burn : (opt vec nat8, nat, opt nat64) -> (OperationResult);
+  burnFrom : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
   decimals : () -> (nat8) query;
   desc : () -> (vec record { text; text }) query;
-  fee : () -> (TokenFee) query;
+  fee : () -> (CandidTokenFee) query;
+  http_request : (HttpRequest) -> (HttpResponse) query;
   logo : () -> (vec nat8) query;
-  meta : () -> (TokenMetadata) query;
+  meta : () -> (CandidTokenMetadata) query;
   name : () -> (text) query;
   owner : () -> (principal) query;
+  setDesc : (vec record { text; text }) -> (BooleanResult);
+  setFee : (CandidTokenFee, opt nat64) -> (BooleanResult);
+  setFeeTo : (text, opt nat64) -> (BooleanResult);
+  setLogo : (opt vec nat8) -> (BooleanResult);
+  setOwner : (principal, opt nat64) -> (BooleanResult);
   symbol : () -> (text) query;
   tokenInfo : () -> (TokenInfo) query;
   totalSupply : () -> (nat) query;
   transfer : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
-  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (OperationResult);
-
-  setDesc : (vec record { text; text }) -> (BooleanResult);
-  setFee : (TokenFee, opt nat64) -> (BooleanResult);
-  setFeeTo : (text, opt nat64) -> (BooleanResult);
-  setLogo : (opt vec nat8) -> (BooleanResult);
-  setOwner : (principal, opt nat64) -> (BooleanResult);
-
-  burn : (opt vec nat8, nat, opt nat64) -> (OperationResult);
-  burnFrom : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
+  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (
+      OperationResult,
+    );
 }
- 
