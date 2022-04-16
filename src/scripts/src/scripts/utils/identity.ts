@@ -51,7 +51,9 @@ export interface IdentityInfo {
 }
 
 const DEFAULT_HOST = "http://127.0.0.1:8000";
-export const IDENTITIES = ["dft_main", "dft_miner", "dft_user1", "dft_user2", "dft_user3", "dft_user4", "dft_user5", "dft_receiver", "dft_fee_charger"];
+export const IDENTITIES = ["dft_main", "dft_miner", "dft_user1", "dft_user2", "dft_user3", "dft_user4", "dft_user5",
+    "dft_user6", "dft_user7", "dft_user8", "dft_user9", "dft_user10", "dft_user11", "dft_user12", "dft_user13",
+    "dft_receiver", "dft_fee_charger"];
 export const DEFAULT_IDENTITY = IDENTITIES[0];
 export const createIdentities = () => {
     IDENTITIES.forEach(new_dfx_identity);

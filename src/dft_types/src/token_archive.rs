@@ -36,6 +36,9 @@ pub struct ArchiveInfo {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Archive {
     storage_canisters: Vec<Principal>,
+    // Temporary storage of newly created auto-scaling storage canister
+    // id to avoid duplicate creation due to failed installation code
+    latest_storage_canister: Option<Principal>,
     storage_canisters_block_ranges: Vec<(BlockHeight, BlockHeight)>,
     node_max_memory_size_bytes: u32,
     max_message_size_bytes: u32,
@@ -52,6 +55,7 @@ impl Default for Archive {
     fn default() -> Self {
         Archive {
             storage_canisters: Vec::new(),
+            latest_storage_canister: None,
             storage_canisters_block_ranges: Vec::new(),
             node_max_memory_size_bytes: MAX_CANISTER_STORAGE_BYTES,
             max_message_size_bytes: 0,
@@ -67,6 +71,7 @@ impl Archive {
     pub fn new(options: ArchiveOptions) -> Self {
         Self {
             storage_canisters: vec![],
+            latest_storage_canister: None,
             storage_canisters_block_ranges: vec![],
             node_max_memory_size_bytes: options
                 .node_max_memory_size_bytes
@@ -134,9 +139,15 @@ impl Archive {
         &self.storage_canisters_block_ranges
     }
 
+    pub fn pre_append_storage_canister(&mut self, canister_id: Principal) {
+        assert!(self.latest_storage_canister.is_none());
+        self.latest_storage_canister = Some(canister_id);
+    }
     pub fn append_scaling_storage_canister(&mut self, canister_id: Principal) {
+        assert_eq!(canister_id, self.latest_storage_canister.unwrap());
         if self.archiving_in_progress {
             self.storage_canisters.push(canister_id);
+            self.latest_storage_canister = None;
         }
     }
 

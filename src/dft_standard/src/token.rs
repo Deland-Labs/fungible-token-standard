@@ -275,6 +275,9 @@ impl TokenBasic {
         self.blockchain.archive.unlock_after_archiving()
     }
 
+    pub fn pre_append_scaling_storage_canister(&mut self, canister_id: Principal) {
+        self.blockchain.archive.pre_append_storage_canister(canister_id)
+    }
     pub fn append_scaling_storage_canister(&mut self, storage_canister_id: Principal) {
         self.blockchain
             .archive
