@@ -65,6 +65,7 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
             let last_storage_index = token.blockchain().archive.last_storage_canister_index();
             let archived_end_block_height =
                 token.blockchain().num_archived_blocks.clone() + num_blocks as u128 - 1u32;
+
             token.update_scaling_storage_blocks_range(
                 last_storage_index,
                 archived_end_block_height,
@@ -72,7 +73,7 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
             token.remove_archived_blocks(num_blocks);
         });
     };
-    
+
     // Ensure unlock
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
@@ -118,18 +119,40 @@ async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonRe
     }
 
     if is_necessary_create_new_storage_canister {
-        let new_scaling_storage_canister_id = create_new_scaling_storage_canister().await?;
-        last_storage_id = Some(new_scaling_storage_canister_id);
+        last_storage_id = TOKEN.with(|token| {
+            let token = token.borrow();
+            token.blockchain().archive.latest_storage_canister()
+        });
+        let token_id = api::id();
+        let block_height_offset: Nat = TOKEN.with(|token| {
+            let token = token.borrow();
+            token.scaling_storage_block_height_offset().into()
+        });
+        // avoid re-create storage canister when install code failed
+        if last_storage_id.is_some() {
+            install_storage_canister_and_append_to_storage_records(
+                last_storage_id.unwrap(),
+                token_id,
+                block_height_offset,
+            )
+                .await?;
+        } else {
+            let new_scaling_storage_canister_id =
+                create_new_scaling_storage_canister(token_id, block_height_offset).await?;
+            last_storage_id = Some(new_scaling_storage_canister_id);
+        }
     }
     return Ok(last_storage_id.unwrap());
 }
 
-async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
-    let dft_id = api::id();
+async fn create_new_scaling_storage_canister(
+    token_id: Principal,
+    block_height_offset: Nat,
+) -> CommonResult<Principal> {
     let create_args = CreateCanisterArgs {
         cycles: CYCLES_PER_AUTO_SCALING,
         settings: CanisterSettings {
-            controllers: Some(vec![dft_id.clone()]),
+            controllers: Some(vec![token_id.clone()]),
             compute_allocation: None,
             memory_allocation: None,
             freezing_threshold: None,
@@ -140,11 +163,6 @@ async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
 
     match create_result {
         Ok(cdr) => {
-            let block_height_offset: Nat = TOKEN.with(|token| {
-                let token = token.borrow();
-                token.scaling_storage_block_height_offset().into()
-            });
-
             TOKEN.with(|token| {
                 let mut token = token.borrow_mut();
                 token.pre_append_scaling_storage_canister(cdr.canister_id);
@@ -155,39 +173,51 @@ async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
                 cdr.canister_id.clone().to_string(),
                 block_height_offset.clone()
             ));
-            match encode_args((dft_id.clone(), block_height_offset.clone())) {
-                Ok(install_args) => {
-                    match install_canister(&cdr.canister_id, STORAGE_WASM.to_vec(), install_args)
-                        .await
-                    {
-                        Ok(_) => {
-                            TOKEN.with(|token| {
-                                let mut token = token.borrow_mut();
-                                token.append_scaling_storage_canister(cdr.canister_id);
-                            });
-                            Ok(cdr.canister_id)
-                        }
-                        Err(emsg) => {
-                            let emsg = format!(
-                                "install auto-scaling storage canister failed. details:{}",
-                                emsg
-                            );
-                            api::print(emsg.clone());
-                            return Err(DFTError::StorageScalingFailed { detail: emsg }.into());
-                        }
-                    }
-                }
-                Err(emsg) => {
-                    let emsg = format!("encode_args failed. details:{:?}", emsg);
-                    api::print(emsg.clone());
-                    return Err(DFTError::StorageScalingFailed { detail: emsg });
-                }
-            }
+            install_storage_canister_and_append_to_storage_records(
+                cdr.canister_id.clone(),
+                token_id,
+                block_height_offset,
+            )
+                .await?;
+            Ok(cdr.canister_id)
         }
         Err(emsg) => {
             let emsg = format!("create new storage canister failed {}", emsg);
             api::print(emsg.clone());
             return Err(DFTError::StorageScalingFailed { detail: emsg }.into());
+        }
+    }
+}
+
+async fn install_storage_canister_and_append_to_storage_records(
+    canister_id: Principal,
+    token_id: Principal,
+    block_height_offset: Nat,
+) -> CommonResult<()> {
+    match encode_args((token_id.clone(), block_height_offset.clone())) {
+        Ok(install_args) => {
+            match install_canister(&canister_id, STORAGE_WASM.to_vec(), install_args).await {
+                Ok(_) => {
+                    TOKEN.with(|token| {
+                        let mut token = token.borrow_mut();
+                        token.append_scaling_storage_canister(canister_id);
+                    });
+                    Ok(())
+                }
+                Err(emsg) => {
+                    let emsg = format!(
+                        "install auto-scaling storage canister failed. details:{}",
+                        emsg
+                    );
+                    api::print(emsg.clone());
+                    return Err(DFTError::StorageScalingFailed { detail: emsg }.into());
+                }
+            }
+        }
+        Err(emsg) => {
+            let emsg = format!("encode_args failed. details:{:?}", emsg);
+            api::print(emsg.clone());
+            return Err(DFTError::StorageScalingFailed { detail: emsg });
         }
     }
 }
@@ -201,10 +231,10 @@ async fn send_blocks_to_archive(blocks_to_archive: VecDeque<EncodedBlock>) -> Co
         storage_canister_id.to_text()
     ));
     //save the txs to auto-scaling storage
-    let res: Result<(BooleanResult,), (RejectionCode, String)> =
-        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive,)).await;
+    let res: Result<(BooleanResult, ), (RejectionCode, String)> =
+        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive, )).await;
     match res {
-        Ok((res,)) => match res {
+        Ok((res, )) => match res {
             BooleanResult::Ok(sucess) => {
                 if sucess {
                     api::print("batchAppend success");
