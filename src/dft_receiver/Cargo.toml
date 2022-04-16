@@ -8,7 +8,7 @@ crate-type = ["cdylib"]
 
 [dependencies] 
 dft_types = { path = "../dft_types" }
-ic-cdk = "0.4.0"
+ic-cdk = "0.5.0"
 ic-cdk-macros = "0.4.0"
 candid = "0.7.14"
 

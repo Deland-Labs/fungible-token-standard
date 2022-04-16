@@ -5,7 +5,7 @@ edition = "2018"
 
 [dependencies] 
 ciborium = { git = "https://github.com/enarx/ciborium", rev = "e719537c99b564c3674a56defe53713c702c6f46" }
-ic-cdk = "0.4.0"
+ic-cdk = "0.5.0"
 ic-cdk-macros = "0.4.0"
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
