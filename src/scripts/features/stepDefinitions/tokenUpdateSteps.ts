@@ -2,7 +2,7 @@ import {When, Then} from "@cucumber/cucumber";
 import {parseRawTableToJsonArray} from "~/utils/convert";
 import {assert, expect} from "chai";
 import {createDFTActor, fileToByteArray} from "./utils";
-import {TokenFee} from "~/declarations/dft_basic/dft_basic.did";
+import {CandidTokenFee} from "~/declarations/dft_basic/dft_basic.did";
 import {parseToOrigin} from "~/utils/uint";
 import {identityFactory} from "~/utils/identity";
 
@@ -96,9 +96,9 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)", will success$/, asyn
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to TokenFee
-    const fee: TokenFee = {
+    const fee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
-        rate: parseToOrigin(option.rate, option.rate_decimals),
+        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     const res = await actor!.setFee(fee, []);
@@ -110,9 +110,9 @@ Then(/^Get token "([^"]*)"'s fee by "([^"]*)",will include blow fields and value
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     const fee = await actor!.fee();
-    const feeValid: TokenFee = {
+    const feeValid: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
-        rate: parseToOrigin(option.rate, option.rate_decimals),
+        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     // check fee is same with feeValid
@@ -126,9 +126,9 @@ When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, a
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to TokenFee
-    const fee: TokenFee = {
+    const fee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
-        rate: parseToOrigin(option.rate, option.rate_decimals),
+        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     try {
@@ -145,9 +145,9 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" twice, the second wil
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to TokenFee
-    const fee: TokenFee = {
+    const fee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
-        rate: parseToOrigin(option.rate, option.rate_decimals),
+        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
 
@@ -167,10 +167,9 @@ When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with owner "([^"]*)", will 
 });
 Then(/^Get token "([^"]*)"'s feeTo by "([^"]*)", should be "([^"]*)"$/, async function (token, owner, feeTo) {
     const actor = createDFTActor(token, owner);
-    const feeToPrincipal = identityFactory.getPrincipal(feeTo)!.toText();
+    const feeToAccountId = identityFactory.getAccountIdHex(feeTo);
     const res = await actor!.tokenInfo();
-    const feeToRes: any = res.feeTo;
-    assert.equal(feeToRes.Principal.toText(), feeToPrincipal);
+    assert.equal(res.feeTo, feeToAccountId);
 });
 When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with not owner "([^"]*)", will failed$/, async function (token, feeTo, owner) {
     const actor = createDFTActor(token, owner);
@@ -225,9 +224,9 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with passed "(\d+)" d
     const nowNanos = BigInt(new Date().getTime()) * 1000000n;
     const passedNanos = nowNanos - BigInt(passedDays) * 24n * 60n * 60n * 1000000000n;
     // convert optionArray to TokenFee
-    const newFee: TokenFee = {
+    const newFee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
-        rate: parseToOrigin(option.rate, option.rate_decimals),
+        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     const res = await actor!.setFee(newFee, [passedNanos]);

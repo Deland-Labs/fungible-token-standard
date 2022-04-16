@@ -55,7 +55,7 @@ impl TokenAllowances {
         match self.0.get(owner) {
             Some(inner) => {
                 let mut temp = inner.clone();
-                if value.eq(&TokenAmount::from(0u32)) {
+                if value == TokenAmount::from(0u32) {
                     temp.remove(spender);
                     if temp.len() > 0 {
                         self.0.insert(owner.clone(), temp);

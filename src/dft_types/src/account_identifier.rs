@@ -38,6 +38,12 @@ impl AccountIdentifier {
         }
     }
 
+    pub fn empty() -> AccountIdentifier {
+        AccountIdentifier {
+            hash: [0; 28],
+        }
+    }
+
     pub fn from_hex(hex_str: &str) -> Result<AccountIdentifier, String> {
         let hex: Vec<u8> = hex::decode(hex_str).map_err(|e| e.to_string())?;
         Self::from_slice(&hex[..])
@@ -84,16 +90,25 @@ impl Display for AccountIdentifier {
 
 impl FromStr for AccountIdentifier {
     type Err = String;
-
-    fn from_str(s: &str) -> Result<AccountIdentifier, String> {
-        AccountIdentifier::from_hex(s)
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let pid =Principal::from_text(s);
+        match pid {
+            Ok(principal) => Ok(AccountIdentifier::new(principal, None)),
+            _ => {
+                let account_identity = AccountIdentifier::from_hex(s);
+                match account_identity {
+                    Ok(aid) => Ok(aid),
+                    _ => Err("invalid token holder format".to_string()),
+                }
+            }
+        }
     }
 }
 
 impl Serialize for AccountIdentifier {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
+        where
+            S: serde::Serializer,
     {
         self.to_hex().serialize(serializer)
     }
@@ -102,9 +117,9 @@ impl Serialize for AccountIdentifier {
 impl<'de> Deserialize<'de> for AccountIdentifier {
     // This is the canonical way to read a this from string
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-        D::Error: de::Error,
+        where
+            D: serde::Deserializer<'de>,
+            D::Error: de::Error,
     {
         let hex: [u8; 32] = hex::serde::deserialize(deserializer)?;
         check_sum(hex).map_err(D::Error::custom)
@@ -148,8 +163,8 @@ impl CandidType for AccountIdentifier {
     }
 
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
-    where
-        S: candid::types::Serializer,
+        where
+            S: candid::types::Serializer,
     {
         self.to_hex().idl_serialize(serializer)
     }
@@ -157,37 +172,51 @@ impl CandidType for AccountIdentifier {
 
 pub type Subaccount = [u8; 32];
 
-#[test]
-fn check_round_trip() {
-    let ai = AccountIdentifier { hash: [7; 28] };
-    let res = ai.to_hex();
-    assert_eq!(
-        res.parse(),
-        Ok(ai),
-        "The account identifier doesn't change after going back and forth between a string"
-    )
-}
+// test
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn check_encoding() {
-    let ai = AccountIdentifier { hash: [7; 28] };
+    // test empty
+    #[test]
+    fn test_zero() {
+        let zero = AccountIdentifier::empty();
+        let zero_account_id = "807077e900000000000000000000000000000000000000000000000000000000";
+        assert_eq!(zero_account_id, zero.to_hex().as_str());
+    }
 
-    let en1 = candid::encode_one(ai).unwrap();
-    let en2 = candid::encode_one(ai.to_string()).unwrap();
+    #[test]
+    fn check_round_trip() {
+        let ai = AccountIdentifier { hash: [7; 28] };
+        let res = ai.to_hex();
+        assert_eq!(
+            res.parse(),
+            Ok(ai),
+            "The account identifier doesn't change after going back and forth between a string"
+        )
+    }
 
-    assert_eq!(
-        &en1, &en2,
-        "Candid encoding of an account identifier and a string should be identical"
-    );
+    #[test]
+    fn check_encoding() {
+        let ai = AccountIdentifier { hash: [7; 28] };
 
-    let de1: String = candid::decode_one(&en1[..]).unwrap();
-    let de2: AccountIdentifier = candid::decode_one(&en2[..]).unwrap();
+        let en1 = candid::encode_one(ai).unwrap();
+        let en2 = candid::encode_one(ai.to_string()).unwrap();
 
-    assert_eq!(
-        de1.parse(),
-        Ok(de2),
-        "The types are the same after decoding, even through a different type"
-    );
+        assert_eq!(
+            &en1, &en2,
+            "Candid encoding of an account identifier and a string should be identical"
+        );
 
-    assert_eq!(de2, ai, "And the value itself hasn't changed");
+        let de1: String = candid::decode_one(&en1[..]).unwrap();
+        let de2: AccountIdentifier = candid::decode_one(&en2[..]).unwrap();
+
+        assert_eq!(
+            de1.parse(),
+            Ok(de2),
+            "The types are the same after decoding, even through a different type"
+        );
+
+        assert_eq!(de2, ai, "And the value itself hasn't changed");
+    }
 }

@@ -12,6 +12,8 @@ Feature: token tx auto scaling storage
       | dft_basic | dft_user1 | 1000000 |
       | dft_basic | dft_user2 | 1000000 |
       | dft_basic | dft_user3 | 1000000 |
+      | dft_basic | dft_user4 | 1000000 |
+      | dft_basic | dft_user5 | 1000000 |
 
   Scenario:Auto scaling storage when tx count is more than 3000 times
     When Check the storage canisters count is equal to "0" ,by "dft_main"
@@ -21,7 +23,9 @@ Feature: token tx auto scaling storage
       | dft_basic | dft_miner | dft_user1 |
       | dft_basic | dft_user1 | dft_user2 |
       | dft_basic | dft_user2 | dft_user3 |
-      | dft_basic | dft_user3 | dft_main  |
+      | dft_basic | dft_user3 | dft_user4 |
+      | dft_basic | dft_user4 | dft_user5 |
+      | dft_basic | dft_user5 | dft_main  |
     Then Check the storage canisters count is equal to "1" ,by "dft_main"
     Then Check the block height "2004" transfer transaction of "dft_basic", the amount should be 1998
     Then Check the block height "999" transfer transaction of "dft_basic", the result should be a forward result
@@ -33,4 +37,4 @@ Feature: token tx auto scaling storage
       | 3009   | 0.01 |
     Then Check token "dft_basic"'s archives ,should be
       | start | end  |
-      | 0     | 1999  |
+      | 0     | 1999 |

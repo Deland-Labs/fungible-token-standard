@@ -4,7 +4,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 
-#[derive(Deserialize,Serialize, Clone, Debug, PartialEq, Eq)]
+#[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Block {
     #[serde(rename = "parentHash")]
     pub parent_hash: Option<BlockHash>,
@@ -61,7 +61,7 @@ impl Block {
     }
 
     pub fn encode(self) -> CommonResult<EncodedBlock> {
-        let bytes = bincode::serialize(&self) ;
+        let bytes = bincode::serialize(&self);
         match bytes {
             Ok(b) => Ok(EncodedBlock::from(b)),
             Err(e) => Err(DFTError::Unknown {
@@ -129,7 +129,7 @@ impl EncodedBlock {
 #[test]
 fn test_block_size() {
     let block_size = std::mem::size_of::<Block>();
-    let should_be_size = 200;
+    let should_be_size = 192;
     assert_eq!(
         should_be_size, block_size,
         "Block size should be {} bytes, but is {} bytes",

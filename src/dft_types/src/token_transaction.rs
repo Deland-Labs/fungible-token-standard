@@ -1,4 +1,4 @@
-use crate::{TokenAmount, TokenFee, TokenHolder, TokenReceiver, TransactionHash, token_fee::CandidTokenFee};
+use crate::{TokenAmount, TokenFee, TokenHolder, TokenReceiver, TransactionHash, CandidTokenFee};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
 use sha2::{Digest, Sha256};

@@ -1,4 +1,4 @@
-@dft
+@dev
 Feature: token management
 
   Background:

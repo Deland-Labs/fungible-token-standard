@@ -1,11 +1,6 @@
 export const idlFactory = ({ IDL }) => {
   const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
   const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
-  const TokenHolder = IDL.Variant({
-    'None' : IDL.Null,
-    'Account' : IDL.Text,
-    'Principal' : IDL.Principal,
-  });
   const CandidTokenFee = IDL.Record({
     'rate' : IDL.Nat32,
     'minimum' : IDL.Nat,
@@ -13,26 +8,26 @@ export const idlFactory = ({ IDL }) => {
   });
   const CandidOperation = IDL.Variant({
     'FeeToModify' : IDL.Record({
-      'newFeeTo' : TokenHolder,
+      'newFeeTo' : IDL.Text,
       'caller' : IDL.Principal,
     }),
     'Approve' : IDL.Record({
       'fee' : IDL.Nat,
       'value' : IDL.Nat,
-      'owner' : TokenHolder,
+      'owner' : IDL.Text,
       'caller' : IDL.Principal,
-      'spender' : TokenHolder,
+      'spender' : IDL.Text,
     }),
     'FeeModify' : IDL.Record({
       'newFee' : CandidTokenFee,
       'caller' : IDL.Principal,
     }),
     'Transfer' : IDL.Record({
-      'to' : TokenHolder,
+      'to' : IDL.Text,
       'fee' : IDL.Nat,
       'value' : IDL.Nat,
-      'from' : TokenHolder,
-      'caller' : TokenHolder,
+      'from' : IDL.Text,
+      'caller' : IDL.Text,
     }),
     'OwnerModify' : IDL.Record({
       'newOwner' : IDL.Principal,
