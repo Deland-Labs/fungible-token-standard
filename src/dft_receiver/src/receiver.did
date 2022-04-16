@@ -1,1 +1,0 @@
-service : { onTokenReceived : (text, nat) -> (bool) }

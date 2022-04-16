@@ -1,6 +1,6 @@
 import {HttpAgent} from "@dfinity/agent";
 import {identityFactory} from "./utils/identity";
-import {Given, setDefaultTimeout, Then, When} from "@cucumber/cucumber";
+import {setDefaultTimeout} from "@cucumber/cucumber";
 
 // This file may be used to polyfill features that aren't available in the test
 // environment, i.e. JSDom.
