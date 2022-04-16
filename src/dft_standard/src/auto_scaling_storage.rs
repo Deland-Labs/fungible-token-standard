@@ -59,15 +59,23 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
         return Ok(());
     }
 
-    send_blocks_to_archive(blocks_to_archive).await?;
-
+    if let Ok(_) = send_blocks_to_archive(blocks_to_archive).await {
+        TOKEN.with(|token| {
+            let mut token = token.borrow_mut();
+            let last_storage_index = token.blockchain().archive.last_storage_canister_index();
+            let archived_end_block_height =
+                token.blockchain().num_archived_blocks.clone() + num_blocks as u128 - 1u32;
+            token.update_scaling_storage_blocks_range(
+                last_storage_index,
+                archived_end_block_height,
+            );
+            token.remove_archived_blocks(num_blocks);
+        });
+    };
+    
+    // Ensure unlock
     TOKEN.with(|token| {
         let mut token = token.borrow_mut();
-        let last_storage_index = token.blockchain().archive.last_storage_canister_index();
-        let archived_end_block_height =
-            token.blockchain().num_archived_blocks.clone() + num_blocks as u128 - 1u32;
-        token.update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
-        token.remove_archived_blocks(num_blocks);
         token.unlock_after_archiving();
     });
 
@@ -184,7 +192,7 @@ async fn create_new_scaling_storage_canister() -> CommonResult<Principal> {
     }
 }
 
-async fn send_blocks_to_archive(blocks_to_archive: VecDeque<EncodedBlock>) -> CommonResult<bool> {
+async fn send_blocks_to_archive(blocks_to_archive: VecDeque<EncodedBlock>) -> CommonResult<()> {
     let storage_canister_id =
         get_or_create_available_storage_id(blocks_to_archive.len() as u32).await?;
 
@@ -193,14 +201,14 @@ async fn send_blocks_to_archive(blocks_to_archive: VecDeque<EncodedBlock>) -> Co
         storage_canister_id.to_text()
     ));
     //save the txs to auto-scaling storage
-    let res: Result<(BooleanResult, ), (RejectionCode, String)> =
-        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive, )).await;
+    let res: Result<(BooleanResult,), (RejectionCode, String)> =
+        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive,)).await;
     match res {
-        Ok((res, )) => match res {
+        Ok((res,)) => match res {
             BooleanResult::Ok(sucess) => {
                 if sucess {
                     api::print("batchAppend success");
-                    Ok(true)
+                    Ok(())
                 } else {
                     api::print("batchAppend failed");
                     Err(DFTError::MoveTxToScalingStorageFailed)
