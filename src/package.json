@@ -11,7 +11,7 @@
     "@cucumber/cucumber": "^7.1.0",
     "@cucumber/pretty-formatter": "^1.0.0-alpha.1",
     "@dfinity/agent": "^0.10.2",
-    "@dfinity/authentication": "^0.10.2",
+    "@dfinity/authentication": "^0.11.0",
     "@dfinity/candid": "^0.10.2",
     "@dfinity/identity": "^0.10.2",
     "@dfinity/principal": "^0.10.2",
