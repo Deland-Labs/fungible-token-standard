@@ -20,7 +20,7 @@ async fn canister_init(
     caller: Option<Principal>,
     archive_option: Option<ArchiveOptions>,
 ) {
-    let real_caller = caller.unwrap_or_else(|| api::caller());
+    let real_caller = caller.unwrap_or_else(api::caller);
     let owner_holder = TokenHolder::new(real_caller, sub_account);
     // convert logo to Option<Vec<u8>>
     // token initialize
@@ -38,17 +38,14 @@ async fn canister_init(
             owner_holder.clone(),
             archive_option,
         );
-        match token.mint(
+        if let Ok((_, block_hash, _)) = token.mint(
             &real_caller,
             &owner_holder,
             total_supply.0,
             None,
             api::time(),
         ) {
-            Ok((_, block_hash, _)) => {
-                set_certified_data(&block_hash);
-            }
-            _ => {}
+            set_certified_data(&block_hash);
         }
     });
 }
@@ -58,7 +55,7 @@ async fn canister_init(
 fn owner() -> Principal {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.owner().clone()
+        *token.owner()
     })
 }
 
@@ -136,7 +133,7 @@ fn get_desc_info() -> Vec<(String, String)> {
 fn logo() -> Vec<u8> {
     TOKEN.with(|token| {
         let token = token.borrow();
-        token.logo().clone().unwrap_or(vec![])
+        token.logo().clone().unwrap_or_default()
     })
 }
 
@@ -182,7 +179,7 @@ async fn approve(
     created_at: Option<u64>,
 ) -> OperationResult {
     let caller = api::caller();
-    let owner_holder = TokenHolder::new(caller.clone(), owner_sub_account);
+    let owner_holder = TokenHolder::new(caller, owner_sub_account);
     match spender.parse::<TokenHolder>() {
         Ok(spender_holder) => {
             match TOKEN.with(|token| {

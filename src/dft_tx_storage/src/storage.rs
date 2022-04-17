@@ -120,7 +120,7 @@ impl AutoScalingStorage {
     // fn get storage info
     pub fn get_storage_info(&self) -> StorageInfo {
         StorageInfo {
-            token_id: self.token_id.clone(),
+            token_id: self.token_id,
             block_height_offset: self.block_height_offset.clone(),
             total_blocks_count: self.blocks.len().into(),
             total_block_size_bytes: self.total_block_size_bytes.into(),

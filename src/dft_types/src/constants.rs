@@ -3,9 +3,9 @@ pub const BLOCK_ARCHIVE_SIZE: u32 = 1000;
 // 3.9GB
 pub const MAX_CANISTER_STORAGE_BYTES: u32 = 4294967295u32 - 100 * 1024 * 1024;
 // 2T
-pub const CYCLES_PER_AUTO_SCALING: u64 = 2000_000_000_000;
+pub const CYCLES_PER_AUTO_SCALING: u64 = 2_000_000_000_000;
 pub const MAX_BLOCKS_PER_REQUEST: u32 = 100;
-pub const MAX_MESSAGE_SIZE_BYTES: u32 = 1 * 1024 * 1024 + 5 * 1024 * 1024 / 5;
+pub const MAX_MESSAGE_SIZE_BYTES: u32 = 1024 * 1024 + 8 * 1024 * 1024 / 10;
 pub const DEFAULT_FEE_RATE_DECIMALS: u8 = 8;
 /// The maximum number of transactions that we attempt to purge in one go.
 /// If there are many transactions in the buffer, purging them all in one go

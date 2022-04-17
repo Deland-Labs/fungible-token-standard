@@ -118,7 +118,7 @@ pub async fn install_canister(
 ) -> Result<(), String> {
     let install_config = CanisterInstall {
         mode: InstallMode::Install,
-        canister_id: canister_id.clone(),
+        canister_id: *canister_id,
         wasm_module: wasm_module.clone(),
         arg: args,
     };

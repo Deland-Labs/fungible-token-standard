@@ -65,13 +65,13 @@ impl Block {
         match bytes {
             Ok(b) => Ok(EncodedBlock::from(b)),
             Err(e) => Err(DFTError::Unknown {
-                detail: format!("block encode failed,{0}", e.to_string()),
+                detail: format!("block encode failed,{}", e),
             }),
         }
     }
 
     pub fn parent_hash(&self) -> Option<BlockHash> {
-        self.parent_hash.clone()
+        self.parent_hash
     }
 
     pub fn transaction(&self) -> Cow<Transaction> {
@@ -79,7 +79,7 @@ impl Block {
     }
 
     pub fn timestamp(&self) -> u64 {
-        self.timestamp.clone()
+        self.timestamp
     }
 }
 
@@ -108,7 +108,7 @@ impl EncodedBlock {
         match block {
             Ok(b) => Ok(b),
             Err(e) => Err(DFTError::Unknown {
-                detail: format!("decode block failed,{0}", e.to_string()),
+                detail: format!("decode block failed,{}", e),
             }),
         }
     }

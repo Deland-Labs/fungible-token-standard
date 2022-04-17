@@ -23,7 +23,7 @@ impl From<ActorResult<bool>> for BooleanResult {
     fn from(result: ActorResult<bool>) -> Self {
         match result {
             Ok(value) => BooleanResult::Ok(value),
-            Err(error) => BooleanResult::Err(error.into()),
+            Err(error) => BooleanResult::Err(error),
         }
     }
 }

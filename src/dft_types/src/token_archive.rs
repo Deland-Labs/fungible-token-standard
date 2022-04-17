@@ -88,10 +88,7 @@ impl Archive {
         self.latest_storage_canister
     }
     pub fn last_storage_canister_id(&self) -> Option<Principal> {
-        match self.storage_canisters.last() {
-            Some(id) => Some(id.clone()),
-            None => None,
-        }
+        self.storage_canisters.last().copied()
     }
 
     pub fn last_storage_canister_index(&self) -> usize {
@@ -99,10 +96,7 @@ impl Archive {
     }
 
     pub fn last_storage_canister_range(&self) -> Option<(BlockHeight, BlockHeight)> {
-        match self.storage_canisters_block_ranges.last() {
-            Some(range) => Some(range.clone()),
-            None => None,
-        }
+        self.storage_canisters_block_ranges.last().cloned()
     }
 
     pub fn index(&self) -> Vec<((BlockHeight, BlockHeight), Principal)> {
@@ -131,7 +125,7 @@ impl Archive {
         self.storage_canisters_block_ranges
             .last()
             .map(|(_, height_to)| height_to.clone() + 1u32)
-            .unwrap_or(0u32.into())
+            .unwrap_or_else(|| 0u32.into())
     }
 
     pub fn storage_canisters(&self) -> &[Principal] {
@@ -197,10 +191,10 @@ impl Archive {
 
     pub fn lock_for_archiving(&mut self) -> bool {
         if self.archiving_in_progress {
-            return false;
+            false
         } else {
             self.archiving_in_progress = true;
-            return true;
+            true
         }
     }
 
