@@ -1,8 +1,5 @@
 {
   "canisters": {
-    "dft_burnable_mintable": {
-      "exclude_in_package": true
-    }
   },
   "envs": [
     {
