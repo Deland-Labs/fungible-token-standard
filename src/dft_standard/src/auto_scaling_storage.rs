@@ -41,13 +41,6 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
         return Ok(());
     }
 
-    api::print(format!(
-        "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
-        archive_size_bytes,
-        max_msg_size,
-        blocks_to_archive.len()
-    ));
-
     // mark archiving
     let lock_res = TOKEN.with(|token| {
         let mut token = token.borrow_mut();
@@ -60,6 +53,12 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
     }
 
     if let Ok(_) = send_blocks_to_archive(blocks_to_archive).await {
+        api::print(format!(
+            "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
+            archive_size_bytes,
+            max_msg_size,
+            num_blocks
+        ));
         TOKEN.with(|token| {
             let mut token = token.borrow_mut();
             let last_storage_index = token.blockchain().archive.last_storage_canister_index();
@@ -198,6 +197,7 @@ async fn install_storage_canister_and_append_to_storage_records(
         Ok(install_args) => {
             match install_canister(&canister_id, STORAGE_WASM.to_vec(), install_args).await {
                 Ok(_) => {
+                    api::print("install storage canister success");
                     TOKEN.with(|token| {
                         let mut token = token.borrow_mut();
                         token.append_scaling_storage_canister(canister_id);
