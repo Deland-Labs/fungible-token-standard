@@ -13,6 +13,7 @@
     "--security-opt",
     "seccomp=unconfined"
   ],
+  "postCreateCommand":["bash", "${containerWorkspaceFolder}/sh_post_container_created.sh"],
   // Set *default* container specific settings.json values on container create.
   "settings": {
     "lldb.executable": "/usr/bin/lldb",
@@ -29,7 +30,8 @@
   "extensions": [
     "mutantdino.resourcemonitor",
     "tamasfe.even-better-toml",
-    "serayuzgur.crates"
+    "serayuzgur.crates",
+    "github.copilot"
   ],
   "mounts": [
     "target=${containerWorkspaceFolder}/node_modules,type=volume",

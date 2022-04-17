@@ -1,7 +1,7 @@
 use crate::{CommonResult, DFTError, TokenAmount, TokenHolder};
 use candid::Deserialize;
-use std::collections::HashMap;
 use serde::Serialize;
+use std::collections::HashMap;
 
 #[derive(Clone, Default, Debug, Deserialize, Serialize)]
 pub struct TokenBalances {

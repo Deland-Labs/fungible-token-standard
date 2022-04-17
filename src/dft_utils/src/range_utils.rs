@@ -1,5 +1,5 @@
-use std::ops::Range;
 use num_bigint::BigUint;
+use std::ops::Range;
 
 /// Constructs a range starting at `start` and spanning `len` integers.
 /// If `start` + `len` overflows BigUint, the len is truncated to the largest value that doesn't overflow

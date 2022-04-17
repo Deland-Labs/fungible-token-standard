@@ -1,0 +1,26 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+-   repo: local
+    hooks:
+      -   id: cargo-format
+          name: Run Cargo Format
+          entry: ./git_hooks/format.sh
+          language: script
+    #   -   id: cargo-clippy
+    #       name: Run Cargo clippy
+    #       entry: ./git_hooks/clippy.sh
+    #       language: script
+      -   id: cargo-fix
+          name: Run Cargo Fix
+          entry: ./git_hooks/fix.sh
+          stages: [post-commit]
+          language: script
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: mixed-line-ending
