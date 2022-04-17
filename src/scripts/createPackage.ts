@@ -173,6 +173,7 @@ interface BuildContext {
     // filter canister those not exclude in package
     let exclude_canisters: string[] = [];
     let canisters = {};
+    // TODO: try to sort canisters by depends in dfx.json to make sure canister dependencies are loaded first
 
     for (let [name, canister] of dfxJson.canisters.entries()) {
         if (canister.pack_config?.exclude_in_package) {

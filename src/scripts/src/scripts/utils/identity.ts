@@ -63,7 +63,8 @@ class IdentityFactory {
     private _identities: Map<string, IdentityInfo>;
 
     constructor() {
-        useDfxIdentity(DEFAULT_IDENTITY);
+        // switch to default identity to make sure it would be ok to access dfx node locally w/o 403
+        useDfxIdentity("default");
         this._identities = new Map<string, IdentityInfo>();
     }
 
