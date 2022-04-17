@@ -39,3 +39,11 @@ run shell script below in `src` dir.
 pip install pre-commit
 pre-commit install
 ```
+
+## About us
+
+We are from Deland-Labs team.
+
+We are building a decentralized exchange based on Dfinity with Open Order Protocol.
+
+Offcial Website : https://delandlabs.com
