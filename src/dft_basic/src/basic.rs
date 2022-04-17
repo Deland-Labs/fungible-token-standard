@@ -38,7 +38,7 @@ async fn canister_init(
             owner_holder.clone(),
             archive_option,
         );
-        match token._mint(
+        match token.mint(
             &real_caller,
             &owner_holder,
             total_supply.0,

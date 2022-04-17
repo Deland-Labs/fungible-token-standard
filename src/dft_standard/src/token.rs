@@ -84,6 +84,35 @@ pub trait TokenStandard {
     fn block_by_height(&self, block_height: BlockHeight) -> BlockResult;
     fn blocks_by_query(&self, start: BlockHeight, count: usize) -> QueryBlocksResult;
     fn archives(&self) -> Vec<ArchiveInfo>;
+
+    fn mint(
+        &mut self,
+        caller: &Principal,
+        to: &TokenHolder,
+        value: TokenAmount,
+        nonce: Option<u64>,
+        now: u64,
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
+
+    //burn
+    fn burn(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        value: TokenAmount,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
+    //burn from
+    fn burn_from(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        spender: &TokenHolder,
+        value: TokenAmount,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
 }
 
 #[derive(Getters, Setters)]
@@ -139,6 +168,37 @@ impl Default for TokenBasic {
 }
 
 impl TokenBasic {
+    // initialize
+    pub fn initialize(
+        &mut self,
+        owner: &Principal,
+        token_id: Principal,
+        logo: Option<Vec<u8>>,
+        name: String,
+        symbol: String,
+        decimals: u8,
+        fee: TokenFee,
+        fee_to: TokenHolder,
+        archive_options: Option<ArchiveOptions>,
+    ) {
+        // check logo type
+        if logo.is_some() {
+            let _ = get_logo_type(&logo.clone().unwrap())
+                .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)
+                .unwrap();
+        }
+
+        // set the parameters to token's properties
+        self.owner = owner.clone();
+        self.token_id = token_id.clone();
+        self.metadata =
+            TokenMetadata::new(name.clone(), symbol.clone(), decimals.clone(), fee.clone());
+        self.logo = logo;
+        self.fee_to = fee_to;
+        if archive_options.is_some() {
+            self.blockchain.archive = Archive::new(archive_options.unwrap());
+        }
+    }
     // check if the caller is anonymous
     pub fn not_allow_anonymous(&self, caller: &Principal) -> CommonResult<()> {
         if caller == &Principal::anonymous() {
@@ -382,138 +442,6 @@ impl TokenBasic {
             // credit the transfer_to's balance
             self.balances.credit_balance(to, value.clone());
             Ok(res)
-        }
-    }
-    // _mint
-    pub fn _mint(
-        &mut self,
-        caller: &Principal,
-        to: &TokenHolder,
-        value: TokenAmount,
-        created_at: Option<u64>,
-        now: u64,
-    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
-        self.verified_created_at(&created_at, &now)?;
-        let created_at = created_at.unwrap_or(now.clone());
-        let tx = Transaction {
-            operation: Operation::Transfer {
-                caller: TokenHolder::new(caller.clone(), None),
-                from: TokenHolder::empty(),
-                to: to.clone(),
-                value: value.clone(),
-                fee: 0u32.into(),
-            },
-            created_at,
-        };
-        let res = self.add_tx_to_block(tx, now)?;
-        self.balances.credit_balance(to, value.clone());
-        Ok(res)
-    }
-
-    // _burn
-    pub fn _burn(
-        &mut self,
-        burner: &TokenHolder,
-        value: TokenAmount,
-        created_at: u64,
-        now: u64,
-    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
-        // calc the transfer fee,if the burn amount small than minimum fee,return error
-        let fee = self.calc_transfer_fee(&value);
-        if value < self.metadata().fee().minimum.clone() {
-            return Err(DFTError::BurnValueTooSmall);
-        }
-        //check the burn from holder's balance, if balance is not enough, return error
-        if self.balances.balance_of(burner) < value.clone() {
-            return Err(DFTError::InsufficientBalance);
-        }
-
-        let tx = Transaction {
-            operation: Operation::Transfer {
-                caller: burner.clone(),
-                from: burner.clone(),
-                to: TokenHolder::empty(),
-                value: value.clone(),
-                fee: fee.clone(),
-            },
-            created_at,
-        };
-        let res = self.add_tx_to_block(tx, now)?;
-        // burn does not charge the transfer fee
-        // debit the burn from holder's balance
-        self.balances.debit_balance(burner, value.clone())?;
-        Ok(res)
-    }
-
-    // _burn_from
-    pub fn _burn_from(
-        &mut self,
-        burner: &TokenHolder,
-        from: &TokenHolder,
-        value: TokenAmount,
-        created_at: u64,
-        now: u64,
-    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
-        // calc the transfer fee,if the burn amount small than minimum fee,return error
-        let fee = self.calc_transfer_fee(&value);
-        if value < self.metadata().fee().minimum.clone() {
-            return Err(DFTError::BurnValueTooSmall);
-        }
-        //check the burn from holder's balance, if balance is not enough, return error
-        if self.balances.balance_of(from) < value.clone() {
-            return Err(DFTError::InsufficientBalance);
-        } else {
-            let tx = Transaction {
-                operation: Operation::Transfer {
-                    caller: burner.clone(),
-                    from: from.clone(),
-                    to: TokenHolder::empty(),
-                    value: value.clone(),
-                    fee: fee.clone(),
-                },
-                created_at,
-            };
-            let res = self.add_tx_to_block(tx, now)?;
-            self.allowances.debit(from, burner, value.clone())?;
-            // burn does not charge the transfer fee
-            // debit the burn from holder's balance
-            self.balances.debit_balance(from, value.clone())?;
-            Ok(res)
-        }
-    }
-}
-
-//from/to TokenPayload
-impl TokenBasic {
-    // initialize
-    pub fn initialize(
-        &mut self,
-        owner: &Principal,
-        token_id: Principal,
-        logo: Option<Vec<u8>>,
-        name: String,
-        symbol: String,
-        decimals: u8,
-        fee: TokenFee,
-        fee_to: TokenHolder,
-        archive_options: Option<ArchiveOptions>,
-    ) {
-        // check logo type
-        if logo.is_some() {
-            let _ = get_logo_type(&logo.clone().unwrap())
-                .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)
-                .unwrap();
-        }
-
-        // set the parameters to token's properties
-        self.owner = owner.clone();
-        self.token_id = token_id.clone();
-        self.metadata =
-            TokenMetadata::new(name.clone(), symbol.clone(), decimals.clone(), fee.clone());
-        self.logo = logo;
-        self.fee_to = fee_to;
-        if archive_options.is_some() {
-            self.blockchain.archive = Archive::new(archive_options.unwrap());
         }
     }
 }
@@ -845,5 +773,107 @@ impl TokenStandard for TokenBasic {
 
     fn archives(&self) -> Vec<ArchiveInfo> {
         self.blockchain.archive.archives()
+    }
+    fn mint(
+        &mut self,
+        caller: &Principal,
+        to: &TokenHolder,
+        value: TokenAmount,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
+        self.only_owner(caller)?;
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now.clone());
+        let tx = Transaction {
+            operation: Operation::Transfer {
+                caller: TokenHolder::new(caller.clone(), None),
+                from: TokenHolder::empty(),
+                to: to.clone(),
+                value: value.clone(),
+                fee: 0u32.into(),
+            },
+            created_at,
+        };
+        let res = self.add_tx_to_block(tx, now)?;
+        self.balances.credit_balance(to, value.clone());
+        Ok(res)
+    }
+
+    fn burn(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        value: TokenAmount,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
+        self.not_allow_anonymous(caller)?;
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now.clone());
+        // calc the transfer fee,if the burn amount small than minimum fee,return error
+        let fee = self.calc_transfer_fee(&value);
+        if value < self.metadata().fee().minimum.clone() {
+            return Err(DFTError::BurnValueTooSmall);
+        }
+        //check the burn from holder's balance, if balance is not enough, return error
+        if self.balances.balance_of(owner) < value.clone() {
+            return Err(DFTError::InsufficientBalance);
+        }
+
+        let tx = Transaction {
+            operation: Operation::Transfer {
+                caller: owner.clone(),
+                from: owner.clone(),
+                to: TokenHolder::empty(),
+                value: value.clone(),
+                fee: fee.clone(),
+            },
+            created_at,
+        };
+        let res = self.add_tx_to_block(tx, now)?;
+        // burn does not charge the transfer fee
+        // debit the burn from holder's balance
+        self.balances.debit_balance(owner, value.clone())?;
+        Ok(res)
+    }
+    fn burn_from(
+        &mut self,
+        caller: &Principal,
+        owner: &TokenHolder,
+        spender: &TokenHolder,
+        value: TokenAmount,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
+        self.not_allow_anonymous(caller)?;
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now.clone());
+        // calc the transfer fee,if the burn amount small than minimum fee,return error
+        let fee = self.calc_transfer_fee(&value);
+        if value < self.metadata().fee().minimum.clone() {
+            return Err(DFTError::BurnValueTooSmall);
+        }
+        //check the burn from holder's balance, if balance is not enough, return error
+        if self.balances.balance_of(owner) < value.clone() {
+            return Err(DFTError::InsufficientBalance);
+        } else {
+            let tx = Transaction {
+                operation: Operation::Transfer {
+                    caller: spender.clone(),
+                    from: owner.clone(),
+                    to: TokenHolder::empty(),
+                    value: value.clone(),
+                    fee: fee.clone(),
+                },
+                created_at,
+            };
+            let res = self.add_tx_to_block(tx, now)?;
+            self.allowances.debit(owner, spender, value.clone())?;
+            // burn does not charge the transfer fee
+            // debit the burn from holder's balance
+            self.balances.debit_balance(owner, value.clone())?;
+            Ok(res)
+        }
     }
 }

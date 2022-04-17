@@ -11,7 +11,6 @@ mod http;
 #[path = "../../dft_basic/src/management.rs"]
 mod management;
 mod mintable;
-mod token;
 
 candid::export_service!();
 

@@ -55,9 +55,7 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
     if let Ok(_) = send_blocks_to_archive(blocks_to_archive).await {
         api::print(format!(
             "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
-            archive_size_bytes,
-            max_msg_size,
-            num_blocks
+            archive_size_bytes, max_msg_size, num_blocks
         ));
         TOKEN.with(|token| {
             let mut token = token.borrow_mut();

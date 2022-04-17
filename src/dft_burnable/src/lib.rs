@@ -10,7 +10,6 @@ mod burnable;
 mod http;
 #[path = "../../dft_basic/src/management.rs"]
 mod management;
-mod token;
 
 candid::export_service!();
 
