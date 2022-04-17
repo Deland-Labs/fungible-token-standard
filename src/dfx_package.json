@@ -1,6 +1,6 @@
 {
   "canisters": {
-    "dft_basic2": {
+    "dft_burnable_mintable": {
       "exclude_in_package": true
     }
   },

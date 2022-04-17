@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-
-#[allow(dead_code)]
 use candid::{CandidType, Deserialize, Func};
 use serde_bytes::ByteBuf;
+use std::collections::HashMap;
+
 type HeaderField = (String, String);
+
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct Token {}
 
@@ -55,9 +55,9 @@ pub struct HttpResponse {
 impl HttpResponse {
     fn new(status_code: u16, headers: Vec<(String, String)>, body: Vec<u8>) -> HttpResponse {
         HttpResponse {
-            status_code: status_code,
-            headers: headers,
-            body: body,
+            status_code,
+            headers,
+            body,
             streaming_strategy: None,
         }
     }

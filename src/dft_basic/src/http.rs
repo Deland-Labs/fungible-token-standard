@@ -50,7 +50,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         "/logo" => {
             let logo = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.logo().clone().unwrap_or(vec![])
+                token.logo().clone().unwrap_or_default()
             });
 
             // if logo is empty, return 404
@@ -63,10 +63,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 if logo_type.is_empty() {
                     HttpResponse::not_found()
                 } else {
-                    HttpResponse::ok(
-                        vec![("Content-Type".into(), logo_type.into())],
-                        logo.clone(),
-                    )
+                    HttpResponse::ok(vec![("Content-Type".into(), logo_type)], logo.clone())
                 }
             }
         }
@@ -87,7 +84,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
         "/decimals" => {
             let decimals = TOKEN.with(|token| {
                 let token = token.borrow();
-                token.metadata().decimals().clone()
+                *token.metadata().decimals()
             });
             HttpResponse::ok(vec![], decimals.to_string().into_bytes())
         }

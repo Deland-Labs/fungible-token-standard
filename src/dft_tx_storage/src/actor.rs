@@ -11,7 +11,7 @@ use ic_cdk_macros::*;
 fn canister_init(dft_id: Principal, dft_tx_start_index: Nat) {
     STORAGE.with(|storage| {
         let mut storage = storage.borrow_mut();
-        storage.initialize(dft_id.clone(), dft_tx_start_index.clone());
+        storage.initialize(dft_id, dft_tx_start_index);
     });
 }
 
@@ -38,7 +38,7 @@ fn block_by_index(block_height: Nat) -> BlockResult {
 fn blocks(block_height_start: Nat, size: usize) -> BlockListResult {
     STORAGE.with(|storage| {
         let storage = storage.borrow();
-        storage.get_blocks_by_query(block_height_start, size).into()
+        storage.get_blocks_by_query(block_height_start, size)
     })
 }
 

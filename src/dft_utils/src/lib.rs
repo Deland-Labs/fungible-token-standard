@@ -15,11 +15,9 @@ pub fn get_logo_type(logo: &[u8]) -> Result<String, String> {
     ];
 
     for &(k, v) in magic_bytes.iter() {
-        if logo.len() > k.len() {
-            if &logo[0..k.len()] == k {
-                logo_type = v.to_string();
-                break;
-            }
+        if logo.len() > k.len() && &logo[0..k.len()] == k {
+            logo_type = v.to_string();
+            break;
         }
     }
     if logo_type.is_empty() {

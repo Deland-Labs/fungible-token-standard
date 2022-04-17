@@ -66,24 +66,24 @@ fn inspect_message() {
             } else if caller == Principal::anonymous() {
                 let err: ErrorInfo = DFTError::NotAllowAnonymous.into();
                 let err_msg = format!("reject {:?}", err);
-                api::print(err_msg.to_string());
+                api::print(err_msg.clone());
                 api::call::reject(err_msg.as_str());
             } else {
                 let err: ErrorInfo = DFTError::InsufficientBalance.into();
                 let err_msg = format!("reject {:?}", err);
-                api::print(err_msg.to_string());
+                api::print(err_msg.clone());
                 api::call::reject(err_msg.as_str());
             }
         }
         m if OWNER_METHODS.contains(&m) => {
             // check if caller is owner
-            let owner = TOKEN.with(|token| token.borrow().owner().clone());
+            let owner = TOKEN.with(|token| *token.borrow().owner());
             if caller == owner {
                 api::call::accept_message();
             } else {
                 let err: ErrorInfo = DFTError::OnlyOwnerAllowCallIt.into();
                 let err_msg = format!("reject {:?}", err);
-                api::print(err_msg.to_string());
+                api::print(err_msg.clone());
                 api::call::reject(err_msg.as_str());
             }
         }

@@ -59,7 +59,7 @@ fn set_fee_to(fee_to: String, created_at: Option<u64>) -> BooleanResult {
         Ok(holder) => TOKEN.with(|token| {
             let mut token = token.borrow_mut();
             token
-                .set_fee_to(&api::caller(), holder.clone(), created_at, api::time())
+                .set_fee_to(&api::caller(), holder, created_at, api::time())
                 .into()
         }),
         Err(_) => BooleanResult::Err(DFTError::InvalidArgFormatFeeTo.into()),

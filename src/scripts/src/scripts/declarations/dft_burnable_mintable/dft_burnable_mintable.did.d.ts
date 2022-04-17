@@ -121,12 +121,26 @@ export interface _SERVICE {
   'blocksByQuery' : (arg_0: bigint, arg_1: bigint) => Promise<
       QueryBlocksResult
     >,
+  'burn' : (
+      arg_0: [] | [Array<number>],
+      arg_1: bigint,
+      arg_2: [] | [bigint],
+    ) => Promise<OperationResult>,
+  'burnFrom' : (
+      arg_0: [] | [Array<number>],
+      arg_1: string,
+      arg_2: bigint,
+      arg_3: [] | [bigint],
+    ) => Promise<OperationResult>,
   'decimals' : () => Promise<number>,
   'desc' : () => Promise<Array<[string, string]>>,
   'fee' : () => Promise<CandidTokenFee>,
   'http_request' : (arg_0: HttpRequest) => Promise<HttpResponse>,
   'logo' : () => Promise<Array<number>>,
   'meta' : () => Promise<CandidTokenMetadata>,
+  'mint' : (arg_0: string, arg_1: bigint, arg_2: [] | [bigint]) => Promise<
+      OperationResult
+    >,
   'name' : () => Promise<string>,
   'owner' : () => Promise<Principal>,
   'setDesc' : (arg_0: Array<[string, string]>) => Promise<BooleanResult>,

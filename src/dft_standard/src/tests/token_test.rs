@@ -345,7 +345,7 @@ fn test_token_basic_fee_calculation(
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1010u32);
-    let _ = token._mint(
+    let _ = token.mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -504,7 +504,7 @@ fn test_token_basic_approve(
     // mint token to owner_holder
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1000u32);
-    let mint_res = token._mint(
+    let mint_res = token.mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -576,7 +576,7 @@ fn test_token_basic_transfer_from(
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1000u32);
-    let _ = token._mint(
+    let _ = token.mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -664,7 +664,7 @@ fn test_token_basic_transfer(
     let fee = token.metadata().fee().clone();
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
-    let _ = token._mint(
+    let _ = token.mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -722,7 +722,7 @@ fn test_token_basic_mint_burn(
     // mint token to from_holder
     let mint_val = TokenAmount::from(10000u32);
     // mint with wrong nonce should fail
-    let _mint_res = token._mint(
+    let _mint_res = token.mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -735,7 +735,7 @@ fn test_token_basic_mint_burn(
         _mint_res.err().unwrap().to_string(),
         DFTError::TxTooOld.to_string()
     );
-    let _mint_res = token._mint(
+    let _mint_res = token.mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -752,7 +752,13 @@ fn test_token_basic_mint_burn(
     assert_eq!(total_supply, mint_val);
 
     let burn_val = TokenAmount::from(1000u32);
-    let burn_res = token._burn(&minter_holder, burn_val.clone(), 2, now.clone());
+    let burn_res = token.burn(
+        &test_minter,
+        &minter_holder,
+        burn_val.clone(),
+        None,
+        now.clone(),
+    );
 
     // check burn_res is ok, and check minter_holder balance
     assert!(burn_res.is_ok(), "{:?}", burn_res.unwrap_err());
@@ -765,7 +771,13 @@ fn test_token_basic_mint_burn(
 
     // burn value less than minimum fee will fail
     let burn_val = TokenAmount::from(1u32);
-    let burn_res = token._burn(&minter_holder, burn_val.clone(), 3, now.clone());
+    let burn_res = token.burn(
+        &test_minter,
+        &minter_holder,
+        burn_val.clone(),
+        None,
+        now.clone(),
+    );
     assert!(burn_res.is_err());
 }
 

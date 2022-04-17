@@ -44,7 +44,7 @@ impl TokenBalances {
             let new_balance = self.balance_of(holder) - value.clone();
 
             if new_balance > TokenAmount::from(0u32) {
-                self.balances.insert(holder.clone(), new_balance);
+                self.balances.insert(*holder, new_balance);
             } else {
                 self.balances.remove(holder);
             }
@@ -57,7 +57,7 @@ impl TokenBalances {
     // credit token holder's balance
     pub fn credit_balance(&mut self, holder: &TokenHolder, value: TokenAmount) {
         let new_balance = self.balance_of(holder) + value.clone();
-        self.balances.insert(holder.clone(), new_balance);
+        self.balances.insert(*holder, new_balance);
         self.total_supply = self.total_supply.clone() + value;
     }
 
@@ -65,7 +65,7 @@ impl TokenBalances {
     pub fn to_vec(&self) -> Vec<(TokenHolder, TokenAmount)> {
         let mut vec = Vec::new();
         for (holder, balance) in self.balances.iter() {
-            vec.push((holder.clone(), balance.clone()));
+            vec.push((*holder, balance.clone()));
         }
         vec
     }
@@ -74,7 +74,7 @@ impl TokenBalances {
     pub fn restore_from(&mut self, vec: Vec<(TokenHolder, TokenAmount)>) {
         self.balances = HashMap::new();
         for (holder, balance) in vec {
-            self.balances.insert(holder.clone(), balance.clone());
+            self.balances.insert(holder, balance);
         }
     }
 }

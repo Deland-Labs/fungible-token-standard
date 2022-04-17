@@ -31,7 +31,7 @@ impl TokenAllowances {
         let mut vec = Vec::new();
         if let Some(allowances) = self.0.get(owner) {
             for (spender, amount) in allowances {
-                vec.push((spender.clone(), amount.clone()));
+                vec.push((*spender, amount.clone()));
             }
         }
         vec
@@ -56,21 +56,21 @@ impl TokenAllowances {
                 let mut temp = inner.clone();
                 if value == TokenAmount::from(0u32) {
                     temp.remove(spender);
-                    if temp.len() > 0 {
-                        self.0.insert(owner.clone(), temp);
+                    if temp.is_empty() {
+                        self.0.insert(*owner, temp);
                     } else {
                         self.0.remove(owner);
                     }
                 } else {
-                    temp.insert(spender.clone(), new_spender_allowance);
-                    self.0.insert(owner.clone(), temp);
+                    temp.insert(*spender, new_spender_allowance);
+                    self.0.insert(*owner, temp);
                 }
             }
             None => {
                 if value > TokenAmount::from(0u32) {
                     let mut inner = HashMap::new();
-                    inner.insert(spender.clone(), new_spender_allowance);
-                    self.0.insert(owner.clone(), inner);
+                    inner.insert(*spender, new_spender_allowance);
+                    self.0.insert(*owner, inner);
                 }
             }
         };
@@ -83,22 +83,22 @@ impl TokenAllowances {
             Some(inner) => {
                 let mut temp = inner.clone();
                 if value == TokenAmount::from(0u32) {
-                    temp.remove(&spender);
-                    if temp.len() > 0 {
-                        self.0.insert(owner.clone(), temp);
+                    temp.remove(spender);
+                    if temp.is_empty() {
+                        self.0.insert(*owner, temp);
                     } else {
                         self.0.remove(owner);
                     }
                 } else {
-                    temp.insert(spender.clone(), value.clone());
-                    self.0.insert(owner.clone(), temp);
+                    temp.insert(*spender, value);
+                    self.0.insert(*owner, temp);
                 }
             }
             None => {
                 if value > TokenAmount::from(0u32) {
                     let mut inner = HashMap::new();
-                    inner.insert(spender.clone(), value.clone());
-                    self.0.insert(owner.clone(), inner);
+                    inner.insert(*spender, value);
+                    self.0.insert(*owner, inner);
                 }
             }
         };
@@ -110,9 +110,9 @@ impl TokenAllowances {
         for (th, v) in self.0.iter() {
             let mut allow_item = Vec::new();
             for (sp, val) in v.iter() {
-                allow_item.push((sp.clone(), val.clone()));
+                allow_item.push((*sp, val.clone()));
             }
-            allowances.push((th.clone(), allow_item));
+            allowances.push((*th, allow_item));
         }
         allowances
     }
@@ -125,9 +125,9 @@ impl TokenAllowances {
         for (th, v) in allowances.iter() {
             let mut allow_item = HashMap::new();
             for (sp, val) in v.iter() {
-                allow_item.insert(sp.clone(), val.clone());
+                allow_item.insert(*sp, val.clone());
             }
-            self.0.insert(th.clone(), allow_item);
+            self.0.insert(*th, allow_item);
         }
     }
 }

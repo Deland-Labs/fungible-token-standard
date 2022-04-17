@@ -1,7 +1,7 @@
-use crate::token::MintableExtension;
 use candid::{candid_method, Nat};
-use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
-use dft_standard::state::TOKEN;
+use dft_standard::{
+    auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN, token::TokenStandard,
+};
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::*;

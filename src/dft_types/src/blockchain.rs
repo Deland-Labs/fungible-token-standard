@@ -83,10 +83,10 @@ impl Blockchain {
             panic!(
                 "Asked to remove more blocks than present. Present: {}, to remove: {}",
                 self.blocks.len(),
-                len.to_string()
+                len
             );
         }
-        self.blocks = self.blocks.split_off(len.clone());
+        self.blocks = self.blocks.split_off(len);
         self.num_archived_blocks += len;
     }
 

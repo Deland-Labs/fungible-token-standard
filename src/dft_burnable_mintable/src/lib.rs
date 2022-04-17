@@ -6,10 +6,13 @@ use std::string::String;
 
 #[path = "../../dft_basic/src/basic.rs"]
 mod basic;
+#[path = "../../dft_burnable/src/burnable.rs"]
+mod burnable;
 #[path = "../../dft_basic/src/http.rs"]
 mod http;
 #[path = "../../dft_basic/src/management.rs"]
 mod management;
+#[path = "../../dft_mintable/src/mintable.rs"]
 mod mintable;
 
 candid::export_service!();

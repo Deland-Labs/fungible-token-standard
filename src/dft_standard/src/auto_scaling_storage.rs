@@ -20,11 +20,10 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
     let blocks_to_archive = TOKEN.with(|token| {
         let token = token.borrow();
         let blockchain = token.blockchain();
-        let blocks_to_archive = blockchain.get_blocks_for_archiving(
+        blockchain.get_blocks_for_archiving(
             blockchain.archive.trigger_threshold as usize,
             blockchain.archive.num_blocks_to_archive as usize,
-        );
-        blocks_to_archive
+        )
     });
 
     let archive_size_bytes = blocks_to_archive
@@ -41,13 +40,6 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
         return Ok(());
     }
 
-    api::print(format!(
-        "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
-        archive_size_bytes,
-        max_msg_size,
-        blocks_to_archive.len()
-    ));
-
     // mark archiving
     let lock_res = TOKEN.with(|token| {
         let mut token = token.borrow_mut();
@@ -55,11 +47,15 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
     });
 
     // if lock failed, return, lock failed means the archiving is already in progress
-    if lock_res == false {
+    if !lock_res {
         return Ok(());
     }
 
-    if let Ok(_) = send_blocks_to_archive(blocks_to_archive).await {
+    if (send_blocks_to_archive(blocks_to_archive).await).is_ok() {
+        api::print(format!(
+            "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
+            archive_size_bytes, max_msg_size, num_blocks
+        ));
         TOKEN.with(|token| {
             let mut token = token.borrow_mut();
             let last_storage_index = token.blockchain().archive.last_storage_canister_index();
@@ -140,7 +136,7 @@ async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonRe
             last_storage_id = Some(new_scaling_storage_canister_id);
         }
     }
-    return Ok(last_storage_id.unwrap());
+    Ok(last_storage_id.unwrap())
 }
 
 async fn create_new_scaling_storage_canister(
@@ -150,7 +146,7 @@ async fn create_new_scaling_storage_canister(
     let create_args = CreateCanisterArgs {
         cycles: CYCLES_PER_AUTO_SCALING,
         settings: CanisterSettings {
-            controllers: Some(vec![token_id.clone()]),
+            controllers: Some(vec![token_id]),
             compute_allocation: None,
             memory_allocation: None,
             freezing_threshold: None,
@@ -168,11 +164,11 @@ async fn create_new_scaling_storage_canister(
 
             api::print(format!(
                 "token new storage canister id : {} , block height offset : {}",
-                cdr.canister_id.clone().to_string(),
+                cdr.canister_id,
                 block_height_offset.clone()
             ));
             install_storage_canister_and_append_to_storage_records(
-                cdr.canister_id.clone(),
+                cdr.canister_id,
                 token_id,
                 block_height_offset,
             )
@@ -182,7 +178,7 @@ async fn create_new_scaling_storage_canister(
         Err(emsg) => {
             let emsg = format!("create new storage canister failed {}", emsg);
             api::print(emsg.clone());
-            return Err(DFTError::StorageScalingFailed { detail: emsg }.into());
+            Err(DFTError::StorageScalingFailed { detail: emsg })
         }
     }
 }
@@ -192,10 +188,11 @@ async fn install_storage_canister_and_append_to_storage_records(
     token_id: Principal,
     block_height_offset: Nat,
 ) -> CommonResult<()> {
-    match encode_args((token_id.clone(), block_height_offset.clone())) {
+    match encode_args((token_id, block_height_offset.clone())) {
         Ok(install_args) => {
             match install_canister(&canister_id, STORAGE_WASM.to_vec(), install_args).await {
                 Ok(_) => {
+                    api::print("install storage canister success");
                     TOKEN.with(|token| {
                         let mut token = token.borrow_mut();
                         token.append_scaling_storage_canister(canister_id);
@@ -208,14 +205,14 @@ async fn install_storage_canister_and_append_to_storage_records(
                         emsg
                     );
                     api::print(emsg.clone());
-                    return Err(DFTError::StorageScalingFailed { detail: emsg }.into());
+                    Err(DFTError::StorageScalingFailed { detail: emsg })
                 }
             }
         }
         Err(emsg) => {
             let emsg = format!("encode_args failed. details:{:?}", emsg);
             api::print(emsg.clone());
-            return Err(DFTError::StorageScalingFailed { detail: emsg });
+            Err(DFTError::StorageScalingFailed { detail: emsg })
         }
     }
 }
