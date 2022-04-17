@@ -21,14 +21,14 @@
         "dft_tx_storage"
       ]
     },
-    "dft_basic2": {
+    "dft_burnable_mintable": {
       "type": "custom",
       "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_basic --release",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_basic.wasm -o target/wasm32-unknown-unknown/release/dft_basic_opt.wasm"
+        "cargo build --target wasm32-unknown-unknown --package  dft_burnable_mintable --release",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_burnable_mintable.wasm -o target/wasm32-unknown-unknown/release/dft_burnable_mintable_opt.wasm"
       ],
-      "candid": "dft_basic/src/basic.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_basic_opt.wasm",
+      "candid": "dft_burnable_mintable/src/dft_burnable_mintable.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft_burnable_mintable_opt.wasm",
       "depends": [
         "dft_tx_storage"
       ]

@@ -19,7 +19,7 @@ Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
     let dftBasicOption = optionArray.find(o => o.key === "dft_basic");
     let dftBasicInitOptions = parseToDFTInitOptions(dftBasicOption);
     // dft basic 2 option
-    let dftBasic2Option = optionArray.find(o => o.key === "dft_basic2");
+    let dftBasic2Option = optionArray.find(o => o.key === "dft_burnable_mintable");
     let dftBasic2InitOptions = parseToDFTInitOptions(dftBasic2Option);
     // dft burn able option
     let dftBurnAbleOption = optionArray.find(o => o.key === "dft_burnable");
@@ -37,7 +37,7 @@ Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
                     reinstall: true,
                     initOptions: dftBasicInitOptions
                 } : undefined,
-                dft_basic2: dftBasic2InitOptions ? {
+                dft_burnable_mintable: dftBasic2InitOptions ? {
                     reinstall: true,
                     initOptions: dftBasic2InitOptions
                 } : undefined,

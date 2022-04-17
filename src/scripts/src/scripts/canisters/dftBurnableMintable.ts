@@ -7,11 +7,11 @@ import BigNumber from "bignumber.js";
 import logger from "node-color-log";
 
 const build = () => {
-    canister.build("dft_basic2");
+    canister.build("dft_burnable_mintable");
 }
 
 const reinstall_by_dfx = async (args: string) => {
-    await canister.reinstall("dft_basic2", args);
+    await canister.reinstall("dft_burnable_mintable", args);
 }
 
 export const reinstall = async (options?: ReInstallOptions, initOption?: DFTInitOptions) => {

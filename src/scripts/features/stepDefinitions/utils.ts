@@ -48,7 +48,7 @@ export const createDFTActor = (token, user?: string) => {
     switch (token) {
         case "dft_basic":
             return createDFTBasicActor(user);
-        case "dft_basic2":
+        case "dft_burnable_mintable":
             return createDFTBasic2Actor(user);
         case "dft_burnable":
             return createDFTBurnableActor(user);
@@ -72,4 +72,3 @@ export const fileToByteArray = (filePath) => {
     }
     return new Uint8Array();
 };
-

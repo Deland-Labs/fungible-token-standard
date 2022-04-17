@@ -1,10 +1,10 @@
 import {Actor, HttpAgent} from "@dfinity/agent";
 
 // Imports and re-exports candid interface
-import {idlFactory} from './dft_basic2.did.js';
+import {idlFactory} from './dft_burnable_mintable.did.js';
 import logger from "node-color-log";
 
-export {idlFactory} from './dft_basic2.did.js';
+export {idlFactory} from './dft_burnable_mintable.did.js';
 // CANISTER_ID is replaced by webpack based on node environment
 export const canisterId = process.env.DFT_BASIC2_CANISTER_ID;
 
@@ -12,7 +12,7 @@ export const canisterId = process.env.DFT_BASIC2_CANISTER_ID;
  *
  * @param {string | import("@dfinity/principal").Principal} canisterId Canister ID of Agent
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig}} [options]
- * @return {import("@dfinity/agent").ActorSubclass<import("./dft_basic2.did.js")._SERVICE>}
+ * @return {import("@dfinity/agent").ActorSubclass<import("./dft_burnable_mintable.did.js")._SERVICE>}
  */
 export const createActor = (canisterId, options) => {
     const agent = new HttpAgent({...options?.agentOptions});

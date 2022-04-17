@@ -1,0 +1,24 @@
+use candid::{candid_method, Nat};
+use dft_types::*;
+use ic_cdk::export::Principal;
+use ic_cdk_macros::*;
+use std::string::String;
+
+#[path = "../../dft_basic/src/basic.rs"]
+mod basic;
+#[path = "../../dft_burnable/src/burnable.rs"]
+mod burnable;
+#[path = "../../dft_basic/src/http.rs"]
+mod http;
+#[path = "../../dft_basic/src/management.rs"]
+mod management;
+#[path = "../../dft_mintable/src/mintable.rs"]
+mod mintable;
+
+candid::export_service!();
+
+#[query(name = "__get_candid_interface_tmp_hack")]
+#[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
+fn __get_candid_interface_tmp_hack() -> String {
+    __export_service()
+}

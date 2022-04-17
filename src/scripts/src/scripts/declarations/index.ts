@@ -1,5 +1,5 @@
 import {createActor as createDFTBasic} from "~/declarations/dft_basic";
-import {createActor as createDFTBasic2} from "~/declarations/dft_basic2";
+import {createActor as createDFTBasic2} from "~/declarations/dft_burnable_mintable";
 import {createActor as createDFTBurnable} from "~/declarations/dft_burnable";
 import {createActor as createDFTMintable} from "~/declarations/dft_mintable";
 import {createActor as CreateStorageActor} from "~/declarations/dft_tx_storage";
@@ -19,9 +19,9 @@ const createDFTBasicActor = (user?: string) => {
     });
 };
 
-// create a dft_basic2 actor
+// create a dft_burnable_mintable actor
 const createDFTBasic2Actor = (user?: string) => {
-    let canisterId = get_id("dft_basic2");
+    let canisterId = get_id("dft_burnable_mintable");
     if (user === undefined) {
         return createDFTBasic2(canisterId, {
             agentOptions: {host: identityFactory.getDefaultHost()},

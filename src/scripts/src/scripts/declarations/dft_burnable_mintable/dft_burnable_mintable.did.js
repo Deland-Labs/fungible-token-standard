@@ -135,12 +135,27 @@ export const idlFactory = ({ IDL }) => {
         [QueryBlocksResult],
         ['query'],
       ),
+    'burn' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat, IDL.Opt(IDL.Nat64)],
+        [OperationResult],
+        [],
+      ),
+    'burnFrom' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],
+        [OperationResult],
+        [],
+      ),
     'decimals' : IDL.Func([], [IDL.Nat8], ['query']),
     'desc' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))], ['query']),
     'fee' : IDL.Func([], [CandidTokenFee], ['query']),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'logo' : IDL.Func([], [IDL.Vec(IDL.Nat8)], ['query']),
     'meta' : IDL.Func([], [CandidTokenMetadata], ['query']),
+    'mint' : IDL.Func(
+        [IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],
+        [OperationResult],
+        [],
+      ),
     'name' : IDL.Func([], [IDL.Text], ['query']),
     'owner' : IDL.Func([], [IDL.Principal], ['query']),
     'setDesc' : IDL.Func(
