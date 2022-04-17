@@ -1,5 +1,8 @@
 {
   "canisters": {
+    "dft_basic2": {
+      "exclude_in_package": true
+    }
   },
   "envs": [
     {
