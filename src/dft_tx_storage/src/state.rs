@@ -14,7 +14,7 @@ thread_local! {
 fn pre_upgrade() {
     STORAGE.with(|data| {
         let data = data.borrow();
-        storage::stable_save((&*data, )).unwrap();
+        storage::stable_save((&*data,)).unwrap();
     })
 }
 
@@ -22,7 +22,7 @@ fn pre_upgrade() {
 fn post_upgrade() {
     // There can only be one value in stable memory, currently. otherwise, lifetime error.
     // https://docs.rs/ic-cdk/0.3.0/ic_cdk/storage/fn.stable_restore.html
-    let (payload, ): (AutoScalingStorage, ) = storage::stable_restore().unwrap();
+    let (payload,): (AutoScalingStorage,) = storage::stable_restore().unwrap();
     STORAGE.with(|data| {
         let mut data = data.borrow_mut();
         data.restore(payload);

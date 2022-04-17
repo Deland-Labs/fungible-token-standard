@@ -4,7 +4,7 @@ use dft_standard::token::TokenStandard;
 use dft_types::*;
 use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
-use std::{string::String};
+use std::string::String;
 
 #[update(name = "setOwner")]
 #[candid_method(update, rename = "setOwner")]

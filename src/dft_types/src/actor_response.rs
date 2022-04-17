@@ -2,7 +2,7 @@ use crate::{
     ActorResult, BlockHash, BlockHeight, CandidBlock, CandidTransaction, CommonResult, ErrorInfo,
     Transaction, TransactionHash, TransactionId,
 };
-use candid::{CandidType, Deserialize, Principal, Nat};
+use candid::{CandidType, Deserialize, Nat, Principal};
 
 #[derive(CandidType, Debug, Deserialize)]
 pub enum BooleanResult {

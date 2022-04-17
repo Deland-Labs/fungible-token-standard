@@ -21,8 +21,7 @@ pub struct CandidTokenFee {
     pub rate_decimals: u8,
 }
 
-impl From<TokenFee> for CandidTokenFee
-{
+impl From<TokenFee> for CandidTokenFee {
     fn from(fee: TokenFee) -> Self {
         CandidTokenFee {
             minimum: fee.minimum.into(),
@@ -32,7 +31,7 @@ impl From<TokenFee> for CandidTokenFee
     }
 }
 
-impl From<CandidTokenFee> for TokenFee{
+impl From<CandidTokenFee> for TokenFee {
     fn from(fee: CandidTokenFee) -> Self {
         TokenFee {
             minimum: fee.minimum.into(),

@@ -544,8 +544,12 @@ fn test_token_basic_approve(
     assert!(new_approve_rs.is_ok(), "{:?}", new_approve_rs.unwrap_err());
     // check allowance
     let new_allowance = token.allowance(&minter_holder, &spender_holder);
-    let allowance_size= token.allowances().allowance_size();
-    assert_eq!(new_allowance, new_approve_val,"allowance size: {}", allowance_size);
+    let allowance_size = token.allowances().allowance_size();
+    assert_eq!(
+        new_allowance, new_approve_val,
+        "allowance size: {}",
+        allowance_size
+    );
     assert_eq!(token.blockchain().chain_length(), TokenAmount::from(3u32));
     // check total supply
     let total_supply = token.total_supply();

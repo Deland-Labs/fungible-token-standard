@@ -1,4 +1,3 @@
-
 #![allow(dead_code)]
 use ic_cdk::api;
 use ic_cdk::export::candid::{CandidType, Nat, Principal};

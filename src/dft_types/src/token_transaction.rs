@@ -1,4 +1,4 @@
-use crate::{TokenAmount, TokenFee, TokenHolder, TokenReceiver, TransactionHash, CandidTokenFee};
+use crate::{CandidTokenFee, TokenAmount, TokenFee, TokenHolder, TokenReceiver, TransactionHash};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -69,8 +69,7 @@ pub enum CandidOperation {
     },
 }
 
-impl From<Operation> for CandidOperation
-{
+impl From<Operation> for CandidOperation {
     fn from(operation: Operation) -> Self {
         match operation {
             Operation::Approve {
@@ -103,14 +102,12 @@ impl From<Operation> for CandidOperation
                 caller,
                 new_fee: new_fee.into(),
             },
-            Operation::OwnerModify { caller, new_owner } => CandidOperation::OwnerModify {
-                caller,
-                new_owner,
-            },
-            Operation::FeeToModify { caller, new_fee_to } => CandidOperation::FeeToModify {
-                caller,
-                new_fee_to,
-            },
+            Operation::OwnerModify { caller, new_owner } => {
+                CandidOperation::OwnerModify { caller, new_owner }
+            }
+            Operation::FeeToModify { caller, new_fee_to } => {
+                CandidOperation::FeeToModify { caller, new_fee_to }
+            }
         }
     }
 }
@@ -146,8 +143,7 @@ pub struct CandidTransaction {
     pub created_at: u64,
 }
 
-impl From<Transaction> for CandidTransaction
-{
+impl From<Transaction> for CandidTransaction {
     fn from(tx: Transaction) -> Self {
         CandidTransaction {
             operation: CandidOperation::from(tx.operation),

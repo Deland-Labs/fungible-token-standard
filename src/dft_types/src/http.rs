@@ -63,7 +63,7 @@ impl HttpResponse {
     }
     pub fn ok(headers: Vec<(String, String)>, body: Vec<u8>) -> HttpResponse {
         HttpResponse::new(200, HttpResponse::merge_default_headers(headers), body)
-    }    
+    }
     pub fn bad_request() -> HttpResponse {
         HttpResponse::new(400, HttpResponse::default_headers(), vec![])
     }

@@ -19,8 +19,7 @@ impl TokenAllowances {
     }
 
     pub fn allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> TokenAmount {
-        if let Some(allowances) = self.0.get(owner)
-        {
+        if let Some(allowances) = self.0.get(owner) {
             if let Some(amount) = allowances.get(spender) {
                 return amount.clone();
             }
