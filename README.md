@@ -8,47 +8,36 @@
 
 [DFT issuance tool](https://github.com/Deland-Labs/dft-issuance-tool)
 
+## Development
 
-## Compile dependencies
+### Dev with Visual Studio Code and Docker
 
-### dfx
+Open `src` folder with Visual Studio Code with `Remote Dev Tools` extension, and load the source code in the container.
+
+everything should be install when container started.
+
+### Dev without container
+
+#### Setup Dev Environment
+
+Prepare the environment as below:
+
+- dfx
+- nodejs 16
+- python 3
+- Rust
+
+run shell script below in `src` dir.
 
 ```bash
-sh -ci "$(curl -fsSL https://sdk.dfinity.org/install.sh)"
+./sh_post_container_created.sh
 ```
 
-### rust
-
-Linux & Mac
-
-1. Install Rust & cmake & optimizer
+#### Enable pre-commit hook
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-brew install cmake
-apt install cmake
-cargo install ic-cdk-optimizer
-```
-
-2. Add wasm32-unknown-unknown target
-
-```bash
-rustup target add wasm32-unknown-unknown
-```
-
-## How to test?
-### Rust
-**Unit Testing**
-```bash
-   cd src
-   cargo test
-```
-**Automated Integration Testing**
-```bash
-   cd src
-   sh sh_go.sh
-   sh sh_setup_dev.sh
-   sh itt.sh
+pip install pre-commit
+pre-commit install
 ```
 
 ## About us
@@ -57,4 +46,4 @@ We are from Deland-Labs team.
 
 We are building a decentralized exchange based on Dfinity with Open Order Protocol.
 
-Offcial Website : [https://delandlabs.com](https://delandlabs.com)
+Offcial Website : https://delandlabs.com

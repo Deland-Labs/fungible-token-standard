@@ -39,9 +39,7 @@ impl AccountIdentifier {
     }
 
     pub fn empty() -> AccountIdentifier {
-        AccountIdentifier {
-            hash: [0; 28],
-        }
+        AccountIdentifier { hash: [0; 28] }
     }
 
     pub fn from_hex(hex_str: &str) -> Result<AccountIdentifier, String> {
@@ -91,7 +89,7 @@ impl Display for AccountIdentifier {
 impl FromStr for AccountIdentifier {
     type Err = String;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let pid =Principal::from_text(s);
+        let pid = Principal::from_text(s);
         match pid {
             Ok(principal) => Ok(AccountIdentifier::new(principal, None)),
             _ => {
@@ -107,8 +105,8 @@ impl FromStr for AccountIdentifier {
 
 impl Serialize for AccountIdentifier {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-        where
-            S: serde::Serializer,
+    where
+        S: serde::Serializer,
     {
         self.to_hex().serialize(serializer)
     }
@@ -117,9 +115,9 @@ impl Serialize for AccountIdentifier {
 impl<'de> Deserialize<'de> for AccountIdentifier {
     // This is the canonical way to read a this from string
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-        where
-            D: serde::Deserializer<'de>,
-            D::Error: de::Error,
+    where
+        D: serde::Deserializer<'de>,
+        D::Error: de::Error,
     {
         let hex: [u8; 32] = hex::serde::deserialize(deserializer)?;
         check_sum(hex).map_err(D::Error::custom)
@@ -163,8 +161,8 @@ impl CandidType for AccountIdentifier {
     }
 
     fn idl_serialize<S>(&self, serializer: S) -> Result<(), S::Error>
-        where
-            S: candid::types::Serializer,
+    where
+        S: candid::types::Serializer,
     {
         self.to_hex().idl_serialize(serializer)
     }

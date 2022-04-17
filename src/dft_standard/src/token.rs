@@ -276,7 +276,9 @@ impl TokenBasic {
     }
 
     pub fn pre_append_scaling_storage_canister(&mut self, canister_id: Principal) {
-        self.blockchain.archive.pre_append_storage_canister(canister_id)
+        self.blockchain
+            .archive
+            .pre_append_storage_canister(canister_id)
     }
     pub fn append_scaling_storage_canister(&mut self, storage_canister_id: Principal) {
         self.blockchain
@@ -300,9 +302,9 @@ impl TokenBasic {
     fn purge_old_transactions(&mut self, now: u64) -> usize {
         let mut cnt = 0usize;
         while let Some(TransactionInfo {
-                           block_timestamp,
-                           tx_hash,
-                       }) = self.transactions_by_height.front()
+            block_timestamp,
+            tx_hash,
+        }) = self.transactions_by_height.front()
         {
             if *block_timestamp + self.transaction_window + constants::PERMITTED_DRIFT >= now {
                 // Stop at a sufficiently recent block.
@@ -765,12 +767,8 @@ impl TokenStandard for TokenBasic {
                 }
             });
             return match result {
-                Ok(i) => {
-                    BlockResult::Forward(index[i].1)
-                }
-                Err(_) => {
-                    BlockResult::Err(DFTError::NonExistentBlockHeight.into())
-                }
+                Ok(i) => BlockResult::Forward(index[i].1),
+                Err(_) => BlockResult::Err(DFTError::NonExistentBlockHeight.into()),
             };
         }
 

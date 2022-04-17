@@ -65,10 +65,8 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
             let archived_end_block_height =
                 token.blockchain().num_archived_blocks.clone() + num_blocks as u128 - 1u32;
 
-            token.update_scaling_storage_blocks_range(
-                last_storage_index,
-                archived_end_block_height,
-            );
+            token
+                .update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
             token.remove_archived_blocks(num_blocks);
         });
     };
@@ -134,7 +132,7 @@ async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonRe
                 token_id,
                 block_height_offset,
             )
-                .await?;
+            .await?;
         } else {
             let new_scaling_storage_canister_id =
                 create_new_scaling_storage_canister(token_id, block_height_offset).await?;
@@ -177,7 +175,7 @@ async fn create_new_scaling_storage_canister(
                 token_id,
                 block_height_offset,
             )
-                .await?;
+            .await?;
             Ok(cdr.canister_id)
         }
         Err(emsg) => {
@@ -231,10 +229,10 @@ async fn send_blocks_to_archive(blocks_to_archive: VecDeque<EncodedBlock>) -> Co
         storage_canister_id.to_text()
     ));
     //save the txs to auto-scaling storage
-    let res: Result<(BooleanResult, ), (RejectionCode, String)> =
-        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive, )).await;
+    let res: Result<(BooleanResult,), (RejectionCode, String)> =
+        api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive,)).await;
     match res {
-        Ok((res, )) => match res {
+        Ok((res,)) => match res {
             BooleanResult::Ok(sucess) => {
                 if sucess {
                     api::print("batchAppend success");
