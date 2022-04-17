@@ -16,7 +16,19 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "16"
+          cache: "npm"
+          cache-dependency-path: "src/package-lock.json"
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          target: "wasm32-unknown-unknown"
+      - uses: Swatinem/rust-cache@v1
+        with:
+          working-directory: "src"
       - name: Setup .NET 5.0 for gittools
         uses: actions/setup-dotnet@v2
         with:
@@ -35,12 +47,14 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/src
           dfx start --host 0.0.0.0:8000 --background
-          dfx canister create --all
       - name: create package
         run: |
           cd $GITHUB_WORKSPACE/src
-          pipenv install
-          pipenv run invoke package-zip
+          chmod a+x ./sh_setup_dev.sh
+          ./sh_setup_dev.sh
+
+          chmod a+x ./sh_package.sh
+          ./sh_package.sh
       - name: Archive artifacts
         uses: actions/upload-artifact@v3
         with:
