@@ -1,4 +1,4 @@
-# Dfinity Fungible Token Standard
+# Fungible Token Standard
 
 ## Tutorial
 
