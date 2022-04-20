@@ -38,8 +38,16 @@ export const idlFactory = ({ IDL }) => {
       'caller' : IDL.Principal,
       'spender' : IDL.Text,
     }),
+    'RemoveMinter' : IDL.Record({
+      'minter' : IDL.Principal,
+      'caller' : IDL.Principal,
+    }),
     'FeeModify' : IDL.Record({
       'newFee' : CandidTokenFee,
+      'caller' : IDL.Principal,
+    }),
+    'AddMinter' : IDL.Record({
+      'minter' : IDL.Principal,
       'caller' : IDL.Principal,
     }),
     'Transfer' : IDL.Record({

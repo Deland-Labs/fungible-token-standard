@@ -88,15 +88,12 @@ Given(/^transfer token from "([^"]*)" to these users$/, async function (user, ar
     for (let i = 0; i < optionArray.length; i++) {
         const option = optionArray[i];
         let dftActor = createDFTActor(option.token, user);
-        if (dftActor && option) {
-            const decimals = await dftActor.decimals();
-            const to = identityFactory.getPrincipal(option.user)!.toText();
-            const amountBN = parseToOrigin(option.amount, decimals);
-            const res = await dftActor.transfer([], to, amountBN, []);
-            assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
-            assert.equal(await dftActor.balanceOf(to), amountBN);
-        }
-
+        const decimals = await dftActor!.decimals();
+        const to = identityFactory.getPrincipal(option.user)!.toText();
+        const amountBN = parseToOrigin(option.amount, decimals);
+        const res = await dftActor!.transfer([], to, amountBN, []);
+        assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
+        assert.equal(await dftActor!.balanceOf(to), amountBN);
     }
 });
 

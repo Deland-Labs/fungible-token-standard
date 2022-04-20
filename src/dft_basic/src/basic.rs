@@ -9,6 +9,7 @@ use std::string::String;
 
 #[init]
 #[candid_method(init)]
+#[allow(clippy::too_many_arguments)]
 async fn canister_init(
     sub_account: Option<Subaccount>,
     logo: Option<Vec<u8>>,
@@ -38,6 +39,9 @@ async fn canister_init(
             owner_holder.clone(),
             archive_option,
         );
+        if total_supply == 0u32 {
+            return;
+        }
         if let Ok((_, block_hash, _)) = token.mint(
             &real_caller,
             &owner_holder,
@@ -245,10 +249,10 @@ async fn transfer_from(
         Ok(from_token_holder) => match to.parse::<TokenHolder>() {
             Ok(to_token_holder) => {
                 // exec before-transfer check :before_token_sending
-                match before_token_sending(&from_token_holder, &to_token_holder, &value.0) {
-                    Err(e) => return OperationResult::Err(e),
-                    _ => {}
-                };
+                if let Err(e) = before_token_sending(&from_token_holder, &to_token_holder, &value.0)
+                {
+                    return OperationResult::Err(e);
+                }
                 match TOKEN.with(|token| {
                     let mut token = token.borrow_mut();
                     token.transfer_from(

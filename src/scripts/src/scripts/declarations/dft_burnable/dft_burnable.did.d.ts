@@ -39,7 +39,9 @@ export type CandidOperation = {
       'spender' : string,
     }
   } |
+  { 'RemoveMinter' : { 'minter' : Principal, 'caller' : Principal } } |
   { 'FeeModify' : { 'newFee' : CandidTokenFee, 'caller' : Principal } } |
+  { 'AddMinter' : { 'minter' : Principal, 'caller' : Principal } } |
   {
     'Transfer' : {
       'to' : string,

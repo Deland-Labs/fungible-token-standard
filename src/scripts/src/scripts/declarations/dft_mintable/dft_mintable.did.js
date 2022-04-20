@@ -12,6 +12,7 @@ export const idlFactory = ({ IDL }) => {
     'node_max_memory_size_bytes' : IDL.Opt(IDL.Nat32),
   });
   const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
+  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const OperationResult = IDL.Variant({
     'Ok' : IDL.Record({
       'txId' : IDL.Text,
@@ -38,8 +39,16 @@ export const idlFactory = ({ IDL }) => {
       'caller' : IDL.Principal,
       'spender' : IDL.Text,
     }),
+    'RemoveMinter' : IDL.Record({
+      'minter' : IDL.Principal,
+      'caller' : IDL.Principal,
+    }),
     'FeeModify' : IDL.Record({
       'newFee' : CandidTokenFee,
+      'caller' : IDL.Principal,
+    }),
+    'AddMinter' : IDL.Record({
+      'minter' : IDL.Principal,
       'caller' : IDL.Principal,
     }),
     'Transfer' : IDL.Record({
@@ -104,7 +113,6 @@ export const idlFactory = ({ IDL }) => {
     'name' : IDL.Text,
     'symbol' : IDL.Text,
   });
-  const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const TokenInfo = IDL.Record({
     'certificate' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'owner' : IDL.Principal,
@@ -116,6 +124,11 @@ export const idlFactory = ({ IDL }) => {
     'feeTo' : IDL.Text,
   });
   return IDL.Service({
+    'addMinter' : IDL.Func(
+        [IDL.Principal, IDL.Opt(IDL.Nat64)],
+        [BooleanResult],
+        [],
+      ),
     'allowance' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], ['query']),
     'allowancesOf' : IDL.Func(
         [IDL.Text],
@@ -146,8 +159,14 @@ export const idlFactory = ({ IDL }) => {
         [OperationResult],
         [],
       ),
+    'minters' : IDL.Func([], [IDL.Vec(IDL.Principal)], ['query']),
     'name' : IDL.Func([], [IDL.Text], ['query']),
     'owner' : IDL.Func([], [IDL.Principal], ['query']),
+    'removeMinter' : IDL.Func(
+        [IDL.Principal, IDL.Opt(IDL.Nat64)],
+        [BooleanResult],
+        [],
+      ),
     'setDesc' : IDL.Func(
         [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
         [BooleanResult],

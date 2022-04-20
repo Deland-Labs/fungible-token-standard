@@ -345,6 +345,7 @@ fn test_token_basic_fee_calculation(
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1010u32);
+    let _ = token.add_minter(&test_owner, test_owner, None, now);
     let _ = token.mint(
         &test_owner,
         &minter_holder,
@@ -490,13 +491,9 @@ fn test_token_basic_approve(
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
+    now: u64,
 ) {
     let mut token = test_token.clone();
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_nanos();
-    let now_u64 = now as u64;
 
     let minter_holder = TokenHolder::new(test_minter.clone(), None);
     let spender_holder = TokenHolder::new(test_spender.clone(), None);
@@ -504,13 +501,8 @@ fn test_token_basic_approve(
     // mint token to owner_holder
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1000u32);
-    let mint_res = token.mint(
-        &test_owner,
-        &minter_holder,
-        mint_val.clone(),
-        None,
-        now_u64.clone(),
-    );
+    let _ = token.add_minter(&test_owner, test_owner, None, now);
+    let mint_res = token.mint(&test_owner, &minter_holder, mint_val.clone(), None, now);
     // mint_res is ok
     assert!(mint_res.is_ok());
     // check owner_holder balance
@@ -523,7 +515,7 @@ fn test_token_basic_approve(
         &spender_holder,
         approve_val.clone(),
         None,
-        now_u64.clone(),
+        now,
     );
     // approve_rs is ok
     assert!(approve_rs.is_ok(), "{:?}", approve_rs.unwrap_err());
@@ -538,7 +530,7 @@ fn test_token_basic_approve(
         &spender_holder,
         new_approve_val.clone(),
         None,
-        now_u64,
+        now,
     );
     // new_approve_rs is ok
     assert!(new_approve_rs.is_ok(), "{:?}", new_approve_rs.unwrap_err());
@@ -550,7 +542,7 @@ fn test_token_basic_approve(
         "allowance size: {}",
         allowance_size
     );
-    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(3u32));
+    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(4u32));
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val.clone());
@@ -576,6 +568,7 @@ fn test_token_basic_transfer_from(
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1000u32);
+    let _ = token.add_minter(&test_owner, test_owner, None, now);
     let _ = token.mint(
         &test_owner,
         &minter_holder,
@@ -641,7 +634,7 @@ fn test_token_basic_transfer_from(
     let fee_to_balance = token.balance_of(&fee_to);
     let total_fee = transfer_fee + approve_fee;
     assert_eq!(fee_to_balance, total_fee);
-    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(3u32));
+    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(4u32));
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
@@ -664,6 +657,7 @@ fn test_token_basic_transfer(
     let fee = token.metadata().fee().clone();
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
+    let _ = token.add_minter(&test_owner, test_owner, None, now);
     let _ = token.mint(
         &test_owner,
         &minter_holder,
@@ -700,7 +694,7 @@ fn test_token_basic_transfer(
     // check to_holder balance
     let to_balance = token.balance_of(&to_holder);
     assert_eq!(to_balance, transfer_val);
-    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(2u32));
+    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(3u32));
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
@@ -721,7 +715,16 @@ fn test_token_basic_mint_burn(
 
     // mint token to from_holder
     let mint_val = TokenAmount::from(10000u32);
-    // mint with wrong nonce should fail
+    // mint with not minter will fail
+    let _mint_res = token.mint(
+        &test_owner,
+        &minter_holder,
+        mint_val.clone(),
+        Some(2),
+        now.clone(),
+    );
+    let _ = token.add_minter(&test_owner, test_owner, None, now);
+    // mint with wrong created at should fail
     let _mint_res = token.mint(
         &test_owner,
         &minter_holder,
@@ -843,4 +846,38 @@ fn test_token_basic_approve_transfer_from_transfer(
         transfer_res.unwrap_err().to_string(),
         DFTError::NotAllowAnonymous.to_string()
     );
+}
+
+// test token minters add/remove
+#[rstest]
+#[case(test_token_with_0_fee_rate())]
+#[case(test_token_with_non_0_fee_rate())]
+fn test_token_basic_minters_add_remove(
+    #[case] test_token: TokenBasic,
+    test_owner: Principal,
+    test_minter: Principal,
+    now: u64,
+) {
+    let mut token = test_token.clone();
+    let res = token.add_minter(&test_owner, test_owner, None, now);
+    assert!(res.is_ok());
+    let minters = token.minters();
+    assert_eq!(minters.len(), 1);
+    assert_eq!(minters[0], test_owner);
+    let res = token.add_minter(&test_owner, test_minter, None, now);
+    assert!(res.is_ok());
+    let minters = token.minters();
+    assert_eq!(minters.len(), 2);
+    assert_eq!(minters[0], test_owner);
+    assert_eq!(minters[1], test_minter);
+    let res = token.remove_minter(&test_owner, test_minter, None, now);
+    assert!(res.is_ok());
+    let minters = token.minters();
+
+    assert_eq!(minters.len(), 1);
+    assert_eq!(minters[0], test_owner);
+    let res = token.remove_minter(&test_owner, test_owner, None, now);
+    assert!(res.is_ok());
+    let minters = token.minters();
+    assert_eq!(minters.len(), 0);
 }

@@ -39,7 +39,9 @@ export type CandidOperation = {
       'spender' : string,
     }
   } |
+  { 'RemoveMinter' : { 'minter' : Principal, 'caller' : Principal } } |
   { 'FeeModify' : { 'newFee' : CandidTokenFee, 'caller' : Principal } } |
+  { 'AddMinter' : { 'minter' : Principal, 'caller' : Principal } } |
   {
     'Transfer' : {
       'to' : string,
@@ -107,6 +109,9 @@ export interface TokenInfo {
   'feeTo' : string,
 }
 export interface _SERVICE {
+  'addMinter' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
+      BooleanResult
+    >,
   'allowance' : (arg_0: string, arg_1: string) => Promise<bigint>,
   'allowancesOf' : (arg_0: string) => Promise<Array<[string, bigint]>>,
   'approve' : (
@@ -130,8 +135,12 @@ export interface _SERVICE {
   'mint' : (arg_0: string, arg_1: bigint, arg_2: [] | [bigint]) => Promise<
       OperationResult
     >,
+  'minters' : () => Promise<Array<Principal>>,
   'name' : () => Promise<string>,
   'owner' : () => Promise<Principal>,
+  'removeMinter' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
+      BooleanResult
+    >,
   'setDesc' : (arg_0: Array<[string, string]>) => Promise<BooleanResult>,
   'setFee' : (arg_0: CandidTokenFee, arg_1: [] | [bigint]) => Promise<
       BooleanResult

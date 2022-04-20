@@ -18,6 +18,20 @@ pub trait TokenStandard {
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<bool>;
+    fn add_minter(
+        &mut self,
+        caller: &Principal,
+        minter: Principal,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool>;
+    fn remove_minter(
+        &mut self,
+        caller: &Principal,
+        minter: Principal,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool>;
     fn set_fee(
         &mut self,
         caller: &Principal,
@@ -47,7 +61,7 @@ pub trait TokenStandard {
     fn allowance(&self, owner: &TokenHolder, spender: &TokenHolder) -> TokenAmount;
     // allowances of
     fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, TokenAmount)>;
-    // approve
+    #[allow(clippy::too_many_arguments)]
     fn approve(
         &mut self,
         caller: &Principal,
@@ -57,7 +71,7 @@ pub trait TokenStandard {
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
-    // transfer from
+    #[allow(clippy::too_many_arguments)]
     fn transfer_from(
         &mut self,
         caller: &Principal,
@@ -68,7 +82,7 @@ pub trait TokenStandard {
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
-    // transfer
+    #[allow(clippy::too_many_arguments)]
     fn transfer(
         &mut self,
         caller: &Principal,
@@ -90,7 +104,7 @@ pub trait TokenStandard {
         caller: &Principal,
         to: &TokenHolder,
         value: TokenAmount,
-        nonce: Option<u64>,
+        created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)>;
 
@@ -124,6 +138,7 @@ pub struct TokenBasic {
     // token's logo
     logo: Option<Vec<u8>>,
     owner: Principal,
+    minters: Vec<Principal>,
     fee_to: TokenHolder,
     metadata: TokenMetadata,
     blockchain: Blockchain,
@@ -152,6 +167,7 @@ impl Default for TokenBasic {
             token_id: Principal::anonymous(),
             logo: None,
             owner: Principal::anonymous(),
+            minters: vec![],
             fee_to: TokenHolder::empty(),
             blockchain: Blockchain::default(),
             metadata: TokenMetadata::default(),
@@ -168,7 +184,7 @@ impl Default for TokenBasic {
 }
 
 impl TokenBasic {
-    // initialize
+    #[allow(clippy::too_many_arguments)]
     pub fn initialize(
         &mut self,
         owner: &Principal,
@@ -210,6 +226,18 @@ impl TokenBasic {
         self.not_allow_anonymous(caller)?;
         if &self.owner != caller {
             return Err(DFTError::OnlyOwnerAllowCallIt);
+        }
+        Ok(())
+    }
+
+    // check if the caller is the minter
+    pub fn only_minter(&self, caller: &Principal) -> CommonResult<()> {
+        self.not_allow_anonymous(caller)?;
+        if &self.owner == caller {
+            return Ok(());
+        }
+        if !self.minters.contains(caller) {
+            return Err(DFTError::OnlyMinterAllowCallIt);
         }
         Ok(())
     }
@@ -575,7 +603,7 @@ impl TokenStandard for TokenBasic {
     fn allowances_of(&self, owner: &TokenHolder) -> Vec<(TokenHolder, TokenAmount)> {
         self.allowances.allowances_of(owner)
     }
-
+    #[allow(clippy::too_many_arguments)]
     fn approve(
         &mut self,
         caller: &Principal,
@@ -783,7 +811,7 @@ impl TokenStandard for TokenBasic {
         created_at: Option<u64>,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
-        self.only_owner(caller)?;
+        self.only_minter(caller)?;
         self.verified_created_at(&created_at, &now)?;
         let created_at = created_at.unwrap_or(now);
         let tx = Transaction {
@@ -876,5 +904,55 @@ impl TokenStandard for TokenBasic {
             self.balances.debit_balance(owner, value)?;
             Ok(res)
         }
+    }
+
+    fn add_minter(
+        &mut self,
+        caller: &Principal,
+        minter: Principal,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool> {
+        self.only_owner(caller)?;
+        if self.minters.contains(&minter) {
+            return Ok(true);
+        }
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now);
+        let tx = Transaction {
+            operation: Operation::AddMinter {
+                caller: *caller,
+                minter: minter.clone(),
+            },
+            created_at,
+        };
+        self.add_tx_to_block(tx, now)?;
+        self.minters.push(minter);
+        Ok(true)
+    }
+
+    fn remove_minter(
+        &mut self,
+        caller: &Principal,
+        minter: Principal,
+        created_at: Option<u64>,
+        now: u64,
+    ) -> CommonResult<bool> {
+        self.only_owner(caller)?;
+        if !self.minters.contains(&minter) {
+            return Ok(true);
+        }
+        self.verified_created_at(&created_at, &now)?;
+        let created_at = created_at.unwrap_or(now);
+        let tx = Transaction {
+            operation: Operation::RemoveMinter {
+                caller: *caller,
+                minter: minter.clone(),
+            },
+            created_at,
+        };
+        self.add_tx_to_block(tx, now)?;
+        self.minters.retain(|x| *x != minter);
+        Ok(true)
     }
 }

@@ -34,6 +34,14 @@ pub enum Operation {
         #[serde(rename = "newFeeTo")]
         new_fee_to: TokenHolder,
     },
+    AddMinter {
+        caller: Principal,
+        minter: Principal,
+    },
+    RemoveMinter {
+        caller: Principal,
+        minter: Principal,
+    },
 }
 
 #[derive(CandidType, Deserialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -66,6 +74,14 @@ pub enum CandidOperation {
         caller: Principal,
         #[serde(rename = "newFeeTo")]
         new_fee_to: TokenHolder,
+    },
+    AddMinter {
+        caller: Principal,
+        minter: Principal,
+    },
+    RemoveMinter {
+        caller: Principal,
+        minter: Principal,
     },
 }
 
@@ -107,6 +123,12 @@ impl From<Operation> for CandidOperation {
             }
             Operation::FeeToModify { caller, new_fee_to } => {
                 CandidOperation::FeeToModify { caller, new_fee_to }
+            }
+            Operation::AddMinter { caller, minter } => {
+                CandidOperation::AddMinter { caller, minter }
+            }
+            Operation::RemoveMinter { caller, minter } => {
+                CandidOperation::RemoveMinter { caller, minter }
             }
         }
     }
