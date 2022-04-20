@@ -111,7 +111,7 @@ service : (
   opt principal,
   opt ArchiveOptions,
 ) -> {
-  addMinter : (principal, opt nat64) -> (BooleanResult) query;
+  addMinter : (principal, opt nat64) -> (BooleanResult);
   allowance : (text, text) -> (nat) query;
   allowancesOf : (text) -> (vec record { text; nat }) query;
   approve : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
@@ -131,7 +131,7 @@ service : (
   minters : () -> (vec principal) query;
   name : () -> (text) query;
   owner : () -> (principal) query;
-  removeMinter : (principal, opt nat64) -> (BooleanResult) query;
+  removeMinter : (principal, opt nat64) -> (BooleanResult);
   setDesc : (vec record { text; text }) -> (BooleanResult);
   setFee : (CandidTokenFee, opt nat64) -> (BooleanResult);
   setFeeTo : (text, opt nat64) -> (BooleanResult);

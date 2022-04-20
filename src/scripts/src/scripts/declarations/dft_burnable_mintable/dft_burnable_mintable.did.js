@@ -127,7 +127,7 @@ export const idlFactory = ({ IDL }) => {
     'addMinter' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Nat64)],
         [BooleanResult],
-        ['query'],
+        [],
       ),
     'allowance' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], ['query']),
     'allowancesOf' : IDL.Func(
@@ -175,7 +175,7 @@ export const idlFactory = ({ IDL }) => {
     'removeMinter' : IDL.Func(
         [IDL.Principal, IDL.Opt(IDL.Nat64)],
         [BooleanResult],
-        ['query'],
+        [],
       ),
     'setDesc' : IDL.Func(
         [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))],
