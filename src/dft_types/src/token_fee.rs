@@ -13,6 +13,25 @@ pub struct TokenFee {
     pub rate_decimals: u8,
 }
 
+impl TokenFee {
+    pub fn new(minimum: TokenAmount, rate: u32, rate_decimals: u8) -> Self {
+        TokenFee {
+            minimum,
+            rate,
+            rate_decimals,
+        }
+    }
+
+    pub fn calc_approve_fee(&self, _: &TokenAmount) -> TokenAmount {
+        self.minimum.clone()
+    }
+
+    pub fn calc_transfer_fee(&self, amount: &TokenAmount) -> TokenAmount {
+        let rate_fee = amount.clone() * self.rate / 10u128.pow(self.rate_decimals.into());
+        self.minimum.clone().max(rate_fee)
+    }
+}
+
 #[derive(CandidType, Default, Debug, Hash, Clone, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CandidTokenFee {
     pub minimum: Nat,

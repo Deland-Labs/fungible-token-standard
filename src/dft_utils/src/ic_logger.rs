@@ -1,5 +1,6 @@
 use ic_cdk::api;
 use log::{Level, LevelFilter, Metadata, Record};
+use std::panic;
 use yansi::Paint;
 
 pub struct ICLogger;
@@ -30,11 +31,12 @@ impl ICLogger {
     pub fn init() {
         #[cfg(feature = "dev_canister")]
         {
-            match log::set_logger(&ICLogger) {
-                Ok(_) => {
-                    log::set_max_level(LevelFilter::Trace);
-                }
-                Err(_) => {}
+            if log::set_logger(&ICLogger).is_ok() {
+                log::set_max_level(LevelFilter::Trace);
+                panic::set_hook(Box::new(|data| {
+                    let message = format!("{}", data);
+                    api::print(Paint::red(message).to_string());
+                }));
             };
         }
     }

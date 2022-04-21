@@ -1,11 +1,9 @@
-use crate::token::TokenStandard;
+use crate::token_service::TokenService;
 use candid::{Nat, Principal};
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::inspect_message;
 use log::{error, info};
-
-use crate::state::TOKEN;
 
 static QUERY_METHODS: [&str; 17] = [
     "allowance",
@@ -37,7 +35,7 @@ static HOLDER_METHODS: [&str; 3] = ["approve", "transfer", "burn"];
 fn inspect_message() {
     let method = api::call::method_name();
     let caller = api::caller();
-
+    let service = TokenService::default();
     match &method[..] {
         m if QUERY_METHODS.contains(&m) => api::call::accept_message(),
         m if HOLDER_METHODS.contains(&m) => {
@@ -61,30 +59,30 @@ fn inspect_message() {
             };
 
             // check caller's balance
-            let balance = TOKEN.with(|token| token.borrow().balance_of(&holder));
+            let balance = service.balance_of(&holder);
             if balance > TokenAmount::from(0u32) {
                 api::call::accept_message();
             } else if caller == Principal::anonymous() {
                 let err: ErrorInfo = DFTError::NotAllowAnonymous.into();
                 let err_msg = format!("reject {:?}", err);
-                error!("{}", err_msg.clone());
+                error!("{}", err_msg);
                 api::call::reject(err_msg.as_str());
             } else {
                 let err: ErrorInfo = DFTError::InsufficientBalance.into();
                 let err_msg = format!("reject {:?}", err);
-                error!("{}", err_msg.clone());
+                error!("{}", err_msg);
                 api::call::reject(err_msg.as_str());
             }
         }
         m if OWNER_METHODS.contains(&m) => {
             // check if caller is owner
-            let owner = TOKEN.with(|token| *token.borrow().owner());
+            let owner = service.owner();
             if caller == owner {
                 api::call::accept_message();
             } else {
                 let err: ErrorInfo = DFTError::OnlyOwnerAllowCallIt.into();
                 let err_msg = format!("reject {:?}", err);
-                error!("{}", err_msg.clone());
+                error!("{}", err_msg);
                 api::call::reject(err_msg.as_str());
             }
         }

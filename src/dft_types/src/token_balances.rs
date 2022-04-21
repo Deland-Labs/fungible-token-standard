@@ -1,4 +1,4 @@
-use crate::{CommonResult, DFTError, TokenAmount, TokenHolder};
+use crate::{CommonResult, DFTError, StableState, TokenAmount, TokenHolder};
 use candid::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -76,5 +76,21 @@ impl TokenBalances {
         for (holder, balance) in vec {
             self.balances.insert(holder, balance);
         }
+    }
+}
+
+impl StableState for TokenBalances {
+    fn encode(&self) -> Vec<u8> {
+        bincode::serialize(&(&self.balances, &self.total_supply)).unwrap()
+    }
+
+    fn decode(bytes: Vec<u8>) -> Result<Self, String> {
+        let (balances, total_supply): (HashMap<TokenHolder, TokenAmount>, TokenAmount) =
+            bincode::deserialize(&bytes).unwrap();
+
+        Ok(TokenBalances {
+            balances,
+            total_supply,
+        })
     }
 }

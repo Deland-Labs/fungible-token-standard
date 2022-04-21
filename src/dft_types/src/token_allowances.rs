@@ -1,4 +1,4 @@
-use crate::{CommonResult, DFTError, TokenAmount, TokenHolder};
+use crate::{CommonResult, DFTError, StableState, TokenAmount, TokenHolder};
 use candid::Deserialize;
 use serde::Serialize;
 use std::collections::HashMap;
@@ -129,5 +129,18 @@ impl TokenAllowances {
             }
             self.0.insert(*th, allow_item);
         }
+    }
+}
+
+impl StableState for TokenAllowances {
+    fn encode(&self) -> Vec<u8> {
+        bincode::serialize(&self.0).unwrap()
+    }
+
+    fn decode(bytes: Vec<u8>) -> Result<Self, String> {
+        let allowances: HashMap<TokenHolder, HashMap<TokenHolder, TokenAmount>> =
+            bincode::deserialize(&bytes).unwrap();
+
+        Ok(TokenAllowances(allowances))
     }
 }

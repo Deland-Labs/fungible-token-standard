@@ -134,7 +134,7 @@ impl From<Operation> for CandidOperation {
     }
 }
 
-#[derive(CandidType, Deserialize, Serialize, Clone, Debug)]
+#[derive(CandidType, Deserialize, Serialize, Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TransactionInfo {
     pub block_timestamp: u64,
     pub tx_hash: TransactionHash,

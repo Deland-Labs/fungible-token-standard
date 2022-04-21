@@ -15,6 +15,8 @@ serde_bytes = "0.11"
 getset = "0.1.2"
 bincode = "1.3.3"
 log = "0.4"
+num-bigint =  {version = "0.4.3", features = ["serde"] }
+num-traits = "0.2.14"
 
 [dev-dependencies]
 rstest = "0.12.0"

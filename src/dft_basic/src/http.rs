@@ -1,6 +1,5 @@
 use candid::candid_method;
-use dft_standard::state::TOKEN;
-use dft_standard::token::TokenStandard;
+use dft_standard::token_service::TokenService;
 use dft_types::{HttpRequest, HttpResponse};
 use dft_utils::get_logo_type;
 use ic_cdk_macros::query;
@@ -13,26 +12,24 @@ fn http_request(req: HttpRequest) -> HttpResponse {
     let path = req.path().to_lowercase();
     debug!("path: {}", path);
     let cycles = ic_cdk::api::canister_balance();
+    let service = TokenService::default();
     match path.as_str() {
         "/" => {
-            let (token_info, metrics, total_supply) = TOKEN.with(|token| {
-                let token = token.borrow();
-                (
-                    token.metadata().clone(),
-                    token.token_metrics().clone(),
-                    token.total_supply().clone(),
-                )
-            });
+            let (token_info, metrics, total_supply) = (
+                service.metadata(),
+                service.token_metrics(),
+                service.total_supply(),
+            );
             let fee = token_info.fee().clone();
             // convert token_info to json
             let token_info_json = format!(
-                "{{name : \"{}\",symbol : \"{}\",decimals : {},totalSupply : {},fee :{{minimum: {},rate:{}}}}}",
+                "{{name : \"{}\",symbol : \"{}\",decimals : {},totalSupply : {},fee :{{minimum: {},rate:{}%}}}}",
                 token_info.name(),
                 token_info.symbol(),
                 token_info.decimals(),
                 total_supply,
                 fee.minimum,
-                format!("{} %", fee.rate as u128 * 100 / 10u128.pow(fee.rate_decimals.into()))
+                fee.rate as u128 * 100 / 10u128.pow(fee.rate_decimals.into())
             );
 
             let metrics_json = format!(
@@ -49,10 +46,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
             HttpResponse::ok(vec![], result.into_bytes())
         }
         "/logo" => {
-            let logo = TOKEN.with(|token| {
-                let token = token.borrow();
-                token.logo().clone().unwrap_or_default()
-            });
+            let logo = service.logo().unwrap_or_default();
 
             // if logo is empty, return 404
             if logo.is_empty() {
@@ -64,36 +58,24 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 if logo_type.is_empty() {
                     HttpResponse::not_found()
                 } else {
-                    HttpResponse::ok(vec![("Content-Type".into(), logo_type)], logo.clone())
+                    HttpResponse::ok(vec![("Content-Type".into(), logo_type)], logo)
                 }
             }
         }
         "/name" => {
-            let name = TOKEN.with(|token| {
-                let token = token.borrow();
-                token.metadata().name().clone()
-            });
+            let name = service.name();
             HttpResponse::ok(vec![], name.into_bytes())
         }
         "/symbol" => {
-            let symbol = TOKEN.with(|token| {
-                let token = token.borrow();
-                token.metadata().symbol().clone()
-            });
+            let symbol = service.symbol();
             HttpResponse::ok(vec![], symbol.into_bytes())
         }
         "/decimals" => {
-            let decimals = TOKEN.with(|token| {
-                let token = token.borrow();
-                *token.metadata().decimals()
-            });
+            let decimals = service.decimals();
             HttpResponse::ok(vec![], decimals.to_string().into_bytes())
         }
         "/totalsupply" => {
-            let total_supply = TOKEN.with(|token| {
-                let token = token.borrow();
-                token.total_supply().clone()
-            });
+            let total_supply = service.total_supply();
             HttpResponse::ok(vec![], total_supply.to_string().into_bytes())
         }
         _ => HttpResponse::not_found(),

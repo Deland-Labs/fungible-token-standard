@@ -1,5 +1,4 @@
-use crate::token::TokenBasic;
-use crate::token::TokenStandard;
+use crate::token_service::TokenService;
 use candid::Principal;
 use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
 use dft_types::*;
@@ -53,6 +52,12 @@ fn test_spender() -> Principal {
     Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae").unwrap()
 }
 
+// spender
+#[fixture]
+fn test_fee_to() -> Principal {
+    Principal::from_text("7b6mv-nyoey-gkj2b-2r6mp-fa2rr-6ktwc-qrx7e-l3eax-32jd7-ahwnj-3qe").unwrap()
+}
+
 #[fixture]
 fn test_token_id() -> Principal {
     Principal::from_text("rrkah-fqaaa-aaaaa-aaaaq-cai").unwrap()
@@ -99,10 +104,10 @@ fn test_fee_non_0_rate() -> TokenFee {
 }
 
 #[fixture]
-fn test_token_with_0_fee_rate() -> TokenBasic {
-    let mut token = TokenBasic::default();
-    let fee_to = TokenHolder::new(test_owner(), None);
-    token.initialize(
+fn test_token_with_0_fee_rate() -> TokenService {
+    let service = TokenService::default();
+    let fee_to = TokenHolder::new(test_fee_to(), None);
+    service.token_initialize(
         &test_owner(),
         test_token_id(),
         Some(test_logo()),
@@ -113,14 +118,14 @@ fn test_token_with_0_fee_rate() -> TokenBasic {
         fee_to,
         None,
     );
-    token
+    service
 }
 
 #[fixture]
-fn test_token_with_non_0_fee_rate() -> TokenBasic {
-    let mut token = TokenBasic::default();
-    let fee_to = TokenHolder::new(test_owner(), None);
-    token.initialize(
+fn test_token_with_non_0_fee_rate() -> TokenService {
+    let service = TokenService::default();
+    let fee_to = TokenHolder::new(test_fee_to(), None);
+    service.token_initialize(
         &test_owner(),
         test_token_id(),
         Some(test_logo()),
@@ -131,7 +136,7 @@ fn test_token_with_non_0_fee_rate() -> TokenBasic {
         fee_to,
         None,
     );
-    token
+    service
 }
 
 #[fixture]
@@ -143,46 +148,33 @@ fn now() -> u64 {
     now as u64
 }
 
-// test verified_created_at
-#[rstest]
-fn test_verified_created_at() {
-    let token = TokenBasic::default();
-    let created_at = 1_649_925_852_452_000_000u64;
-    let timestamp = 1_649_925_938_944_884_000u64;
-    let res = token.verified_created_at(&Some(created_at.clone()), &timestamp);
-
-    assert_eq!(res, Ok(()));
-}
-
 // test default TokenBasic value
 #[rstest]
 fn test_token_basic_default_value() {
     //create default TokenBasic
-    let token = TokenBasic::default();
+    let service = TokenService::default();
     // check token id is Principal::anonymous()
-    assert_eq!(token.token_id(), &Principal::anonymous());
+    assert_eq!(service.token_id(), Principal::anonymous());
     // check owner is Principal::anonymous()
-    assert_eq!(token.owner(), &Principal::anonymous());
+    assert_eq!(service.owner(), Principal::anonymous());
     // check token's name is empty
-    assert_eq!(token.metadata().name(), "");
+    assert_eq!(service.name(), "");
     // check token's symbol is empty
-    assert_eq!(token.metadata().symbol(), "");
+    assert_eq!(service.metadata().symbol(), "");
     // check token's decimals is 0
-    assert_eq!(token.metadata().decimals(), &0);
+    assert_eq!(service.metadata().decimals(), &0);
     // check token's total supply is 0
-    assert_eq!(token.balances().total_supply(), TokenAmount::default());
-    // check token's owner is Principal::anonymous()
-    assert_eq!(token.owner(), &Principal::anonymous());
+    assert_eq!(service.total_supply(), TokenAmount::default());
     // check token's logo is empty
     let null_logo: Vec<u8> = vec![];
-    assert_eq!(token.logo().clone().unwrap_or(vec![]), null_logo);
+    assert_eq!(service.logo().clone().unwrap_or(vec![]), null_logo);
     // check token's fee is 0
-    let fee = token.metadata().fee();
+    let fee = service.fee();
     assert_eq!(fee.minimum, TokenAmount::default());
     assert_eq!(fee.rate, 0);
     // check desc is empty
     let empty_map: HashMap<String, String> = HashMap::new();
-    assert_eq!(token.desc().get_all(), empty_map);
+    assert_eq!(service.desc(), empty_map);
 }
 
 #[rstest]
@@ -195,10 +187,10 @@ fn test_token_basic_logo_invalid_image(
     test_decimals: u8,
     test_fee_0_rate: TokenFee,
 ) {
-    let mut token = TokenBasic::default();
+    let token = TokenService::default();
     let fee_to = TokenHolder::new(test_owner.clone(), None);
 
-    token.initialize(
+    token.token_initialize(
         &test_owner,
         test_token_id,
         Some(vec![0u8; 20]),
@@ -214,10 +206,10 @@ fn test_token_basic_logo_invalid_image(
 }
 
 #[rstest]
-fn test_token_basic_initialize_all_parameters(test_token_with_0_fee_rate: TokenBasic) {
+fn test_token_basic_initialize_all_parameters(test_token_with_0_fee_rate: TokenService) {
     let test_token = test_token_with_0_fee_rate;
-    assert_eq!(test_token.token_id(), &test_token_id());
-    assert_eq!(test_token.owner(), &test_owner());
+    assert_eq!(test_token.token_id(), test_token_id());
+    assert_eq!(test_token.owner(), test_owner());
     assert_eq!(test_token.metadata().name(), &test_name());
     assert_eq!(test_token.metadata().symbol(), &test_symbol());
     assert_eq!(test_token.metadata().decimals(), &test_decimals());
@@ -230,8 +222,8 @@ fn test_token_basic_initialize_all_parameters(test_token_with_0_fee_rate: TokenB
 #[rstest]
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
-fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principal, now: u64) {
-    let mut token = test_token.clone();
+fn test_token_basic_set_fee(#[case] test_token: TokenService, test_owner: Principal, now: u64) {
+    let mut token = test_token;
     let new_fee = TokenFee {
         minimum: TokenAmount::from(2u32),
         rate: 0,
@@ -245,11 +237,11 @@ fn test_token_basic_set_fee(#[case] test_token: TokenBasic, test_owner: Principa
 //test token set_fee with invalid owner
 #[rstest]
 fn test_token_basic_set_fee_invalid_owner(
-    test_token_with_0_fee_rate: TokenBasic,
+    test_token_with_0_fee_rate: TokenService,
     other_caller: Principal,
     now: u64,
 ) {
-    let mut token = test_token_with_0_fee_rate.clone();
+    let mut token = test_token_with_0_fee_rate;
     let new_fee = TokenFee {
         minimum: TokenAmount::from(2u32),
         rate: 0,
@@ -262,12 +254,12 @@ fn test_token_basic_set_fee_invalid_owner(
 // test token set_fee_to
 #[rstest]
 fn test_update_token_basic_set_fee_to(
-    test_token_with_0_fee_rate: TokenBasic,
+    test_token_with_0_fee_rate: TokenService,
     test_owner: Principal,
     other_caller: Principal,
     now: u64,
 ) {
-    let mut token = test_token_with_0_fee_rate.clone();
+    let mut token = test_token_with_0_fee_rate;
     let new_fee_to = TokenHolder::new(other_caller.clone(), None);
     // set fee_to by other caller will failed
     let res = token.set_fee_to(&other_caller, new_fee_to.clone(), None, now.clone());
@@ -280,11 +272,11 @@ fn test_update_token_basic_set_fee_to(
 
 #[rstest]
 fn test_token_basic_set_logo(
-    test_token_with_0_fee_rate: TokenBasic,
+    test_token_with_0_fee_rate: TokenService,
     test_owner: Principal,
     new_logo: Vec<u8>,
 ) {
-    let mut token = test_token_with_0_fee_rate.clone();
+    let mut token = test_token_with_0_fee_rate;
     // set logo by other caller will failed
     let res = token.set_logo(&other_caller(), Some(new_logo.clone()));
     assert!(res.is_err(), "set_logo should be err");
@@ -295,8 +287,8 @@ fn test_token_basic_set_logo(
 }
 
 #[rstest]
-fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenBasic, test_owner: Principal) {
-    let mut token = test_token_with_0_fee_rate.clone();
+fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenService, test_owner: Principal) {
+    let mut token = test_token_with_0_fee_rate;
     let new_desc: HashMap<String, String> = vec![(
         "TWITTER".to_owned(),
         "https://twitter.com/DelandLabs".to_owned(),
@@ -309,7 +301,7 @@ fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenBasic, test_owner:
     // set desc by owner will ok
     let res = token.set_desc(&test_owner, new_desc.clone());
     assert!(res.is_ok(), "set_desc should be ok");
-    assert_eq!(token.desc().get_all(), new_desc);
+    assert_eq!(token.desc(), new_desc);
 
     // try to add a new key in desc which is not exist in DESC_KEYS
     let new_desc1: HashMap<String, String> = vec![(
@@ -321,21 +313,21 @@ fn test_token_basic_set_desc(test_token_with_0_fee_rate: TokenBasic, test_owner:
     let res = token.set_desc(&test_owner, new_desc1.clone());
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");
-    assert_eq!(token.desc().get_all(), new_desc);
+    assert_eq!(token.desc(), new_desc);
 }
 
 #[rstest]
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_fee_calculation(
-    #[case] test_token: TokenBasic,
+    #[case] test_token: TokenService,
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
     other_caller: Principal,
     now: u64,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token;
 
     let minter_holder = TokenHolder::new(test_minter.clone(), None);
     let spender_holder = TokenHolder::new(test_spender.clone(), None);
@@ -372,6 +364,7 @@ fn test_token_basic_fee_calculation(
         mint_val.clone() - approve_fee_charged
     );
 
+    let approve_val = TokenAmount::from(1020u32);
     // approve again
     let _ = token.approve(
         &test_minter,
@@ -487,13 +480,13 @@ fn test_token_basic_fee_calculation(
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_approve(
-    #[case] test_token: TokenBasic,
+    #[case] test_token: TokenService,
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
     now: u64,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token;
 
     let minter_holder = TokenHolder::new(test_minter.clone(), None);
     let spender_holder = TokenHolder::new(test_spender.clone(), None);
@@ -536,13 +529,13 @@ fn test_token_basic_approve(
     assert!(new_approve_rs.is_ok(), "{:?}", new_approve_rs.unwrap_err());
     // check allowance
     let new_allowance = token.allowance(&minter_holder, &spender_holder);
-    let allowance_size = token.allowances().allowance_size();
+    let allowance_size = token.token_info().allowance_size;
     assert_eq!(
         new_allowance, new_approve_val,
         "allowance size: {}",
         allowance_size
     );
-    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(4u32));
+    assert_eq!(token.token_info().block_height, candid::Nat::from(4u32));
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val.clone());
@@ -552,14 +545,14 @@ fn test_token_basic_approve(
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_transfer_from(
-    #[case] test_token: TokenBasic,
+    #[case] test_token: TokenService,
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
     other_caller: Principal,
     now: u64,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token;
 
     let minter_holder = TokenHolder::new(test_minter.clone(), None);
     let spender_holder = TokenHolder::new(test_spender.clone(), None);
@@ -611,7 +604,7 @@ fn test_token_basic_transfer_from(
     assert!(result.is_ok(), "{:?}", result.err().unwrap());
     // check allowance
     let allowance = token.allowance(&minter_holder, &spender_holder);
-    let fee = token.metadata().fee();
+    let fee = token.fee();
     let approve_fee = fee.clone().minimum;
     let transfer_fee =
         transfer_from_val.clone() * fee.rate.clone() / 10u128.pow(fee.rate_decimals.into());
@@ -634,7 +627,7 @@ fn test_token_basic_transfer_from(
     let fee_to_balance = token.balance_of(&fee_to);
     let total_fee = transfer_fee + approve_fee;
     assert_eq!(fee_to_balance, total_fee);
-    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(4u32));
+    assert_eq!(token.token_info().block_height, candid::Nat::from(4u32));
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
@@ -645,13 +638,13 @@ fn test_token_basic_transfer_from(
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_transfer(
-    #[case] test_token: TokenBasic,
+    #[case] test_token: TokenService,
     test_owner: Principal,
     test_minter: Principal,
     other_caller: Principal,
     now: u64,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token;
     let minter_holder = TokenHolder::new(test_minter.clone(), None);
     let to_holder = TokenHolder::new(other_caller.clone(), None);
     let fee = token.metadata().fee().clone();
@@ -694,7 +687,7 @@ fn test_token_basic_transfer(
     // check to_holder balance
     let to_balance = token.balance_of(&to_holder);
     assert_eq!(to_balance, transfer_val);
-    assert_eq!(token.blockchain().chain_length(), TokenAmount::from(3u32));
+    assert_eq!(token.token_info().block_height, candid::Nat::from(3u32));
     // check total supply
     let total_supply = token.total_supply();
     assert_eq!(total_supply, mint_val);
@@ -705,12 +698,12 @@ fn test_token_basic_transfer(
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_mint_burn(
-    #[case] test_token: TokenBasic,
+    #[case] test_token: TokenService,
     test_owner: Principal,
     test_minter: Principal,
     now: u64,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token;
     let minter_holder = TokenHolder::new(test_minter, None);
 
     // mint token to from_holder
@@ -789,13 +782,13 @@ fn test_token_basic_mint_burn(
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_approve_transfer_from_transfer(
-    #[case] test_token: TokenBasic,
+    #[case] test_token: TokenService,
     test_minter: Principal,
     test_spender: Principal,
     other_caller: Principal,
     now: u64,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token;
     let minter_holder = TokenHolder::new(test_minter.clone(), None);
     let spender_holder = TokenHolder::new(test_spender.clone(), None);
     let to_holder = TokenHolder::new(other_caller.clone(), None);
@@ -853,12 +846,12 @@ fn test_token_basic_approve_transfer_from_transfer(
 #[case(test_token_with_0_fee_rate())]
 #[case(test_token_with_non_0_fee_rate())]
 fn test_token_basic_minters_add_remove(
-    #[case] test_token: TokenBasic,
+    #[case] test_token: TokenService,
     test_owner: Principal,
     test_minter: Principal,
     now: u64,
 ) {
-    let mut token = test_token.clone();
+    let mut token = test_token;
     let res = token.add_minter(&test_owner, test_owner, None, now);
     assert!(res.is_ok());
     let minters = token.minters();
