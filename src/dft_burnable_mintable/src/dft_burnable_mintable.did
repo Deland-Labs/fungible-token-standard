@@ -36,7 +36,9 @@ type CandidOperation = variant {
     caller : principal;
     spender : text;
   };
+  RemoveMinter : record { minter : principal; caller : principal };
   FeeModify : record { newFee : CandidTokenFee; caller : principal };
+  AddMinter : record { minter : principal; caller : principal };
   Transfer : record {
     to : text;
     fee : nat;
@@ -109,6 +111,7 @@ service : (
   opt principal,
   opt ArchiveOptions,
 ) -> {
+  addMinter : (principal, opt nat64) -> (BooleanResult);
   allowance : (text, text) -> (nat) query;
   allowancesOf : (text) -> (vec record { text; nat }) query;
   approve : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
@@ -125,8 +128,10 @@ service : (
   logo : () -> (vec nat8) query;
   meta : () -> (CandidTokenMetadata) query;
   mint : (text, nat, opt nat64) -> (OperationResult);
+  minters : () -> (vec principal) query;
   name : () -> (text) query;
   owner : () -> (principal) query;
+  removeMinter : (principal, opt nat64) -> (BooleanResult);
   setDesc : (vec record { text; text }) -> (BooleanResult);
   setFee : (CandidTokenFee, opt nat64) -> (BooleanResult);
   setFeeTo : (text, opt nat64) -> (BooleanResult);

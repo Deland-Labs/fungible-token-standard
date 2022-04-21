@@ -1,9 +1,7 @@
 use crate::token::*;
-use ic_cdk::api::{
-    self,
-    stable::{stable_bytes, StableWriter},
-};
+use ic_cdk::api::stable::{stable_bytes, StableWriter};
 use ic_cdk_macros::*;
+use log::{error, info};
 use std::cell::RefCell;
 
 thread_local! {
@@ -18,10 +16,10 @@ fn pre_upgrade() {
 
         match StableWriter::default().write(token_bytes.as_slice()) {
             Ok(size) => {
-                api::print(&format!("after pre_upgrade stable_write size{}", size));
+                info!("after pre_upgrade stable_write size{}", size);
             }
             Err(_) => {
-                api::print("stable_write error");
+                error!("{}", "stable_write error");
             }
         }
     })

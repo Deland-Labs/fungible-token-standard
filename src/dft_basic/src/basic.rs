@@ -2,13 +2,24 @@ use candid::{candid_method, Nat};
 use dft_standard::token::TokenStandard;
 use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use dft_types::*;
+use dft_utils::ic_logger::ICLogger;
 use ic_cdk::api::{data_certificate, set_certified_data};
 use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
 use std::string::String;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+
+pub(crate) fn canister_module_init() {
+    INIT.call_once(|| {
+        ICLogger::init();
+    });
+}
 
 #[init]
 #[candid_method(init)]
+#[allow(clippy::too_many_arguments)]
 async fn canister_init(
     sub_account: Option<Subaccount>,
     logo: Option<Vec<u8>>,
@@ -20,6 +31,7 @@ async fn canister_init(
     caller: Option<Principal>,
     archive_option: Option<ArchiveOptions>,
 ) {
+    canister_module_init();
     let real_caller = caller.unwrap_or_else(api::caller);
     let owner_holder = TokenHolder::new(real_caller, sub_account);
     // convert logo to Option<Vec<u8>>
@@ -38,6 +50,9 @@ async fn canister_init(
             owner_holder.clone(),
             archive_option,
         );
+        if total_supply == 0u32 {
+            return;
+        }
         if let Ok((_, block_hash, _)) = token.mint(
             &real_caller,
             &owner_holder,
@@ -245,10 +260,10 @@ async fn transfer_from(
         Ok(from_token_holder) => match to.parse::<TokenHolder>() {
             Ok(to_token_holder) => {
                 // exec before-transfer check :before_token_sending
-                match before_token_sending(&from_token_holder, &to_token_holder, &value.0) {
-                    Err(e) => return OperationResult::Err(e),
-                    _ => {}
-                };
+                if let Err(e) = before_token_sending(&from_token_holder, &to_token_holder, &value.0)
+                {
+                    return OperationResult::Err(e);
+                }
                 match TOKEN.with(|token| {
                     let mut token = token.borrow_mut();
                     token.transfer_from(

@@ -36,7 +36,9 @@ type CandidOperation = variant {
     caller : principal;
     spender : text;
   };
+  RemoveMinter : record { minter : principal; caller : principal };
   FeeModify : record { newFee : CandidTokenFee; caller : principal };
+  AddMinter : record { minter : principal; caller : principal };
   Transfer : record {
     to : text;
     fee : nat;

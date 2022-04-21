@@ -21,3 +21,10 @@ serde_bytes = "0.11"
 sha2 = "0.10.2"
 num-bigint = "0.4.3"
 json_pretty = "0.1.2"
+log = "0.4"
+
+[features]
+default = ["dev_canister"]
+dev_canister = ["dft_utils/dev_canister","dft_standard/dev_canister"]
+staging_canister = ["dft_utils/staging_canister","dft_standard/staging_canister"]
+production_canister = ["dft_utils/production_canister","dft_standard/production_canister"]
