@@ -4,4 +4,4 @@ pub mod inspect;
 pub mod state;
 #[cfg(test)]
 mod tests;
-pub mod token;
+pub mod token_service;

@@ -1,7 +1,5 @@
 use candid::{candid_method, Nat};
-use dft_standard::{
-    auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN, token::TokenStandard,
-};
+use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, token_service::TokenService};
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::*;
@@ -20,17 +18,14 @@ async fn burn_from(
     let owner_parse_res = owner.parse::<TokenHolder>();
     match owner_parse_res {
         Ok(owner_holder) => {
-            match TOKEN.with(|token| {
-                let mut token = token.borrow_mut();
-                token.burn_from(
-                    &caller,
-                    &owner_holder,
-                    &spender,
-                    value.0,
-                    created_at,
-                    api::time(),
-                )
-            }) {
+            match TokenService::default().burn_from(
+                &caller,
+                &owner_holder,
+                &spender,
+                value.0,
+                created_at,
+                api::time(),
+            ) {
                 Ok((block_height, _, tx_hash)) => OperationResult::Ok {
                     tx_id: hex::encode(tx_hash.as_ref()),
                     block_height: block_height.into(),
@@ -56,10 +51,7 @@ async fn burn(
 ) -> OperationResult {
     let caller = api::caller();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
-    match TOKEN.with(|token| {
-        let mut token = token.borrow_mut();
-        token.burn(&caller, &transfer_from, value.0, created_at, api::time())
-    }) {
+    match TokenService::default().burn(&caller, &transfer_from, value.0, created_at, api::time()) {
         Ok((block_height, _, tx_hash)) => OperationResult::Ok {
             tx_id: hex::encode(tx_hash.as_ref()),
             block_height: block_height.into(),

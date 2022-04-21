@@ -131,7 +131,7 @@ impl From<ErrorInfo> for DFTError {
             14 => DFTError::BurnValueExceedsAllowance,
             15 => DFTError::NotificationFailed,
             16 => DFTError::StorageScalingFailed {
-                detail: error.message.to_string(),
+                detail: error.message,
             },
             17 => DFTError::MoveTxToScalingStorageFailed,
             18 => DFTError::InvalidTypeOrFormatOfLogo,
@@ -147,7 +147,7 @@ impl From<ErrorInfo> for DFTError {
             28 => DFTError::TxIdNotBelongToCurrentDft,
             29 => DFTError::OnlyAllowTokenCanisterCallThisFunction,
             _ => DFTError::Unknown {
-                detail: error.message.to_string(),
+                detail: error.message,
             },
         }
     }

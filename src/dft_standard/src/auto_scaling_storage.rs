@@ -1,7 +1,8 @@
 use std::collections::VecDeque;
+use std::ops::{Add, Sub};
 
 use crate::ic_management::*;
-use crate::state::TOKEN;
+use crate::token_service::TokenService;
 use candid::encode_args;
 use dft_types::constants::{
     CYCLES_PER_AUTO_SCALING, MAX_CANISTER_STORAGE_BYTES, MAX_MESSAGE_SIZE_BYTES,
@@ -18,14 +19,8 @@ const STORAGE_WASM: &[u8] =
     std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
 
 pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
-    let blocks_to_archive = TOKEN.with(|token| {
-        let token = token.borrow();
-        let blockchain = token.blockchain();
-        blockchain.get_blocks_for_archiving(
-            blockchain.archive.trigger_threshold as usize,
-            blockchain.archive.num_blocks_to_archive as usize,
-        )
-    });
+    let service = TokenService::default();
+    let blocks_to_archive = service.get_blocks_for_archiving();
 
     let archive_size_bytes = blocks_to_archive
         .iter()
@@ -41,14 +36,8 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
         return Ok(());
     }
 
-    // mark archiving
-    let lock_res = TOKEN.with(|token| {
-        let mut token = token.borrow_mut();
-        token.lock_for_archiving()
-    });
-
     // if lock failed, return, lock failed means the archiving is already in progress
-    if !lock_res {
+    if !service.lock_for_archiving() {
         return Ok(());
     }
 
@@ -57,32 +46,22 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
             "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
             archive_size_bytes, max_msg_size, num_blocks
         );
-        TOKEN.with(|token| {
-            let mut token = token.borrow_mut();
-            let last_storage_index = token.blockchain().archive.last_storage_canister_index();
-            let archived_end_block_height =
-                token.blockchain().num_archived_blocks.clone() + num_blocks as u128 - 1u32;
+        let last_storage_index = service.last_storage_canister_index();
+        let archived_end_block_height = service.archived_blocks_num().add(num_blocks).sub(1u32);
 
-            token
-                .update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
-            token.remove_archived_blocks(num_blocks);
-        });
+        service.update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
+        service.remove_archived_blocks(num_blocks);
     };
 
     // Ensure unlock
-    TOKEN.with(|token| {
-        let mut token = token.borrow_mut();
-        token.unlock_after_archiving();
-    });
+    service.unlock_after_archiving();
 
     Ok(())
 }
 
 async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonResult<Principal> {
-    let mut last_storage_id = TOKEN.with(|token| {
-        let token = token.borrow();
-        token.last_auto_scaling_storage_canister_id()
-    });
+    let service = TokenService::default();
+    let mut last_storage_id = service.last_auto_scaling_storage_canister_id();
 
     let mut is_necessary_create_new_storage_canister = last_storage_id.is_none();
 
@@ -114,15 +93,10 @@ async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonRe
     }
 
     if is_necessary_create_new_storage_canister {
-        last_storage_id = TOKEN.with(|token| {
-            let token = token.borrow();
-            token.blockchain().archive.latest_storage_canister()
-        });
+        last_storage_id = service.latest_storage_canister();
         let token_id = api::id();
-        let block_height_offset: Nat = TOKEN.with(|token| {
-            let token = token.borrow();
-            token.scaling_storage_block_height_offset().into()
-        });
+        let block_height_offset: Nat = service.scaling_storage_block_height_offset().into();
+
         // avoid re-create storage canister when install code failed
         if last_storage_id.is_some() {
             install_storage_canister_and_append_to_storage_records(
@@ -144,6 +118,7 @@ async fn create_new_scaling_storage_canister(
     token_id: Principal,
     block_height_offset: Nat,
 ) -> CommonResult<Principal> {
+    let service = TokenService::default();
     let create_args = CreateCanisterArgs {
         cycles: CYCLES_PER_AUTO_SCALING,
         settings: CanisterSettings {
@@ -158,11 +133,7 @@ async fn create_new_scaling_storage_canister(
 
     match create_result {
         Ok(cdr) => {
-            TOKEN.with(|token| {
-                let mut token = token.borrow_mut();
-                token.pre_append_scaling_storage_canister(cdr.canister_id);
-            });
-
+            service.pre_append_scaling_storage_canister(cdr.canister_id);
             debug!(
                 "token new storage canister id : {} , block height offset : {}",
                 cdr.canister_id,
@@ -178,7 +149,7 @@ async fn create_new_scaling_storage_canister(
         }
         Err(msg) => {
             let msg = format!("create new storage canister failed {}", msg);
-            error!("{}", msg.clone());
+            error!("{}", msg);
             Err(DFTError::StorageScalingFailed { detail: msg })
         }
     }
@@ -189,15 +160,13 @@ async fn install_storage_canister_and_append_to_storage_records(
     token_id: Principal,
     block_height_offset: Nat,
 ) -> CommonResult<()> {
+    let service = TokenService::default();
     match encode_args((token_id, block_height_offset.clone())) {
         Ok(install_args) => {
             match install_canister(&canister_id, STORAGE_WASM.to_vec(), install_args).await {
                 Ok(_) => {
                     debug!("install storage canister success");
-                    TOKEN.with(|token| {
-                        let mut token = token.borrow_mut();
-                        token.append_scaling_storage_canister(canister_id);
-                    });
+                    service.append_scaling_storage_canister(canister_id);
                     Ok(())
                 }
                 Err(msg) => {
@@ -205,14 +174,14 @@ async fn install_storage_canister_and_append_to_storage_records(
                         "install auto-scaling storage canister failed. details:{}",
                         msg
                     );
-                    error!("{}", msg.clone());
+                    error!("{}", msg);
                     Err(DFTError::StorageScalingFailed { detail: msg })
                 }
             }
         }
         Err(msg) => {
             let msg = format!("encode_args failed. details:{:?}", msg);
-            error!("{}", msg.clone());
+            error!("{}", msg);
             Err(DFTError::StorageScalingFailed { detail: msg })
         }
     }

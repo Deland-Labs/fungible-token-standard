@@ -2,6 +2,8 @@ use candid::{CandidType, Deserialize};
 use serde::Serialize;
 use std::collections::HashMap;
 
+use crate::StableState;
+
 const OFFICIAL_SITE: &str = "OFFICIAL_SITE";
 const MEDIUM: &str = "MEDIUM";
 const OFFICIAL_EMAIL: &str = "OFFICIAL_EMAIL";
@@ -87,5 +89,17 @@ impl TokenDescription {
         for (k, v) in vec {
             self.desc.insert(k, v);
         }
+    }
+}
+
+impl StableState for TokenDescription {
+    fn encode(&self) -> Vec<u8> {
+        bincode::serialize(&self.desc).unwrap()
+    }
+
+    fn decode(bytes: Vec<u8>) -> Result<Self, String> {
+        let desc: HashMap<String, String> = bincode::deserialize(&bytes).unwrap();
+
+        Ok(TokenDescription { desc })
     }
 }
