@@ -3,6 +3,7 @@ use candid::{Nat, Principal};
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::inspect_message;
+use log::{error, info};
 
 use crate::state::TOKEN;
 
@@ -66,12 +67,12 @@ fn inspect_message() {
             } else if caller == Principal::anonymous() {
                 let err: ErrorInfo = DFTError::NotAllowAnonymous.into();
                 let err_msg = format!("reject {:?}", err);
-                api::print(err_msg.clone());
+                error!("{}", err_msg.clone());
                 api::call::reject(err_msg.as_str());
             } else {
                 let err: ErrorInfo = DFTError::InsufficientBalance.into();
                 let err_msg = format!("reject {:?}", err);
-                api::print(err_msg.clone());
+                error!("{}", err_msg.clone());
                 api::call::reject(err_msg.as_str());
             }
         }
@@ -83,13 +84,13 @@ fn inspect_message() {
             } else {
                 let err: ErrorInfo = DFTError::OnlyOwnerAllowCallIt.into();
                 let err_msg = format!("reject {:?}", err);
-                api::print(err_msg.clone());
+                error!("{}", err_msg.clone());
                 api::call::reject(err_msg.as_str());
             }
         }
         _ => {
             api::call::accept_message();
-            ic_cdk::println!("inspect: method not checked; accept");
+            info!("{}", "inspect: method not checked; accept");
         }
     }
 }

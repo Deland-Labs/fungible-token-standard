@@ -5,12 +5,13 @@ use dft_types::{HttpRequest, HttpResponse};
 use dft_utils::get_logo_type;
 use ic_cdk_macros::query;
 use json_pretty::PrettyFormatter;
+use log::debug;
 
 #[query]
 #[candid_method(query, rename = "http_request")]
 fn http_request(req: HttpRequest) -> HttpResponse {
     let path = req.path().to_lowercase();
-    ic_cdk::api::print(format!("path: {}", path));
+    debug!("path: {}", path);
     let cycles = ic_cdk::api::canister_balance();
     match path.as_str() {
         "/" => {
@@ -29,7 +30,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 token_info.name(),
                 token_info.symbol(),
                 token_info.decimals(),
-                total_supply ,
+                total_supply,
                 fee.minimum,
                 format!("{} %", fee.rate as u128 * 100 / 10u128.pow(fee.rate_decimals.into()))
             );

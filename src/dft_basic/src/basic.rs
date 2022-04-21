@@ -2,10 +2,20 @@ use candid::{candid_method, Nat};
 use dft_standard::token::TokenStandard;
 use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, state::TOKEN};
 use dft_types::*;
+use dft_utils::ic_logger::ICLogger;
 use ic_cdk::api::{data_certificate, set_certified_data};
 use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
 use std::string::String;
+use std::sync::Once;
+
+static INIT: Once = Once::new();
+
+pub(crate) fn canister_module_init() {
+    INIT.call_once(|| {
+        ICLogger::init();
+    });
+}
 
 #[init]
 #[candid_method(init)]
@@ -21,6 +31,7 @@ async fn canister_init(
     caller: Option<Principal>,
     archive_option: Option<ArchiveOptions>,
 ) {
+    canister_module_init();
     let real_caller = caller.unwrap_or_else(api::caller);
     let owner_holder = TokenHolder::new(real_caller, sub_account);
     // convert logo to Option<Vec<u8>>

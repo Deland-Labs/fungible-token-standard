@@ -17,3 +17,9 @@ bincode = "1.3.3"
 
 [dev-dependencies]
 rstest = "0.12.0"
+
+[features]
+default = ["dev_canister"]
+dev_canister = ["dft_utils/dev_canister"]
+staging_canister = ["dft_utils/staging_canister"]
+production_canister = ["dft_utils/production_canister"]
