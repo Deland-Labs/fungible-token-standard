@@ -1,7 +1,5 @@
-use crate::service::{
-    basic_service, burnable_service, initialize_service, management_service, mintable_service,
-};
 use candid::Principal;
+use dft_basic::service::{basic_service, management_service};
 use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
 use dft_types::*;
 use rstest::*;
@@ -108,7 +106,7 @@ fn test_fee_non_0_rate() -> TokenFee {
 #[fixture]
 fn test_token_with_0_fee_rate() {
     let fee_to = TokenHolder::new(test_fee_to(), None);
-    initialize_service::token_initialize(
+    basic_service::token_initialize(
         &test_owner(),
         test_token_id(),
         Some(test_logo()),
@@ -124,7 +122,7 @@ fn test_token_with_0_fee_rate() {
 #[fixture]
 fn test_token_with_non_0_fee_rate() {
     let fee_to = TokenHolder::new(test_fee_to(), None);
-    initialize_service::token_initialize(
+    basic_service::token_initialize(
         &test_owner(),
         test_token_id(),
         Some(test_logo()),
@@ -186,7 +184,7 @@ fn test_token_basic_logo_invalid_image(
 ) {
     let fee_to = TokenHolder::new(test_owner.clone(), None);
 
-    initialize_service::token_initialize(
+    basic_service::token_initialize(
         &test_owner,
         test_token_id,
         Some(vec![0u8; 20]),
@@ -316,8 +314,8 @@ fn test_token_basic_fee_calculation(
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1010u32);
-    let _ = mintable_service::add_minter(&test_owner, test_owner, None, now);
-    let _ = mintable_service::mint(
+    let _ = dft_mintable::add_minter(&test_owner, test_owner, None, now);
+    let _ = dft_mintable::mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -472,8 +470,8 @@ fn test_token_basic_approve(
     // mint token to owner_holder
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1000u32);
-    let _ = mintable_service::add_minter(&test_owner, test_owner, None, now);
-    let mint_res = mintable_service::mint(&test_owner, &minter_holder, mint_val.clone(), None, now);
+    let _ = dft_mintable::add_minter(&test_owner, test_owner, None, now);
+    let mint_res = dft_mintable::mint(&test_owner, &minter_holder, mint_val.clone(), None, now);
     // mint_res is ok
     assert!(mint_res.is_ok());
     // check owner_holder balance
@@ -540,8 +538,8 @@ fn test_token_basic_transfer_from(
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
     let approve_val = TokenAmount::from(1000u32);
-    let _ = mintable_service::add_minter(&test_owner, test_owner, None, now);
-    let _ = mintable_service::mint(
+    let _ = dft_mintable::add_minter(&test_owner, test_owner, None, now);
+    let _ = dft_mintable::mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -631,8 +629,8 @@ fn test_token_basic_transfer(
     let fee = basic_service::metadata().fee().clone();
     // mint & approve
     let mint_val = TokenAmount::from(10000u32);
-    let _ = mintable_service::add_minter(&test_owner, test_owner, None, now);
-    let _ = mintable_service::mint(
+    let _ = dft_mintable::add_minter(&test_owner, test_owner, None, now);
+    let _ = dft_mintable::mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -692,16 +690,16 @@ fn test_token_basic_mint_burn(
     // mint token to from_holder
     let mint_val = TokenAmount::from(10000u32);
     // mint with not minter will fail
-    let _mint_res = mintable_service::mint(
+    let _mint_res = dft_mintable::mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
         Some(2),
         now.clone(),
     );
-    let _ = mintable_service::add_minter(&test_owner, test_owner, None, now);
+    let _ = dft_mintable::add_minter(&test_owner, test_owner, None, now);
     // mint with wrong created at should fail
-    let _mint_res = mintable_service::mint(
+    let _mint_res = dft_mintable::mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -714,7 +712,7 @@ fn test_token_basic_mint_burn(
         _mint_res.err().unwrap().to_string(),
         DFTError::TxTooOld.to_string()
     );
-    let _mint_res = mintable_service::mint(
+    let _mint_res = dft_mintable::mint(
         &test_owner,
         &minter_holder,
         mint_val.clone(),
@@ -731,7 +729,7 @@ fn test_token_basic_mint_burn(
     assert_eq!(total_supply, mint_val);
 
     let burn_val = TokenAmount::from(1000u32);
-    let burn_res = burnable_service::burn(
+    let burn_res = dft_burnable::burn(
         &test_minter,
         &minter_holder,
         burn_val.clone(),
@@ -750,7 +748,7 @@ fn test_token_basic_mint_burn(
 
     // burn value less than minimum fee will fail
     let burn_val = TokenAmount::from(1u32);
-    let burn_res = burnable_service::burn(
+    let burn_res = dft_burnable::burn(
         &test_minter,
         &minter_holder,
         burn_val.clone(),
@@ -826,25 +824,25 @@ fn test_token_basic_approve_transfer_from_transfer(
 #[rstest]
 fn test_token_basic_minters_add_remove(test_owner: Principal, test_minter: Principal, now: u64) {
     test_token_with_0_fee_rate();
-    let res = mintable_service::add_minter(&test_owner, test_owner, None, now);
+    let res = dft_mintable::add_minter(&test_owner, test_owner, None, now);
     assert!(res.is_ok());
-    let minters = mintable_service::minters();
+    let minters = dft_mintable::minters();
     assert_eq!(minters.len(), 1);
     assert_eq!(minters[0], test_owner);
-    let res = mintable_service::add_minter(&test_owner, test_minter, None, now);
+    let res = dft_mintable::add_minter(&test_owner, test_minter, None, now);
     assert!(res.is_ok());
-    let minters = mintable_service::minters();
+    let minters = dft_mintable::minters();
     assert_eq!(minters.len(), 2);
     assert_eq!(minters[0], test_owner);
     assert_eq!(minters[1], test_minter);
-    let res = mintable_service::remove_minter(&test_owner, test_minter, None, now);
+    let res = dft_mintable::remove_minter(&test_owner, test_minter, None, now);
     assert!(res.is_ok());
-    let minters = mintable_service::minters();
+    let minters = dft_mintable::minters();
 
     assert_eq!(minters.len(), 1);
     assert_eq!(minters[0], test_owner);
-    let res = mintable_service::remove_minter(&test_owner, test_owner, None, now);
+    let res = dft_mintable::remove_minter(&test_owner, test_owner, None, now);
     assert!(res.is_ok());
-    let minters = mintable_service::minters();
+    let minters = dft_mintable::minters();
     assert_eq!(minters.len(), 0);
 }

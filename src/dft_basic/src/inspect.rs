@@ -5,23 +5,25 @@ use ic_cdk::api;
 use ic_cdk_macros::inspect_message;
 use log::{error, info};
 
-static QUERY_METHODS: [&str; 17] = [
+static QUERY_METHODS: [&str; 19] = [
     "allowance",
     "allowancesOf",
+    "archives",
     "balanceOf",
     "decimals",
     "desc",
     "fee",
     "logo",
     "meta",
+    "minters",
     "name",
     "owner",
     "symbol",
     "tokenInfo",
     "totalSupply",
-    "lastTransactions",
-    "transactionById",
-    "transactionByIndex",
+    "blockByHeight",
+    "blocksByQuery",
+    "http_request",
     "__get_candid_interface_tmp_hack",
 ];
 
@@ -64,12 +66,12 @@ fn inspect_message() {
             } else if caller == Principal::anonymous() {
                 let err: ErrorInfo = DFTError::NotAllowAnonymous.into();
                 let err_msg = format!("reject {:?}", err);
-                error!("{}", err_msg);
+                error!("method {} {}", method, err_msg);
                 api::call::reject(err_msg.as_str());
             } else {
                 let err: ErrorInfo = DFTError::InsufficientBalance.into();
                 let err_msg = format!("reject {:?}", err);
-                error!("{}", err_msg);
+                error!("method {} {}", method, err_msg);
                 api::call::reject(err_msg.as_str());
             }
         }
@@ -81,13 +83,13 @@ fn inspect_message() {
             } else {
                 let err: ErrorInfo = DFTError::OnlyOwnerAllowCallIt.into();
                 let err_msg = format!("reject {:?}", err);
-                error!("{}", err_msg);
+                error!("method {} {}", method, err_msg);
                 api::call::reject(err_msg.as_str());
             }
         }
         _ => {
             api::call::accept_message();
-            info!("{}", "inspect: method not checked; accept");
+            info!("inspect: method {} not checked; accept", method);
         }
     }
 }

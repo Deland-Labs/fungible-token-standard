@@ -1,4 +1,4 @@
-use super::internal_service::verified_created_at;
+use super::basic_service::verified_created_at;
 use crate::state::STATE;
 use candid::Principal;
 use dft_types::*;

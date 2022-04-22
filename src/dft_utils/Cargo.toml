@@ -16,6 +16,4 @@ yansi = "0.5.1"
 
 [features]
 default = []
-dev_canister = []
-staging_canister = []
-production_canister = []
+logger = []

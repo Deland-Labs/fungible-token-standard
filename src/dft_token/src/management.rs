@@ -1,5 +1,5 @@
 use candid::candid_method;
-use dft_standard::service::management_service;
+use dft_basic::service::management_service;
 use dft_types::*;
 use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;

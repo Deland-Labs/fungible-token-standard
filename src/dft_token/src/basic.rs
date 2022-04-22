@@ -1,6 +1,6 @@
 use candid::{candid_method, Nat};
-use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
-use dft_standard::service::{basic_service, initialize_service, mintable_service};
+use dft_basic::auto_scaling_storage::exec_auto_scaling_strategy;
+use dft_basic::service::basic_service;
 use dft_types::*;
 use dft_utils::ic_logger::ICLogger;
 use ic_cdk::api::{data_certificate, set_certified_data};
@@ -36,7 +36,7 @@ async fn canister_init(
     let real_caller = caller.unwrap_or_else(api::caller);
     let owner_holder = TokenHolder::new(real_caller, sub_account);
 
-    initialize_service::token_initialize(
+    basic_service::token_initialize(
         &real_caller,
         api::id(),
         logo,
@@ -50,7 +50,7 @@ async fn canister_init(
     if total_supply == 0u32 {
         return;
     }
-    if let Ok((_, block_hash, _)) = mintable_service::mint(
+    if let Ok((_, block_hash, _)) = dft_mintable::mint(
         &real_caller,
         &owner_holder,
         total_supply.0,

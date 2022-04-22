@@ -29,7 +29,7 @@ impl log::Log for ICLogger {
 
 impl ICLogger {
     pub fn init() {
-        #[cfg(feature = "dev_canister")]
+        #[cfg(feature = "logger")]
         {
             if log::set_logger(&ICLogger).is_ok() {
                 log::set_max_level(LevelFilter::Trace);

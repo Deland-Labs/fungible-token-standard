@@ -1,5 +1,5 @@
 use candid::candid_method;
-use dft_standard::service::basic_service;
+use dft_basic::service::basic_service;
 use dft_types::{HttpRequest, HttpResponse};
 use dft_utils::get_logo_type;
 use ic_cdk_macros::query;
