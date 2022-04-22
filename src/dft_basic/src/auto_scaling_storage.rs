@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::ops::{Add, Sub};
 
 use crate::ic_management::*;
-use crate::token_service::TokenService;
+use crate::service::blockchain_service;
 use candid::encode_args;
 use dft_types::constants::{
     CYCLES_PER_AUTO_SCALING, MAX_CANISTER_STORAGE_BYTES, MAX_MESSAGE_SIZE_BYTES,
@@ -19,8 +19,7 @@ const STORAGE_WASM: &[u8] =
     std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
 
 pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
-    let service = TokenService::default();
-    let blocks_to_archive = service.get_blocks_for_archiving();
+    let blocks_to_archive = blockchain_service::get_blocks_for_archiving();
 
     let archive_size_bytes = blocks_to_archive
         .iter()
@@ -37,7 +36,7 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
     }
 
     // if lock failed, return, lock failed means the archiving is already in progress
-    if !service.lock_for_archiving() {
+    if !blockchain_service::lock_for_archiving() {
         return Ok(());
     }
 
@@ -46,22 +45,26 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
             "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
             archive_size_bytes, max_msg_size, num_blocks
         );
-        let last_storage_index = service.last_storage_canister_index();
-        let archived_end_block_height = service.archived_blocks_num().add(num_blocks).sub(1u32);
+        let last_storage_index = blockchain_service::last_storage_canister_index();
+        let archived_end_block_height = blockchain_service::archived_blocks_num()
+            .add(num_blocks)
+            .sub(1u32);
 
-        service.update_scaling_storage_blocks_range(last_storage_index, archived_end_block_height);
-        service.remove_archived_blocks(num_blocks);
+        blockchain_service::update_scaling_storage_blocks_range(
+            last_storage_index,
+            archived_end_block_height,
+        );
+        blockchain_service::remove_archived_blocks(num_blocks);
     };
 
     // Ensure unlock
-    service.unlock_after_archiving();
+    blockchain_service::unlock_after_archiving();
 
     Ok(())
 }
 
 async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonResult<Principal> {
-    let service = TokenService::default();
-    let mut last_storage_id = service.last_auto_scaling_storage_canister_id();
+    let mut last_storage_id = blockchain_service::last_auto_scaling_storage_canister_id();
 
     let mut is_necessary_create_new_storage_canister = last_storage_id.is_none();
 
@@ -93,9 +96,10 @@ async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonRe
     }
 
     if is_necessary_create_new_storage_canister {
-        last_storage_id = service.latest_storage_canister();
+        last_storage_id = blockchain_service::latest_storage_canister();
         let token_id = api::id();
-        let block_height_offset: Nat = service.scaling_storage_block_height_offset().into();
+        let block_height_offset: Nat =
+            blockchain_service::scaling_storage_block_height_offset().into();
 
         // avoid re-create storage canister when install code failed
         if last_storage_id.is_some() {
@@ -118,7 +122,6 @@ async fn create_new_scaling_storage_canister(
     token_id: Principal,
     block_height_offset: Nat,
 ) -> CommonResult<Principal> {
-    let service = TokenService::default();
     let create_args = CreateCanisterArgs {
         cycles: CYCLES_PER_AUTO_SCALING,
         settings: CanisterSettings {
@@ -133,7 +136,7 @@ async fn create_new_scaling_storage_canister(
 
     match create_result {
         Ok(cdr) => {
-            service.pre_append_scaling_storage_canister(cdr.canister_id);
+            blockchain_service::pre_append_scaling_storage_canister(cdr.canister_id);
             debug!(
                 "token new storage canister id : {} , block height offset : {}",
                 cdr.canister_id,
@@ -160,13 +163,12 @@ async fn install_storage_canister_and_append_to_storage_records(
     token_id: Principal,
     block_height_offset: Nat,
 ) -> CommonResult<()> {
-    let service = TokenService::default();
     match encode_args((token_id, block_height_offset.clone())) {
         Ok(install_args) => {
             match install_canister(&canister_id, STORAGE_WASM.to_vec(), install_args).await {
                 Ok(_) => {
                     debug!("install storage canister success");
-                    service.append_scaling_storage_canister(canister_id);
+                    blockchain_service::append_scaling_storage_canister(canister_id);
                     Ok(())
                 }
                 Err(msg) => {

@@ -4,16 +4,18 @@ use ic_cdk::export::Principal;
 use ic_cdk_macros::*;
 use std::string::String;
 
-#[path = "../../dft_basic/src/basic.rs"]
-mod basic;
-#[path = "../../dft_burnable/src/burnable.rs"]
-mod burnable;
-#[path = "../../dft_basic/src/http.rs"]
 mod http;
-#[path = "../../dft_basic/src/management.rs"]
 mod management;
-#[path = "../../dft_mintable/src/mintable.rs"]
+
+#[cfg(feature = "basic")]
+mod basic;
+#[cfg(feature = "burnable")]
+mod burnable;
+#[cfg(feature = "mintable")]
 mod mintable;
+
+#[cfg(test)]
+mod tests;
 
 candid::export_service!();
 

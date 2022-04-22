@@ -1,5 +1,5 @@
 [package]
-name = "dft_burnable_mintable"
+name = "dft_token"
 version = "0.5.0"
 edition = "2018"
 
@@ -8,7 +8,9 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-dft_standard = { path = "../dft_standard" }
+dft_basic = { path = "../dft_basic" }
+dft_burnable = { path = "../dft_burnable" }
+dft_mintable = { path = "../dft_mintable" }
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
 ic-cdk = "0.5.0"
@@ -23,8 +25,12 @@ num-bigint = "0.4.3"
 json_pretty = "0.1.2"
 log = "0.4"
 
+[dev-dependencies]
+rstest = "0.12.0"
+
 [features]
-default = ["dev_canister"]
-dev_canister = ["dft_utils/dev_canister","dft_standard/dev_canister"]
-staging_canister = ["dft_utils/staging_canister","dft_standard/staging_canister"]
-production_canister = ["dft_utils/production_canister","dft_standard/production_canister"]
+default = ["basic","logger"]
+logger = ["dft_utils/logger"]
+basic=[]
+burnable = []
+mintable = []

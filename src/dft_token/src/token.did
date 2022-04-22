@@ -119,6 +119,8 @@ service : (
   balanceOf : (text) -> (nat) query;
   blockByHeight : (nat) -> (BlockResult) query;
   blocksByQuery : (nat, nat64) -> (QueryBlocksResult) query;
+  burn : (opt vec nat8, nat, opt nat64) -> (OperationResult);
+  burnFrom : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
   decimals : () -> (nat8) query;
   desc : () -> (vec record { text; text }) query;
   fee : () -> (CandidTokenFee) query;
@@ -139,7 +141,5 @@ service : (
   tokenInfo : () -> (TokenInfo) query;
   totalSupply : () -> (nat) query;
   transfer : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
-  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (
-      OperationResult,
-    );
+  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (OperationResult);
 }
