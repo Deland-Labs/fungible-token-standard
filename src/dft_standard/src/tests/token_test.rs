@@ -1,4 +1,6 @@
-use crate::service::{basic_service, burnable_service, initialize_service, mintable_service};
+use crate::service::{
+    basic_service, burnable_service, initialize_service, management_service, mintable_service,
+};
 use candid::Principal;
 use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
 use dft_types::*;
@@ -221,7 +223,7 @@ fn test_token_basic_set_fee(test_owner: Principal, now: u64) {
         rate: 0,
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
-    let res = basic_service::set_fee(&test_owner, new_fee.clone(), None, now);
+    let res = management_service::set_fee(&test_owner, new_fee.clone(), None, now);
     assert!(res.is_ok(), "set_fee should be ok");
     assert_eq!(basic_service::fee(), new_fee);
 }
@@ -235,7 +237,7 @@ fn test_token_basic_set_fee_invalid_owner(other_caller: Principal, now: u64) {
         rate: 0,
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
     };
-    let res = basic_service::set_fee(&other_caller, new_fee.clone(), None, now);
+    let res = management_service::set_fee(&other_caller, new_fee.clone(), None, now);
     assert!(res.is_err(), "set_fee should be err");
 }
 
@@ -245,10 +247,10 @@ fn test_update_token_basic_set_fee_to(test_owner: Principal, other_caller: Princ
     test_token_with_0_fee_rate();
     let new_fee_to = TokenHolder::new(other_caller.clone(), None);
     // set fee_to by other caller will failed
-    let res = basic_service::set_fee_to(&other_caller, new_fee_to.clone(), None, now.clone());
+    let res = management_service::set_fee_to(&other_caller, new_fee_to.clone(), None, now.clone());
     assert!(res.is_err(), "set_fee_to should be err");
     // set fee_to by owner will ok
-    let res = basic_service::set_fee_to(&test_owner, new_fee_to.clone(), None, now);
+    let res = management_service::set_fee_to(&test_owner, new_fee_to.clone(), None, now);
     assert!(res.is_ok(), "set_fee_to should be ok");
     assert_eq!(basic_service::token_info().fee_to, new_fee_to);
 }
@@ -257,10 +259,10 @@ fn test_update_token_basic_set_fee_to(test_owner: Principal, other_caller: Princ
 fn test_token_basic_set_logo(test_owner: Principal, new_logo: Vec<u8>) {
     test_token_with_0_fee_rate();
     // set logo by other caller will failed
-    let res = basic_service::set_logo(&other_caller(), Some(new_logo.clone()));
+    let res = management_service::set_logo(&other_caller(), Some(new_logo.clone()));
     assert!(res.is_err(), "set_logo should be err");
     // set logo by owner will ok
-    let res = basic_service::set_logo(&test_owner, Some(new_logo.clone()));
+    let res = management_service::set_logo(&test_owner, Some(new_logo.clone()));
     assert!(res.is_ok(), "set_logo should be ok");
     assert_eq!(basic_service::logo().clone().unwrap_or(vec![]), new_logo);
 }
@@ -275,10 +277,10 @@ fn test_token_basic_set_desc(test_owner: Principal) {
     .into_iter()
     .collect();
     // set desc by other caller will failed
-    let res = basic_service::set_desc(&other_caller(), new_desc.clone());
+    let res = management_service::set_desc(&other_caller(), new_desc.clone());
     assert!(res.is_err(), "set_desc should be err");
     // set desc by owner will ok
-    let res = basic_service::set_desc(&test_owner, new_desc.clone());
+    let res = management_service::set_desc(&test_owner, new_desc.clone());
     assert!(res.is_ok(), "set_desc should be ok");
     assert_eq!(basic_service::desc(), new_desc);
 
@@ -289,7 +291,7 @@ fn test_token_basic_set_desc(test_owner: Principal) {
     )]
     .into_iter()
     .collect();
-    let res = basic_service::set_desc(&test_owner, new_desc1.clone());
+    let res = management_service::set_desc(&test_owner, new_desc1.clone());
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");
     assert_eq!(basic_service::desc(), new_desc);
