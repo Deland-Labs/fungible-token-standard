@@ -1,5 +1,5 @@
 use candid::candid_method;
-use dft_standard::token_service::TokenService;
+use dft_standard::token_service::basic_service;
 use dft_types::{HttpRequest, HttpResponse};
 use dft_utils::get_logo_type;
 use ic_cdk_macros::query;
@@ -12,13 +12,12 @@ fn http_request(req: HttpRequest) -> HttpResponse {
     let path = req.path().to_lowercase();
     debug!("path: {}", path);
     let cycles = ic_cdk::api::canister_balance();
-    let service = TokenService::default();
     match path.as_str() {
         "/" => {
             let (token_info, metrics, total_supply) = (
-                service.metadata(),
-                service.token_metrics(),
-                service.total_supply(),
+                basic_service::metadata(),
+                basic_service::token_metrics(),
+                basic_service::total_supply(),
             );
             let fee = token_info.fee().clone();
             // convert token_info to json
@@ -46,7 +45,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
             HttpResponse::ok(vec![], result.into_bytes())
         }
         "/logo" => {
-            let logo = service.logo().unwrap_or_default();
+            let logo = basic_service::logo().unwrap_or_default();
 
             // if logo is empty, return 404
             if logo.is_empty() {
@@ -63,19 +62,19 @@ fn http_request(req: HttpRequest) -> HttpResponse {
             }
         }
         "/name" => {
-            let name = service.name();
+            let name = basic_service::name();
             HttpResponse::ok(vec![], name.into_bytes())
         }
         "/symbol" => {
-            let symbol = service.symbol();
+            let symbol = basic_service::symbol();
             HttpResponse::ok(vec![], symbol.into_bytes())
         }
         "/decimals" => {
-            let decimals = service.decimals();
+            let decimals = basic_service::decimals();
             HttpResponse::ok(vec![], decimals.to_string().into_bytes())
         }
         "/totalsupply" => {
-            let total_supply = service.total_supply();
+            let total_supply = basic_service::total_supply();
             HttpResponse::ok(vec![], total_supply.to_string().into_bytes())
         }
         _ => HttpResponse::not_found(),

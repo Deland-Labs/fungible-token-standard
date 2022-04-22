@@ -1,4 +1,4 @@
-use crate::token_service::TokenService;
+use crate::token_service::basic_service;
 use candid::{Nat, Principal};
 use dft_types::*;
 use ic_cdk::api;
@@ -35,7 +35,6 @@ static HOLDER_METHODS: [&str; 3] = ["approve", "transfer", "burn"];
 fn inspect_message() {
     let method = api::call::method_name();
     let caller = api::caller();
-    let service = TokenService::default();
     match &method[..] {
         m if QUERY_METHODS.contains(&m) => api::call::accept_message(),
         m if HOLDER_METHODS.contains(&m) => {
@@ -59,7 +58,7 @@ fn inspect_message() {
             };
 
             // check caller's balance
-            let balance = service.balance_of(&holder);
+            let balance = basic_service::balance_of(&holder);
             if balance > TokenAmount::from(0u32) {
                 api::call::accept_message();
             } else if caller == Principal::anonymous() {
@@ -76,7 +75,7 @@ fn inspect_message() {
         }
         m if OWNER_METHODS.contains(&m) => {
             // check if caller is owner
-            let owner = service.owner();
+            let owner = basic_service::owner();
             if caller == owner {
                 api::call::accept_message();
             } else {

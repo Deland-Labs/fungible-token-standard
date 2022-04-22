@@ -1,6 +1,6 @@
 use candid::{candid_method, Nat};
 use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
-use dft_standard::token_service::TokenService;
+use dft_standard::token_service::{basic_service, initialize_service, mintable_service};
 use dft_types::*;
 use dft_utils::ic_logger::ICLogger;
 use ic_cdk::api::{data_certificate, set_certified_data};
@@ -35,9 +35,8 @@ async fn canister_init(
     canister_module_init();
     let real_caller = caller.unwrap_or_else(api::caller);
     let owner_holder = TokenHolder::new(real_caller, sub_account);
-    let service = TokenService::default();
 
-    service.token_initialize(
+    initialize_service::token_initialize(
         &real_caller,
         api::id(),
         logo,
@@ -51,7 +50,7 @@ async fn canister_init(
     if total_supply == 0u32 {
         return;
     }
-    if let Ok((_, block_hash, _)) = service.mint(
+    if let Ok((_, block_hash, _)) = mintable_service::mint(
         &real_caller,
         &owner_holder,
         total_supply.0,
@@ -65,50 +64,49 @@ async fn canister_init(
 #[query(name = "owner")]
 #[candid_method(query, rename = "owner")]
 fn owner() -> Principal {
-    TokenService::default().owner()
+    basic_service::owner()
 }
 
 #[query(name = "name")]
 #[candid_method(query, rename = "name")]
 fn get_name() -> String {
-    TokenService::default().name()
+    basic_service::name()
 }
 
 #[query(name = "symbol")]
 #[candid_method(query, rename = "symbol")]
 fn get_symbol() -> String {
-    TokenService::default().symbol()
+    basic_service::symbol()
 }
 
 #[query(name = "decimals")]
 #[candid_method(query, rename = "decimals")]
 fn get_decimals() -> u8 {
-    TokenService::default().decimals()
+    basic_service::decimals()
 }
 
 #[query(name = "totalSupply")]
 #[candid_method(query, rename = "totalSupply")]
 fn get_total_supply() -> Nat {
-    TokenService::default().total_supply().into()
+    basic_service::total_supply().into()
 }
 
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
 fn get_fee_setting() -> CandidTokenFee {
-    TokenService::default().fee().into()
+    basic_service::fee().into()
 }
 
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
 fn get_meta_data() -> CandidTokenMetadata {
-    TokenService::default().metadata().into()
+    basic_service::metadata().into()
 }
 
 #[query(name = "desc")]
 #[candid_method(query, rename = "desc")]
 fn get_desc_info() -> Vec<(String, String)> {
-    TokenService::default()
-        .desc()
+    basic_service::desc()
         .iter()
         .map(|v| (v.0.clone(), v.1.clone()))
         .collect()
@@ -117,7 +115,7 @@ fn get_desc_info() -> Vec<(String, String)> {
 #[query(name = "logo")]
 #[candid_method(query, rename = "logo")]
 fn logo() -> Vec<u8> {
-    TokenService::default().logo().unwrap_or_default()
+    basic_service::logo().unwrap_or_default()
 }
 
 #[query(name = "balanceOf")]
@@ -125,7 +123,7 @@ fn logo() -> Vec<u8> {
 fn balance_of(holder: String) -> Nat {
     let token_holder_parse_result = holder.parse::<TokenHolder>();
     match token_holder_parse_result {
-        Ok(token_holder) => TokenService::default().balance_of(&token_holder).into(),
+        Ok(token_holder) => basic_service::balance_of(&token_holder).into(),
         _ => 0u32.into(),
     }
 }
@@ -138,9 +136,7 @@ fn allowance(owner: String, spender: String) -> Nat {
 
     if let Ok(token_holder_owner) = token_holder_owner_parse_result {
         if let Ok(token_holder_spender) = token_holder_spender_parse_result {
-            return TokenService::default()
-                .allowance(&token_holder_owner, &token_holder_spender)
-                .into();
+            return basic_service::allowance(&token_holder_owner, &token_holder_spender).into();
         }
     }
 
@@ -159,7 +155,7 @@ async fn approve(
     let owner_holder = TokenHolder::new(caller, owner_sub_account);
     match spender.parse::<TokenHolder>() {
         Ok(spender_holder) => {
-            match TokenService::default().approve(
+            match basic_service::approve(
                 &caller,
                 &owner_holder,
                 &spender_holder,
@@ -190,8 +186,7 @@ async fn approve(
 #[candid_method(query, rename = "allowancesOf")]
 fn allowances_of_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
     match holder.parse::<TokenHolder>() {
-        Ok(token_holder) => TokenService::default()
-            .allowances_of(&token_holder)
+        Ok(token_holder) => basic_service::allowances_of(&token_holder)
             .into_iter()
             .map(|(v, n)| (v, n.into()))
             .collect(),
@@ -220,7 +215,7 @@ async fn transfer_from(
                 {
                     return OperationResult::Err(e);
                 }
-                match TokenService::default().transfer_from(
+                match basic_service::transfer_from(
                     &caller,
                     &from_token_holder,
                     &spender,
@@ -269,7 +264,7 @@ async fn transfer(
                 return OperationResult::Err(e);
             };
             //transfer token
-            match TokenService::default().transfer(
+            match basic_service::transfer(
                 &caller,
                 &transfer_from,
                 &receiver,
@@ -298,7 +293,7 @@ async fn transfer(
 #[query(name = "tokenInfo")]
 #[candid_method(query, rename = "tokenInfo")]
 fn get_token_info() -> TokenInfo {
-    let mut token_info = TokenService::default().token_info();
+    let mut token_info = basic_service::token_info();
     token_info.certificate = data_certificate().map(serde_bytes::ByteBuf::from);
     token_info.cycles = api::canister_balance();
     token_info
@@ -307,13 +302,13 @@ fn get_token_info() -> TokenInfo {
 #[query(name = "blockByHeight")]
 #[candid_method(query, rename = "blockByHeight")]
 fn block_by_height(block_height: Nat) -> BlockResult {
-    TokenService::default().block_by_height(block_height.0)
+    basic_service::block_by_height(block_height.0)
 }
 
 #[query(name = "blocksByQuery")]
 #[candid_method(query, rename = "blocksByQuery")]
 fn blocks_by_query(start: Nat, count: usize) -> QueryBlocksResult {
-    let mut res = TokenService::default().blocks_by_query(start.0, count);
+    let mut res = basic_service::blocks_by_query(start.0, count);
     res.certificate = data_certificate().map(serde_bytes::ByteBuf::from);
     res
 }
@@ -321,7 +316,7 @@ fn blocks_by_query(start: Nat, count: usize) -> QueryBlocksResult {
 #[query(name = "archives")]
 #[candid_method(query, rename = "archives")]
 fn archives() -> Vec<ArchiveInfo> {
-    TokenService::default().archives()
+    basic_service::archives()
 }
 
 // do something before sending
