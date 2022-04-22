@@ -1,4 +1,4 @@
-use crate::token_service::basic_service;
+use crate::service::basic_service;
 use candid::{Nat, Principal};
 use dft_types::*;
 use ic_cdk::api;

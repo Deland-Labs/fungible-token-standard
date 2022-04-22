@@ -1,6 +1,6 @@
 use candid::{candid_method, Nat};
 use dft_standard::auto_scaling_storage::exec_auto_scaling_strategy;
-use dft_standard::token_service::{basic_service, initialize_service, mintable_service};
+use dft_standard::service::{basic_service, initialize_service, mintable_service};
 use dft_types::*;
 use dft_utils::ic_logger::ICLogger;
 use ic_cdk::api::{data_certificate, set_certified_data};

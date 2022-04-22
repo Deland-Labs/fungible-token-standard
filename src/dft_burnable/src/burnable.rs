@@ -1,7 +1,5 @@
 use candid::{candid_method, Nat};
-use dft_standard::{
-    auto_scaling_storage::exec_auto_scaling_strategy, token_service::burnable_service,
-};
+use dft_standard::{auto_scaling_storage::exec_auto_scaling_strategy, service::burnable_service};
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::*;

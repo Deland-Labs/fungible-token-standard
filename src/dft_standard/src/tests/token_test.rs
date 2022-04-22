@@ -1,4 +1,4 @@
-use crate::token_service::{basic_service, burnable_service, initialize_service, mintable_service};
+use crate::service::{basic_service, burnable_service, initialize_service, mintable_service};
 use candid::Principal;
 use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
 use dft_types::*;

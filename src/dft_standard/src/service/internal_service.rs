@@ -1,7 +1,7 @@
 use crate::state::STATE;
 use dft_types::*;
 
-pub fn verified_created_at(created_at: &Option<u64>, now: &u64) -> CommonResult<()> {
+pub(crate) fn verified_created_at(created_at: &Option<u64>, now: &u64) -> CommonResult<()> {
     if created_at.is_none() {
         return Ok(());
     }
@@ -17,7 +17,10 @@ pub fn verified_created_at(created_at: &Option<u64>, now: &u64) -> CommonResult<
 }
 
 //charge approve fee
-pub fn charge_approve_fee(approver: &TokenHolder, approve_fee: TokenAmount) -> CommonResult<()> {
+pub(crate) fn charge_approve_fee(
+    approver: &TokenHolder,
+    approve_fee: TokenAmount,
+) -> CommonResult<()> {
     STATE.with(|s| {
         let settings = s.token_setting.borrow();
 
@@ -33,7 +36,7 @@ pub fn charge_approve_fee(approver: &TokenHolder, approve_fee: TokenAmount) -> C
 }
 
 // charge transfer fee
-pub fn charge_transfer_fee(
+pub(crate) fn charge_transfer_fee(
     transfer_from: &TokenHolder,
     transfer_fee: TokenAmount,
 ) -> CommonResult<()> {
@@ -56,7 +59,7 @@ pub fn charge_transfer_fee(
 }
 
 // calc transfer fee
-pub fn calc_transfer_fee(transfer_value: &TokenAmount) -> TokenAmount {
+pub(crate) fn calc_transfer_fee(transfer_value: &TokenAmount) -> TokenAmount {
     STATE.with(|s| {
         // calc the transfer fee: rate * value
         // compare the transfer fee and minimum fee,get the max value
@@ -67,7 +70,7 @@ pub fn calc_transfer_fee(transfer_value: &TokenAmount) -> TokenAmount {
 }
 
 //transfer token
-pub fn _transfer(
+pub(crate) fn _transfer(
     tx_invoker: &TokenHolder,
     from: &TokenHolder,
     to: &TokenHolder,

@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::ops::{Add, Sub};
 
 use crate::ic_management::*;
-use crate::token_service::blockchain_service;
+use crate::service::blockchain_service;
 use candid::encode_args;
 use dft_types::constants::{
     CYCLES_PER_AUTO_SCALING, MAX_CANISTER_STORAGE_BYTES, MAX_MESSAGE_SIZE_BYTES,
