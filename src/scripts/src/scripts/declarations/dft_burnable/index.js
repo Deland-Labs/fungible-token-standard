@@ -1,10 +1,8 @@
-import {Actor, HttpAgent} from "@dfinity/agent";
+import { Actor, HttpAgent } from "@dfinity/agent";
 
 // Imports and re-exports candid interface
-import {idlFactory} from './dft_burnable.did.js';
-import logger from "node-color-log";
-
-export {idlFactory} from './dft_burnable.did.js';
+import { idlFactory } from './dft_burnable.did.js';
+export { idlFactory } from './dft_burnable.did.js';
 // CANISTER_ID is replaced by webpack based on node environment
 export const canisterId = process.env.DFT_BURNABLE_CANISTER_ID;
 
@@ -14,20 +12,21 @@ export const canisterId = process.env.DFT_BURNABLE_CANISTER_ID;
  * @param {{agentOptions?: import("@dfinity/agent").HttpAgentOptions; actorOptions?: import("@dfinity/agent").ActorConfig}} [options]
  * @return {import("@dfinity/agent").ActorSubclass<import("./dft_burnable.did.js")._SERVICE>}
  */
-export const createActor = (canisterId, options) => {
-    const agent = new HttpAgent({...options?.agentOptions});
-    // Fetch root key for certificate validation during development
-    if (process.env.NODE_ENV !== "production") {
-        agent.fetchRootKey().catch(err => {
-            console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
-            console.error(err);
-        });
-    }
+ export const createActor = (canisterId, options) => {
+  const agent = new HttpAgent({ ...options?.agentOptions });
 
-    // Creates an actor with using the candid interface and the HttpAgent
-    return Actor.createActor(idlFactory, {
-        agent,
-        canisterId,
-        ...options?.actorOptions,
+  // Fetch root key for certificate validation during development
+  if(process.env.NODE_ENV !== "production") {
+    agent.fetchRootKey().catch(err=>{
+      console.warn("Unable to fetch root key. Check to ensure that your local replica is running");
+      console.error(err);
     });
+  }
+
+  // Creates an actor with using the candid interface and the HttpAgent
+  return Actor.createActor(idlFactory, {
+    agent,
+    canisterId,
+    ...options?.actorOptions,
+  });
 };

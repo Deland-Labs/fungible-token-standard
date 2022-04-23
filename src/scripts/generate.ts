@@ -29,15 +29,20 @@ const download_did = async (canister) => {
     let did_content = await download_did(name);
     fs.writeFileSync(did_file, did_content);
     await exec(`dfx generate ${name}`, { silent: true });
+    logger.info("Generating");
   });
 
-  // remove ./src/declarations/*/index.js
-  await exec(`rm -rf ./src/declarations/*/index.js`);
-  await exec(`rm -rf ./src/declarations/*/*.did`);
-  // copy files from ./src/declarations/* to ./scripts/src/scripts/declarations/
-  await exec(`cp -r ./src/declarations/* ./scripts/src/scripts/declarations/`);
-  // remove ./src/declarations/*
-  await exec(`rm -rf ./src`);
-
-  logger.info("Generate update complete");
+  // delay 10 seconds to allow for the files to be generated
+  setTimeout(async () => {
+    // remove ./src/declarations/*/index.js
+    await exec(`rm -rf ./src/declarations/*/index.js`);
+    await exec(`rm -rf ./src/declarations/*/*.did`);
+    // copy files from ./src/declarations/* to ./scripts/src/scripts/declarations/
+    await exec(
+      `cp -r ./src/declarations/* ./scripts/src/scripts/declarations/`
+    );
+    // remove ./src/declarations/*
+    await exec(`rm -rf ./src`);
+    logger.info("Generate update complete");
+  }, 3000);
 })();
