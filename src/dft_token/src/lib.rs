@@ -9,6 +9,8 @@ mod management;
 
 #[cfg(feature = "basic")]
 mod basic;
+#[cfg(feature = "batch_mint")]
+mod batch_mint;
 #[cfg(feature = "burnable")]
 mod burnable;
 #[cfg(feature = "mintable")]

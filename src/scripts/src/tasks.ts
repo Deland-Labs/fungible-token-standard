@@ -1,6 +1,6 @@
 import "./scripts/setup"
 import {reinstall as reinstallDFTBasic} from "~/canisters/dftBasic";
-import {reinstall as reinstallDFTBurnableMintale} from "~/canisters/dftBurnableMintable";
+import {reinstall as reinstallDFTBurnableMintale} from "~/canisters/dftAllFeatures";
 import {reinstall as reinstallDFTBurnable} from "~/canisters/dfBurnable";
 import {reinstall as reinstallDFTMintable} from "~/canisters/dftMintable";
 import {reinstall as reinstallDFTTxStorage} from "~/canisters/dftTxStorage";
@@ -17,9 +17,9 @@ export const reinstall_all = async (options?: CanisterReinstallOptions) => {
         }, options.canisters.dft_basic.initOptions));
     }
     // dft basic 2
-    if (options && options.canisters?.dft_burnable_mintable) {
+    if (options && options.canisters?.dft_all_features) {
         jobs.push(reinstallDFTBurnableMintale({...options,},
-            options.canisters.dft_burnable_mintable.initOptions));
+            options.canisters.dft_all_features.initOptions));
     }
     // dft burnable
     if (options && options.canisters?.dft_burnable) {
@@ -77,7 +77,7 @@ export interface DFTInstallOptions extends CommonInstallOptions {
 
 export interface CanisterReinstallOptionsCanisters {
     dft_basic?: DFTInstallOptions;
-    dft_burnable_mintable?: DFTInstallOptions;
+    dft_all_features?: DFTInstallOptions;
     dft_burnable?: DFTInstallOptions;
     dft_mintable?: DFTInstallOptions;
     dft_receiver?: CommonInstallOptions;

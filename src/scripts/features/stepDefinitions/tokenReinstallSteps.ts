@@ -4,7 +4,7 @@ import logger from "node-color-log";
 import {CanisterReinstallOptions, DFTInitOptions, reinstall_all} from "../../src/tasks";
 import {parseToOrigin} from "~/utils/uint";
 import {
-    createDFTBasic2Actor,
+    createDFTWithAllFeatures,
     createDFTBasicActor,
     createDFTBurnableActor,
     createDFTMintableActor
@@ -19,7 +19,7 @@ Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
     let dftBasicOption = optionArray.find(o => o.key === "dft_basic");
     let dftBasicInitOptions = parseToDFTInitOptions(dftBasicOption);
     // dft basic 2 option
-    let dftBasic2Option = optionArray.find(o => o.key === "dft_burnable_mintable");
+    let dftBasic2Option = optionArray.find(o => o.key === "dft_all_features");
     let dftBasic2InitOptions = parseToDFTInitOptions(dftBasic2Option);
     // dft burn able option
     let dftBurnAbleOption = optionArray.find(o => o.key === "dft_burnable");
@@ -37,7 +37,7 @@ Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
                     reinstall: true,
                     initOptions: dftBasicInitOptions
                 } : undefined,
-                dft_burnable_mintable: dftBasic2InitOptions ? {
+                dft_all_features: dftBasic2InitOptions ? {
                     reinstall: true,
                     initOptions: dftBasic2InitOptions
                 } : undefined,
@@ -60,7 +60,7 @@ Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
 
 Given(/^transfer tokens from "([^"]*)" to these users$/, async function (user, args) {
     const dftBasic = createDFTBasicActor(user);
-    const dftBasic2 = createDFTBasic2Actor(user);
+    const dftBasic2 = createDFTWithAllFeatures(user);
     const dftBurnAble = createDFTBurnableActor(user);
     const dftMintAble = createDFTMintableActor(user);
 
@@ -100,7 +100,7 @@ Given(/^transfer token from "([^"]*)" to these users$/, async function (user, ar
 Given(/^owner "([^"]*)" set "([^"]*)" as fee_to$/, async function (owner, feeTo) {
     logger.debug(`owner: ${owner}, feeTo: ${feeTo}`);
     const dftBasic = createDFTBasicActor(owner);
-    const dftBasic2 = createDFTBasic2Actor(owner);
+    const dftBasic2 = createDFTWithAllFeatures(owner);
     const dftBurnAble = createDFTBurnableActor(owner);
     const dftMintAble = createDFTMintableActor(owner);
     const feeToPrincipal = identityFactory.getPrincipal(feeTo)!.toText();

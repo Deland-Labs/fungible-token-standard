@@ -1,5 +1,5 @@
 import {createActor as createDFTBasic} from "~/declarations/dft_basic";
-import {createActor as createDFTBasic2} from "~/declarations/dft_burnable_mintable";
+import {createActor as createDFTAllFeatures} from "~/declarations/dft_all_features";
 import {createActor as createDFTBurnable} from "~/declarations/dft_burnable";
 import {createActor as createDFTMintable} from "~/declarations/dft_mintable";
 import {createActor as CreateStorageActor} from "~/declarations/dft_tx_storage";
@@ -9,7 +9,7 @@ import {get_id} from "~/utils/canister";
 const createDFTBasicActor = (user?: string) => {
     let canisterId = get_id("dft_basic");
     if (user === undefined) {
-        return createDFTBasic2(canisterId, {
+        return createDFTBasic(canisterId, {
             agentOptions: {host: identityFactory.getDefaultHost()},
         });
     }
@@ -19,16 +19,16 @@ const createDFTBasicActor = (user?: string) => {
     });
 };
 
-// create a dft_burnable_mintable actor
-const createDFTBasic2Actor = (user?: string) => {
-    let canisterId = get_id("dft_burnable_mintable");
+// create a dft_all_features actor
+const createDFTWithAllFeatures = (user?: string) => {
+    let canisterId = get_id("dft_all_features");
     if (user === undefined) {
-        return createDFTBasic2(canisterId, {
+        return createDFTAllFeatures(canisterId, {
             agentOptions: {host: identityFactory.getDefaultHost()},
         });
     }
     let identityInfo = identityFactory.getIdentity(user)!;
-    return createDFTBasic2(canisterId, {
+    return createDFTAllFeatures(canisterId, {
         agentOptions: identityInfo.agentOptions,
     });
 };
@@ -70,7 +70,7 @@ const createStorageActor = (canisterId: string) => {
 
 export {
     createDFTBasicActor,
-    createDFTBasic2Actor,
+    createDFTWithAllFeatures,
     createDFTBurnableActor,
     createDFTMintableActor,
     createStorageActor
