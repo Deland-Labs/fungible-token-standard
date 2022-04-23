@@ -3,7 +3,7 @@ import {Given, Then, When} from "@cucumber/cucumber";
 import {reinstall_all} from "../../src/tasks";
 import {canister} from "~/utils";
 import {
-    createDFTBasic2Actor,
+    createDFTWithAllFeatures,
     createDFTBasicActor,
     createDFTBurnableActor,
     createDFTMintableActor
@@ -48,8 +48,8 @@ export const createDFTActor = (token, user?: string) => {
     switch (token) {
         case "dft_basic":
             return createDFTBasicActor(user);
-        case "dft_burnable_mintable":
-            return createDFTBasic2Actor(user);
+        case "dft_all_features":
+            return createDFTWithAllFeatures(user);
         case "dft_burnable":
             return createDFTBurnableActor(user);
         case "dft_mintable":
