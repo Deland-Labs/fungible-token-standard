@@ -117,6 +117,16 @@ service : (
   approve : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
   archives : () -> (vec ArchiveInfo) query;
   balanceOf : (text) -> (nat) query;
+  batchMint : (vec record { text; nat }, opt nat64) -> (vec OperationResult);
+  batchTransfer : (opt vec nat8, vec record { text; nat }, opt nat64) -> (
+      vec OperationResult,
+    );
+  batchTransferFrom : (
+      opt vec nat8,
+      text,
+      vec record { text; nat },
+      opt nat64,
+    ) -> (vec OperationResult);
   blockByHeight : (nat) -> (BlockResult) query;
   blocksByQuery : (nat, nat64) -> (QueryBlocksResult) query;
   burn : (opt vec nat8, nat, opt nat64) -> (OperationResult);
@@ -141,5 +151,7 @@ service : (
   tokenInfo : () -> (TokenInfo) query;
   totalSupply : () -> (nat) query;
   transfer : (opt vec nat8, text, nat, opt nat64) -> (OperationResult);
-  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (OperationResult);
+  transferFrom : (opt vec nat8, text, text, nat, opt nat64) -> (
+      OperationResult,
+    );
 }

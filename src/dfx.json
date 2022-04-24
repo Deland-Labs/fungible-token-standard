@@ -39,7 +39,7 @@
     "dft_all_features": {
       "type": "custom",
       "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_token --release  --no-default-features --features logger,basic,burnable,mintable,batch_mint",
+        "cargo build --target wasm32-unknown-unknown --package  dft_token --release  --no-default-features --features logger,basic,burnable,mintable,batch_mint,batch_transfer",
         "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_all_features_opt.wasm"
       ],
       "candid": "dft_token/src/token.did",
