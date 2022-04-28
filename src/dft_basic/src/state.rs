@@ -1,14 +1,14 @@
 use dft_types::*;
+use ic_cdk::api;
 use ic_cdk::api::stable::{stable_bytes, StableWriter};
 use ic_cdk_macros::*;
 use log::{error, info};
 use std::cell::RefCell;
 
 thread_local! {
-      pub static STATE : State = State::default();
+      pub static STATE : State = State::new();
 }
 
-#[derive(Default)]
 pub struct State {
     pub token_setting: RefCell<TokenSetting>,
     pub token_desc: RefCell<TokenDescription>,
@@ -18,6 +18,15 @@ pub struct State {
 }
 
 impl State {
+    pub fn new() -> Self {
+        Self {
+            token_setting: RefCell::new(TokenSetting::default()),
+            token_desc: RefCell::new(TokenDescription::default()),
+            blockchain: RefCell::new(Blockchain::new(&api::id())),
+            balances: RefCell::new(TokenBalances::default()),
+            allowances: RefCell::new(TokenAllowances::default()),
+        }
+    }
     pub fn replace(&self, new_state: State) {
         self.token_setting.replace(new_state.token_setting.take());
         self.token_desc.replace(new_state.token_desc.take());

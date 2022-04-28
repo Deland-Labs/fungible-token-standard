@@ -8,7 +8,7 @@ use std::convert::TryInto;
 pub struct Blockchain {
     pub blocks: Vec<EncodedBlock>,
     pub tx_window: TokenTransactionWindow,
-    pub last_hash: Option<BlockHash>,
+    pub last_hash: BlockHash,
     pub last_timestamp: u64,
     pub archive: Archive,
     pub num_archived_blocks: BlockHeight,
@@ -19,7 +19,7 @@ impl Default for Blockchain {
         Blockchain {
             blocks: Vec::new(),
             tx_window: TokenTransactionWindow::new(),
-            last_hash: None,
+            last_hash: BlockHash::default(),
             last_timestamp: 0,
             archive: Archive::default(),
             num_archived_blocks: 0u32.into(),
@@ -28,6 +28,16 @@ impl Default for Blockchain {
 }
 
 impl Blockchain {
+    pub fn new(token_id: &Principal) -> Self {
+        Blockchain {
+            blocks: Vec::new(),
+            tx_window: TokenTransactionWindow::new(),
+            last_hash: dft_utils::sha256::compute_hash(token_id.as_slice()),
+            last_timestamp: 0,
+            archive: Archive::default(),
+            num_archived_blocks: 0u32.into(),
+        }
+    }
     pub fn add_tx_to_block(
         &mut self,
         token_id: &Principal,
@@ -56,7 +66,7 @@ impl Blockchain {
                 tx_hash,
             },
         );
-        let res = (height, self.last_hash.unwrap(), tx_hash);
+        let res = (height, self.last_hash, tx_hash);
         Ok(res)
     }
 
@@ -72,7 +82,7 @@ impl Blockchain {
         if block.timestamp < self.last_timestamp {
             return Err(DFTError::ApplyBlockFailedByInvalidTimestamp);
         }
-        self.last_hash = Some(encoded_block.hash_with_token_id(token_id));
+        self.last_hash = encoded_block.hash_with_token_id(token_id);
         self.last_timestamp = block.timestamp;
         self.blocks.push(encoded_block);
         Ok(self.chain_length() - 1u32)
@@ -153,7 +163,7 @@ impl StableState for Blockchain {
         let (blocks, tx_window, last_hash, last_timestamp, archive, num_archived_blocks): (
             Vec<EncodedBlock>,
             TokenTransactionWindow,
-            Option<BlockHash>,
+            BlockHash,
             u64,
             Archive,
             BlockHeight,

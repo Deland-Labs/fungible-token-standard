@@ -1,7 +1,6 @@
 use crate::{CandidTokenFee, TokenAmount, TokenFee, TokenHolder, TokenReceiver, TransactionHash};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 
 #[derive(Deserialize, Serialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operation {
@@ -149,11 +148,9 @@ pub struct Transaction {
 impl Transaction {
     // hash token id + tx bytes, make sure tx hash unique
     pub fn hash_with_token_id(&self, token_id: &Principal) -> TransactionHash {
-        let mut sha = Sha256::new();
         let tx_bytes = bincode::serialize(&self).unwrap();
         let combine_bytes = [token_id.as_slice(), &tx_bytes[..]].concat();
-        sha.update(combine_bytes);
-        sha.finalize().into()
+        dft_utils::sha256::compute_hash(&combine_bytes)
     }
 }
 

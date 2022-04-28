@@ -1,6 +1,7 @@
 pub mod ic_logger;
 pub mod principal;
 pub mod range_utils;
+pub mod sha256;
 
 // fn get logo type
 pub fn get_logo_type(logo: &[u8]) -> Result<String, String> {
