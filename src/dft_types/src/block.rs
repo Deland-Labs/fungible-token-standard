@@ -31,7 +31,8 @@ impl From<Block> for CandidBlock {
 
 impl Block {
     pub fn new(
-        parent_hash: BlockHash,
+        token_id: &Principal,
+        parent_hash: Option<BlockHash>,
         operation: Operation,
         created_at: u64, // transaction timestamp
         timestamp: u64,  // block timestamp
@@ -41,6 +42,7 @@ impl Block {
             created_at,
         };
         Ok(Self::new_from_transaction(
+            token_id,
             parent_hash,
             transaction,
             timestamp,
@@ -48,12 +50,14 @@ impl Block {
     }
 
     pub fn new_from_transaction(
-        parent_hash: BlockHash,
+        token_id: &Principal,
+        parent_hash: Option<BlockHash>,
         transaction: Transaction,
         timestamp: u64,
     ) -> Self {
         Self {
-            parent_hash,
+            parent_hash: parent_hash
+                .unwrap_or_else(|| dft_utils::sha256::compute_hash(token_id.as_slice())),
             transaction,
             timestamp,
         }
@@ -126,7 +130,7 @@ impl EncodedBlock {
 #[test]
 fn test_block_size() {
     let block_size = std::mem::size_of::<Block>();
-    let should_be_size = 192;
+    let should_be_size = 184;
     assert_eq!(
         should_be_size, block_size,
         "Block size should be {} bytes, but is {} bytes",

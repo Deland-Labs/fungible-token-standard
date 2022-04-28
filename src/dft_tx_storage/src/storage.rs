@@ -181,7 +181,7 @@ mod tests {
     }
 
     #[fixture]
-    fn test_block(now: u64) -> Block {
+    fn test_block(test_token_id: Principal, now: u64) -> Block {
         let from =
             Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae")
                 .unwrap();
@@ -190,8 +190,10 @@ mod tests {
                 .unwrap();
         let from_holder = TokenHolder::new(from.clone(), None);
         let to_holder = TokenHolder::new(to.clone(), None);
+        let genesis_block_hash = dft_utils::sha256::compute_hash(test_token_id.as_slice());
         Block::new_from_transaction(
-            None,
+            &test_token_id,
+            Some(genesis_block_hash),
             Transaction {
                 operation: Operation::Transfer {
                     caller: from_holder.clone(),
@@ -221,18 +223,17 @@ mod tests {
         let mut last_block: Option<Block> = None;
         for i in 0..3 {
             let parent_hash = if last_block.is_none() {
-                None
+                dft_utils::sha256::compute_hash(test_token_id.as_slice())
             } else {
-                Some(
-                    last_block
-                        .unwrap()
-                        .encode()
-                        .unwrap()
-                        .hash_with_token_id(&test_token_id),
-                )
+                last_block
+                    .unwrap()
+                    .encode()
+                    .unwrap()
+                    .hash_with_token_id(&test_token_id)
             };
             let block = Block::new_from_transaction(
-                parent_hash,
+                &test_token_id,
+                Some(parent_hash),
                 Transaction {
                     operation: Operation::Transfer {
                         caller: from_holder.clone(),
