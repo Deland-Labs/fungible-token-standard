@@ -1,13 +1,12 @@
 use crate::{BlockHash, CandidTransaction, CommonResult, DFTError, Operation, Transaction};
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 use std::borrow::Cow;
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct Block {
     #[serde(rename = "parentHash")]
-    pub parent_hash: Option<BlockHash>,
+    pub parent_hash: BlockHash,
     pub transaction: Transaction,
     pub timestamp: u64,
 }
@@ -15,7 +14,7 @@ pub struct Block {
 #[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct CandidBlock {
     #[serde(rename = "parentHash")]
-    pub parent_hash: Option<BlockHash>,
+    pub parent_hash: BlockHash,
     pub transaction: CandidTransaction,
     pub timestamp: u64,
 }
@@ -32,6 +31,7 @@ impl From<Block> for CandidBlock {
 
 impl Block {
     pub fn new(
+        token_id: &Principal,
         parent_hash: Option<BlockHash>,
         operation: Operation,
         created_at: u64, // transaction timestamp
@@ -42,6 +42,7 @@ impl Block {
             created_at,
         };
         Ok(Self::new_from_transaction(
+            token_id,
             parent_hash,
             transaction,
             timestamp,
@@ -49,12 +50,14 @@ impl Block {
     }
 
     pub fn new_from_transaction(
+        token_id: &Principal,
         parent_hash: Option<BlockHash>,
         transaction: Transaction,
         timestamp: u64,
     ) -> Self {
         Self {
-            parent_hash,
+            parent_hash: parent_hash
+                .unwrap_or_else(|| dft_utils::sha256::compute_hash(token_id.as_slice())),
             transaction,
             timestamp,
         }
@@ -70,7 +73,7 @@ impl Block {
         }
     }
 
-    pub fn parent_hash(&self) -> Option<BlockHash> {
+    pub fn parent_hash(&self) -> BlockHash {
         self.parent_hash
     }
 
@@ -95,11 +98,9 @@ impl From<Vec<u8>> for EncodedBlock {
 impl EncodedBlock {
     // hash token id + block bytes, ensuring that the block hash of different tokens is unique.
     pub fn hash_with_token_id(&self, token_id: &Principal) -> BlockHash {
-        let mut sha = Sha256::new();
         let tx_bytes = bincode::serialize(&self).unwrap();
         let combine_bytes = [token_id.as_slice(), &tx_bytes[..]].concat();
-        sha.update(combine_bytes);
-        sha.finalize().into()
+        dft_utils::sha256::compute_hash(&combine_bytes)
     }
 
     pub fn decode(&self) -> CommonResult<Block> {
@@ -129,7 +130,7 @@ impl EncodedBlock {
 #[test]
 fn test_block_size() {
     let block_size = std::mem::size_of::<Block>();
-    let should_be_size = 192;
+    let should_be_size = 184;
     assert_eq!(
         should_be_size, block_size,
         "Block size should be {} bytes, but is {} bytes",

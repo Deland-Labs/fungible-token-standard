@@ -25,7 +25,7 @@ export type BooleanResult = { 'Ok' : boolean } |
 export interface CandidBlock {
   'transaction' : CandidTransaction,
   'timestamp' : bigint,
-  'parentHash' : [] | [Array<number>],
+  'parentHash' : Array<number>,
 }
 export type CandidOperation = {
     'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }
@@ -119,21 +119,6 @@ export interface _SERVICE {
     ) => Promise<OperationResult>,
   'archives' : () => Promise<Array<ArchiveInfo>>,
   'balanceOf' : (arg_0: string) => Promise<bigint>,
-  'batchMint' : (
-      arg_0: Array<[string, bigint]>,
-      arg_1: [] | [bigint],
-    ) => Promise<Array<OperationResult>>,
-  'batchTransfer' : (
-      arg_0: [] | [Array<number>],
-      arg_1: Array<[string, bigint]>,
-      arg_2: [] | [bigint],
-    ) => Promise<Array<OperationResult>>,
-  'batchTransferFrom' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: Array<[string, bigint]>,
-      arg_3: [] | [bigint],
-    ) => Promise<Array<OperationResult>>,
   'blockByHeight' : (arg_0: bigint) => Promise<BlockResult>,
   'blocksByQuery' : (arg_0: bigint, arg_1: bigint) => Promise<
       QueryBlocksResult

@@ -9,7 +9,7 @@ export type BooleanResult = { 'Ok' : boolean } |
 export interface CandidBlock {
   'transaction' : CandidTransaction,
   'timestamp' : bigint,
-  'parentHash' : [] | [Array<number>],
+  'parentHash' : Array<number>,
 }
 export type CandidOperation = {
     'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }

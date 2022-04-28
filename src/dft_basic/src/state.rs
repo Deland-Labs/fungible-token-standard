@@ -7,7 +7,6 @@ use std::cell::RefCell;
 thread_local! {
       pub static STATE : State = State::default();
 }
-
 #[derive(Default)]
 pub struct State {
     pub token_setting: RefCell<TokenSetting>,

@@ -34,7 +34,7 @@ impl Blockchain {
         tx: Transaction,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
-        let block = Block::new_from_transaction(self.last_hash, tx, now);
+        let block = Block::new_from_transaction(token_id, self.last_hash, tx, now);
         self.add_block(token_id, block)
     }
     fn add_block(
@@ -66,7 +66,7 @@ impl Blockchain {
         block: Block,
         encoded_block: EncodedBlock,
     ) -> CommonResult<BlockHeight> {
-        if block.parent_hash != self.last_hash {
+        if self.last_hash.is_some() && block.parent_hash != self.last_hash.unwrap() {
             return Err(DFTError::ApplyBlockFailedByParentHashDoesNotMatch);
         }
         if block.timestamp < self.last_timestamp {

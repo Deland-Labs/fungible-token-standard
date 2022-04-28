@@ -25,7 +25,7 @@ type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
 type CandidBlock = record {
   transaction : CandidTransaction;
   timestamp : nat64;
-  parentHash : opt vec nat8;
+  parentHash : vec nat8;
 };
 type CandidOperation = variant {
   FeeToModify : record { newFeeTo : text; caller : principal };

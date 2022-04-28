@@ -49,7 +49,7 @@ export const idlFactory = ({ IDL }) => {
   const CandidBlock = IDL.Record({
     'transaction' : CandidTransaction,
     'timestamp' : IDL.Nat64,
-    'parentHash' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'parentHash' : IDL.Vec(IDL.Nat8),
   });
   const BlockResult = IDL.Variant({
     'Ok' : CandidBlock,
