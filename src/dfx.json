@@ -13,19 +13,19 @@
       "type": "custom",
       "build": [
         "cargo build --target wasm32-unknown-unknown --package  dft_token --release --no-default-features --features logger,basic",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_basic_opt.wasm"
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_basic.wasm"
       ],
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_basic_opt.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_basic.wasm"
     },
     "dft_burnable": {
       "type": "custom",
       "build": [
         "cargo build --target wasm32-unknown-unknown --package  dft_token --release  --no-default-features --features logger,basic,burnable",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_burnable_opt.wasm"
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_burnable.wasm"
       ],
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_burnable_opt.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_burnable.wasm"
     },
     "dft_mintable": {
       "type": "custom",
@@ -40,10 +40,10 @@
       "type": "custom",
       "build": [
         "cargo build --target wasm32-unknown-unknown --package  dft_token --release  --no-default-features --features logger,basic,burnable,mintable,batch_mint,batch_transfer",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_all_features_opt.wasm"
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_all_features.wasm"
       ],
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_all_features_opt.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_all_features.wasm"
     }
   },
   "defaults": {
