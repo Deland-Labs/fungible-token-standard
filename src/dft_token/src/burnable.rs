@@ -26,14 +26,13 @@ async fn burn_from(
                 created_at,
                 api::time(),
             ) {
-                Ok((block_height, _, tx_hash)) => OperationResult::Ok {
-                    tx_id: hex::encode(tx_hash.as_ref()),
-                    block_height: block_height.into(),
-                    error: match exec_auto_scaling_strategy().await {
-                        Ok(_) => None,
-                        Err(e) => Some(e.into()),
-                    },
-                },
+                Ok((block_height, _, tx_hash)) => {
+                    exec_auto_scaling_strategy().await;
+                    OperationResult::Ok {
+                        tx_id: hex::encode(tx_hash.as_ref()),
+                        block_height: block_height.into(),
+                    }
+                }
                 Err(e) => OperationResult::Err(e.into()),
             }
         }
@@ -52,14 +51,13 @@ async fn burn(
     let caller = api::caller();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
     match dft_burnable::burn(&caller, &transfer_from, value.0, created_at, api::time()) {
-        Ok((block_height, _, tx_hash)) => OperationResult::Ok {
-            tx_id: hex::encode(tx_hash.as_ref()),
-            block_height: block_height.into(),
-            error: match exec_auto_scaling_strategy().await {
-                Ok(_) => None,
-                Err(e) => Some(e.into()),
-            },
-        },
+        Ok((block_height, _, tx_hash)) => {
+            exec_auto_scaling_strategy().await;
+            OperationResult::Ok {
+                tx_id: hex::encode(tx_hash.as_ref()),
+                block_height: block_height.into(),
+            }
+        }
         Err(e) => OperationResult::Err(e.into()),
     }
 }

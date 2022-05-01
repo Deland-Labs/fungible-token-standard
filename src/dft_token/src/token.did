@@ -77,7 +77,7 @@ type HttpResponse = record {
   status_code : nat16;
 };
 type OperationResult = variant {
-  Ok : record { txId : text; error : opt ErrorInfo; blockHeight : nat };
+  Ok : record { txId : text; blockHeight : nat };
   Err : ErrorInfo;
 };
 type QueryBlocksResult = record {

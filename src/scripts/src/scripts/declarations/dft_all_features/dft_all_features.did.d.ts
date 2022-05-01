@@ -81,11 +81,7 @@ export interface HttpResponse {
   'status_code' : number,
 }
 export type OperationResult = {
-    'Ok' : {
-      'txId' : string,
-      'error' : [] | [ErrorInfo],
-      'blockHeight' : bigint,
-    }
+    'Ok' : { 'txId' : string, 'blockHeight' : bigint }
   } |
   { 'Err' : ErrorInfo };
 export interface QueryBlocksResult {

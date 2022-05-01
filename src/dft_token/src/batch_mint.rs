@@ -3,7 +3,6 @@ use dft_basic::auto_scaling_storage::exec_auto_scaling_strategy;
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::*;
-use log::error;
 use std::string::String;
 
 #[update(name = "batchMint")]
@@ -32,7 +31,6 @@ async fn batch_mint(
                         Ok((block_height, _, tx_hash)) => OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
                             block_height: block_height.into(),
-                            error: None,
                         },
                         Err(e) => api::trap(e.to_string().as_ref()),
                     }
@@ -43,12 +41,6 @@ async fn batch_mint(
         })
         .collect();
 
-    if let Err(e) = exec_auto_scaling_strategy().await {
-        error!(
-            "batch_mint exec_auto_scaling_strategy failed: {}",
-            e.to_string()
-        );
-    };
-
+    exec_auto_scaling_strategy().await;
     batch_res
 }

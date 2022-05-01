@@ -166,13 +166,10 @@ async fn approve(
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
                     let tx_id = hex::encode(tx_hash.as_ref());
+                    exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id,
                         block_height: block_height.into(),
-                        error: match exec_auto_scaling_strategy().await {
-                            Ok(_) => None,
-                            Err(e) => Some(e.into()),
-                        },
                     }
                 }
                 Err(e) => OperationResult::Err(e.into()),
@@ -226,13 +223,10 @@ async fn transfer_from(
                 ) {
                     Ok((block_height, block_hash, tx_hash)) => {
                         set_certified_data(&block_hash);
+                        exec_auto_scaling_strategy().await;
                         OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
                             block_height: block_height.into(),
-                            error: match exec_auto_scaling_strategy().await {
-                                Err(e) => Some(e.into()),
-                                _ => None,
-                            },
                         }
                     }
                     Err(e) => OperationResult::Err(e.into()),
@@ -274,13 +268,10 @@ async fn transfer(
             ) {
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
+                    exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
                         block_height: block_height.into(),
-                        error: match exec_auto_scaling_strategy().await {
-                            Ok(_) => None,
-                            Err(e) => Some(e.into()),
-                        },
                     }
                 }
                 Err(e) => OperationResult::Err(e.into()),

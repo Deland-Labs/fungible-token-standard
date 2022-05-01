@@ -14,11 +14,7 @@ export const idlFactory = ({ IDL }) => {
   const ErrorInfo = IDL.Record({ 'code' : IDL.Nat32, 'message' : IDL.Text });
   const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const OperationResult = IDL.Variant({
-    'Ok' : IDL.Record({
-      'txId' : IDL.Text,
-      'error' : IDL.Opt(ErrorInfo),
-      'blockHeight' : IDL.Nat,
-    }),
+    'Ok' : IDL.Record({ 'txId' : IDL.Text, 'blockHeight' : IDL.Nat }),
     'Err' : ErrorInfo,
   });
   const ArchiveInfo = IDL.Record({
