@@ -31,14 +31,13 @@ async fn mint(to: String, value: Nat, created_at: Option<u64>) -> OperationResul
     match holder_parse_res {
         Ok(holder) => {
             match dft_mintable::mint(&api::caller(), &holder, value.0, created_at, api::time()) {
-                Ok((block_height, _, tx_hash)) => OperationResult::Ok {
-                    tx_id: hex::encode(tx_hash.as_ref()),
-                    block_height: block_height.into(),
-                    error: match exec_auto_scaling_strategy().await {
-                        Ok(_) => None,
-                        Err(e) => Some(e.into()),
-                    },
-                },
+                Ok((block_height, _, tx_hash)) => {
+                    exec_auto_scaling_strategy().await;
+                    OperationResult::Ok {
+                        tx_id: hex::encode(tx_hash.as_ref()),
+                        block_height: block_height.into(),
+                    }
+                }
                 Err(e) => OperationResult::Err(e.into()),
             }
         }

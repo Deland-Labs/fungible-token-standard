@@ -1,5 +1,4 @@
 mod account_identifier;
-mod actor_response;
 mod block;
 mod blockchain;
 pub mod constants;
@@ -14,12 +13,12 @@ mod token_fee;
 mod token_info;
 mod token_metadata;
 mod token_metrics;
+mod token_response;
 mod token_setting;
 mod token_transaction;
 mod token_transaction_window;
 
 pub use account_identifier::*;
-pub use actor_response::*;
 pub use block::*;
 pub use blockchain::*;
 use candid::Nat;
@@ -38,6 +37,7 @@ pub use token_fee::*;
 pub use token_info::TokenInfo;
 pub use token_metadata::*;
 pub use token_metrics::TokenMetrics;
+pub use token_response::*;
 pub use token_setting::*;
 pub use token_transaction::*;
 pub use token_transaction_window::*;

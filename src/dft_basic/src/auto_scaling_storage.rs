@@ -18,7 +18,7 @@ use log::{debug, error, info};
 const STORAGE_WASM: &[u8] =
     std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
 
-pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
+pub async fn exec_auto_scaling_strategy() {
     let blocks_to_archive = blockchain_service::get_blocks_for_archiving();
 
     let archive_size_bytes = blocks_to_archive
@@ -26,18 +26,22 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
         .fold(0, |acc, block| acc + block.size_bytes());
     let max_msg_size = MAX_MESSAGE_SIZE_BYTES;
     if archive_size_bytes > max_msg_size as usize {
-        return Err(DFTError::ExceedTheByteSizeLimitOfOneRequest);
+        error!(
+            "batch_mint exec_auto_scaling_strategy failed: {}",
+            DFTError::ExceedTheByteSizeLimitOfOneRequest.to_string()
+        );
+        return;
     }
 
     let num_blocks = blocks_to_archive.len();
 
     if num_blocks == 0 {
-        return Ok(());
+        return;
     }
 
     // if lock failed, return, lock failed means the archiving is already in progress
     if !blockchain_service::lock_for_archiving() {
-        return Ok(());
+        return;
     }
 
     if (send_blocks_to_archive(blocks_to_archive).await).is_ok() {
@@ -59,8 +63,6 @@ pub async fn exec_auto_scaling_strategy() -> CommonResult<()> {
 
     // Ensure unlock
     blockchain_service::unlock_after_archiving();
-
-    Ok(())
 }
 
 async fn get_or_create_available_storage_id(archive_size_bytes: u32) -> CommonResult<Principal> {

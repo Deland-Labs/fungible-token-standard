@@ -35,7 +35,6 @@ pub enum OperationResult {
         tx_id: TransactionId,
         #[serde(rename = "blockHeight")]
         block_height: Nat,
-        error: Option<ErrorInfo>,
     },
     Err(ErrorInfo),
 }
@@ -46,7 +45,6 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
             Ok((block_height, _, tx_hash)) => OperationResult::Ok {
                 tx_id: hex::encode(tx_hash.as_ref()),
                 block_height: block_height.into(),
-                error: None,
             },
             Err(error) => OperationResult::Err(error.into()),
         }
