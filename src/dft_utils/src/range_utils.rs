@@ -52,3 +52,82 @@ pub fn curtail(r: &Range<BigUint>, n: usize) -> Range<BigUint> {
         end: r.start.clone() + range_len(r) - (n as u64),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_make_range() {
+        assert_eq!(
+            make_range(BigUint::from(0u32), 0),
+            Range {
+                start: BigUint::from(0u32),
+                end: BigUint::from(0u32)
+            }
+        );
+        assert_eq!(
+            make_range(BigUint::from(0u32), 1),
+            Range {
+                start: BigUint::from(0u32),
+                end: BigUint::from(1u32)
+            }
+        );
+        assert_eq!(
+            make_range(BigUint::from(10u32), 15),
+            Range {
+                start: BigUint::from(10u32),
+                end: BigUint::from(25u32)
+            }
+        );
+    }
+
+    #[test]
+    fn test_intersect() {
+        let range1 = make_range(BigUint::from(10u32), 15);
+        let range2 = make_range(BigUint::from(20u32), 25);
+        let range3 = make_range(BigUint::from(20u32), 5);
+        assert_eq!(intersect(&range1, &range2), range3);
+    }
+
+    #[test]
+    fn test_is_subrange() {
+        let range1 = make_range(BigUint::from(10u32), 15);
+        let range2 = make_range(BigUint::from(10u32), 25);
+        let range3 = make_range(BigUint::from(20u32), 25);
+        assert!(is_subrange(&range1, &range2));
+        assert!(!is_subrange(&range1, &range3));
+        assert!(!is_subrange(&range2, &range3));
+    }
+
+    #[test]
+    fn test_range_len() {
+        let range1 = make_range(BigUint::from(10u32), 15);
+        let range2 = make_range(BigUint::from(10u32), 25);
+        let range3 = make_range(BigUint::from(20u32), 5);
+        assert_eq!(range_len(&range1), BigUint::from(15u32));
+        assert_eq!(range_len(&range2), BigUint::from(25u32));
+        assert_eq!(range_len(&range3), BigUint::from(5u32));
+    }
+
+    #[test]
+    fn test_head() {
+        let range1 = make_range(BigUint::from(10u32), 15);
+        let range2 = make_range(BigUint::from(10u32), 25);
+        assert_eq!(head(&range2, 15), range1);
+    }
+
+    #[test]
+    fn test_behead() {
+        let range1 = make_range(BigUint::from(10u32), 15);
+        let range2 = make_range(BigUint::from(20u32), 5);
+        assert_eq!(behead(&range1, 10), range2);
+    }
+
+    #[test]
+    fn test_curtail() {
+        let range1 = make_range(BigUint::from(10u32), 15);
+        let range2 = make_range(BigUint::from(10u32), 25);
+        assert_eq!(curtail(&range2, 10), range1);
+    }
+}
