@@ -36,7 +36,7 @@ mod tests {
     #[test]
     fn test_get_logo_type() {
         let mut logo_bytes = Vec::new();
-        std::fs::File::open("src/assets/test.png")
+        std::fs::File::open("assets/test.png")
             .unwrap()
             .read_to_end(&mut logo_bytes)
             .unwrap();
