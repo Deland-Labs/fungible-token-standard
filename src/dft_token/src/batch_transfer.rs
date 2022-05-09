@@ -14,7 +14,7 @@ async fn batch_transfer(
 ) -> Vec<OperationResult> {
     assert!(
         transfer_requests.len() <= 500,
-        "batch mint requests must be less than 500"
+        "batch transfer requests must be less than 500"
     );
     let now = api::time();
     let caller = api::caller();
