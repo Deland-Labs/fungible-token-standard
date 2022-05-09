@@ -21,7 +21,7 @@ pub fn token_initialize(
 ) {
     // check logo type
     if logo.is_some() {
-        let _ = get_logo_type(&logo.clone().unwrap())
+        let _ = image_utils::get_image_type(&logo.clone().unwrap())
             .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)
             .unwrap();
     }
@@ -51,9 +51,11 @@ pub fn token_initialize(
 pub fn token_id() -> Principal {
     STATE.with(|s| *s.token_setting.borrow().token_id())
 }
+
 pub fn metadata() -> TokenMetadata {
     STATE.with(|s| s.token_setting.borrow().metadata())
 }
+
 pub fn owner() -> Principal {
     STATE.with(|s| s.token_setting.borrow().owner())
 }
@@ -65,12 +67,15 @@ pub fn fee() -> TokenFee {
 pub fn fee_to() -> TokenHolder {
     STATE.with(|s| s.token_setting.borrow().fee_to())
 }
+
 pub fn desc() -> HashMap<String, String> {
     STATE.with(|s| s.token_desc.borrow().get_all())
 }
+
 pub fn logo() -> Option<Vec<u8>> {
     STATE.with(|s| s.token_setting.borrow().logo())
 }
+
 pub fn name() -> String {
     STATE.with(|s| s.token_setting.borrow().name())
 }
@@ -98,6 +103,7 @@ pub fn allowance(holder: &TokenHolder, spender: &TokenHolder) -> TokenAmount {
 pub fn allowances_of(owner: &TokenHolder) -> Vec<(TokenHolder, TokenAmount)> {
     STATE.with(|s| s.allowances.borrow().allowances_of(owner))
 }
+
 #[allow(clippy::too_many_arguments)]
 pub fn approve(
     caller: &Principal,
