@@ -1,7 +1,7 @@
 use candid::candid_method;
 use dft_basic::service::basic_service;
 use dft_types::{HttpRequest, HttpResponse};
-use dft_utils::get_logo_type;
+use dft_utils::image_utils::get_image_type;
 use ic_cdk_macros::query;
 use json_pretty::PrettyFormatter;
 use log::debug;
@@ -52,7 +52,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
                 HttpResponse::not_found()
             } else {
                 // if logo is not empty, mean it is a valid image
-                let logo_type = get_logo_type(logo.as_slice()).unwrap();
+                let logo_type = get_image_type(logo.as_slice()).unwrap();
 
                 if logo_type.is_empty() {
                     HttpResponse::not_found()

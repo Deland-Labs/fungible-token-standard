@@ -122,7 +122,7 @@ pub fn set_logo(caller: &Principal, logo: Option<Vec<u8>>) -> CommonResult<bool>
         let mut settings = s.token_setting.borrow_mut();
         settings.only_owner(caller)?;
         if logo.is_some() {
-            get_logo_type(&logo.clone().unwrap())
+            image_utils::get_image_type(&logo.clone().unwrap())
                 .map_err(|_| DFTError::InvalidTypeOrFormatOfLogo)?;
         }
         settings.set_logo(logo);
