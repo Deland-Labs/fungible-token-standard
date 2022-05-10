@@ -63,7 +63,6 @@ impl From<CandidTokenFee> for TokenFee {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use num_bigint::BigUint;
 
     #[test]
     fn test_token_fee_calc_approve_fee() {

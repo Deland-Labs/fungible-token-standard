@@ -4,7 +4,7 @@ use crate::{
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
 
-#[derive(CandidType, Debug, Deserialize)]
+#[derive(CandidType, Debug, Deserialize, PartialEq, Eq, Clone)]
 pub enum BooleanResult {
     Ok(bool),
     Err(ErrorInfo),
@@ -28,7 +28,7 @@ impl From<ActorResult<bool>> for BooleanResult {
     }
 }
 
-#[derive(CandidType, Debug, Deserialize)]
+#[derive(CandidType, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum OperationResult {
     Ok {
         #[serde(rename = "txId")]
@@ -127,6 +127,48 @@ impl From<CommonResult<TransactionList>> for TransactionListResult {
 mod tests {
     use super::*;
     use crate::{CandidOperation, CandidTokenFee, Operation, TokenFee};
+    use dft_utils::sha256::compute_hash;
+    use num_bigint::BigUint;
+
+    #[test]
+    fn test_common_result_bool_to_boolean_result() {
+        let result = CommonResult::Ok(true);
+        let boolean_result: BooleanResult = result.into();
+        assert_eq!(boolean_result, BooleanResult::Ok(true));
+
+        let result = CommonResult::Ok(false);
+        let boolean_result: BooleanResult = result.into();
+        assert_eq!(boolean_result, BooleanResult::Ok(false));
+    }
+
+    #[test]
+    fn test_actor_result_bool_to_boolean_result() {
+        let result = ActorResult::Ok(true);
+        let boolean_result: BooleanResult = result.into();
+        assert_eq!(boolean_result, BooleanResult::Ok(true));
+
+        let result = ActorResult::Ok(false);
+        let boolean_result: BooleanResult = result.into();
+        assert_eq!(boolean_result, BooleanResult::Ok(false));
+    }
+
+    #[test]
+    fn test_common_result_to_operation_result() {
+        let block_height = BigUint::from(1u32);
+        let block_hash = compute_hash("block".as_bytes());
+        let tx_hash = compute_hash("tx00000001".as_bytes());
+
+        let result: CommonResult<(BlockHeight, BlockHash, TransactionHash)> =
+            CommonResult::Ok((block_height.clone(), block_hash.clone(), tx_hash.clone()));
+        let operation_result: OperationResult = result.into();
+        assert_eq!(
+            operation_result,
+            OperationResult::Ok {
+                tx_id: hex::encode(tx_hash),
+                block_height: block_height.into()
+            }
+        );
+    }
 
     #[test]
     fn test_transaction_list_common_result_to_transaction_list_result() {
