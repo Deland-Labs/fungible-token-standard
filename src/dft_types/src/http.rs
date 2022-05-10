@@ -96,3 +96,55 @@ impl HttpResponse {
         result
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_merge_default_headers() {
+        let headers = vec![("test_header".into(), "123".into())];
+        let result = HttpResponse::merge_default_headers(headers);
+        assert_eq!(result.len(), 4);
+        assert_eq!(result[0].0, "Access-Control-Allow-Origin");
+        assert_eq!(result[0].1, "*");
+        assert_eq!(result[1].0, "Content-Type");
+        assert_eq!(result[1].1, "application/json");
+        assert_eq!(result[2].0, "Power-By");
+        assert_eq!(result[2].1, "Deland Labs");
+        assert_eq!(result[3].0, "test_header");
+        assert_eq!(result[3].1, "123");
+    }
+
+    #[test]
+    fn test_default_headers() {
+        let result = HttpResponse::default_headers();
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].0, "Access-Control-Allow-Origin");
+        assert_eq!(result[0].1, "*");
+        assert_eq!(result[1].0, "Content-Type");
+        assert_eq!(result[1].1, "application/json");
+        assert_eq!(result[2].0, "Power-By");
+        assert_eq!(result[2].1, "Deland Labs");
+    }
+
+    #[test]
+    fn test_ok() {
+        let result = HttpResponse::ok(vec![], vec![]);
+        assert_eq!(result.status_code, 200);
+        assert_eq!(result.headers.len(), 3);
+    }
+
+    #[test]
+    fn test_bad_request() {
+        let result = HttpResponse::bad_request();
+        assert_eq!(result.status_code, 400);
+        assert_eq!(result.headers.len(), 3);
+    }
+
+    #[test]
+    fn test_unauthorized() {
+        let result = HttpResponse::unauthorized();
+        assert_eq!(result.status_code, 401);
+        assert_eq!(result.headers.len(), 3);
+    }
+}
