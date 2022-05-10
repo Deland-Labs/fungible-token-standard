@@ -23,13 +23,11 @@ const WHITE_PAPER: &str = "WHITE_PAPER";
 const DSCVR: &str = "DSCVR";
 const OPENCHAT: &str = "OPENCHAT";
 const DISTRIKT: &str = "DISTRIKT";
-const WEACT: &str = "WEACT";
 
-const DESC_KEYS: [&str; 19] = [
+const DESC_KEYS: [&str; 18] = [
     DSCVR,
     OPENCHAT,
     DISTRIKT,
-    WEACT,
     OFFICIAL_SITE,
     MEDIUM,
     OFFICIAL_EMAIL,
@@ -101,5 +99,78 @@ impl StableState for TokenDescription {
         let desc: HashMap<String, String> = bincode::deserialize(&bytes).unwrap();
 
         Ok(TokenDescription { desc })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_description() {
+        let mut desc = TokenDescription::new();
+        desc.set("key".to_string(), "value".to_string());
+        assert_eq!(desc.get("key"), None);
+        desc.set(TWITTER.to_string(), "value".to_string());
+        assert_eq!(desc.get(TWITTER), Some("value".to_string()));
+        desc.set(FACEBOOK.to_string(), "value2".to_string());
+        assert_eq!(desc.get(FACEBOOK), Some("value2".to_string()));
+
+        let map = desc.get_all();
+        assert_eq!(map.len(), 2);
+        assert!(map.contains_key(TWITTER));
+        assert!(map.contains_key(FACEBOOK));
+    }
+
+    #[test]
+    fn test_token_description_restore() {
+        let mut desc = TokenDescription::new();
+
+        let mut descs: Vec<(String, String)> = Vec::new();
+        descs.push((TWITTER.to_string(), "value".to_string()));
+        descs.push((FACEBOOK.to_string(), "value2".to_string()));
+        desc.restore_from(descs);
+        let map = desc.get_all();
+        assert_eq!(map.len(), 2);
+        assert!(map.contains_key(TWITTER));
+        assert!(map.contains_key(FACEBOOK));
+    }
+
+    #[test]
+    fn test_token_description_encode_decode() {
+        let mut desc = TokenDescription::new();
+        desc.set(TWITTER.to_string(), "value".to_string());
+        desc.set(FACEBOOK.to_string(), "value2".to_string());
+        let vec = desc.get_all();
+        let desc2 = TokenDescription::decode(desc.encode()).unwrap();
+        let vec2 = desc2.get_all();
+        assert_eq!(vec, vec2);
+    }
+
+    #[test]
+    fn test_token_description_to_vec() {
+        let mut desc = TokenDescription::new();
+        desc.set(TWITTER.to_string(), "value".to_string());
+        desc.set(FACEBOOK.to_string(), "value2".to_string());
+        let vec = desc.to_vec();
+        let mut desc2 = TokenDescription::new();
+        desc2.restore_from(vec.clone());
+        let vec2 = desc2.to_vec();
+        for (k, v) in vec {
+            assert!(vec2.contains(&(k, v)));
+        }
+    }
+
+    #[test]
+    fn test_token_description_set_all() {
+        let mut desc = TokenDescription::new();
+        let mut values: HashMap<String, String> = HashMap::new();
+        values.insert(TWITTER.to_string(), "value".to_string());
+        values.insert(FACEBOOK.to_string(), "value2".to_string());
+        desc.set_all(values);
+        let map = desc.get_all();
+        assert_eq!(map.len(), 2);
+        assert!(map.contains_key(TWITTER));
+        assert!(map.contains_key(FACEBOOK));
     }
 }
