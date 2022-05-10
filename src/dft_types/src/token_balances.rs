@@ -74,6 +74,7 @@ impl TokenBalances {
     pub fn restore_from(&mut self, vec: Vec<(TokenHolder, TokenAmount)>) {
         self.balances = HashMap::new();
         for (holder, balance) in vec {
+            self.total_supply = self.total_supply.clone() + balance.clone();
             self.balances.insert(holder, balance);
         }
     }
@@ -92,5 +93,101 @@ impl StableState for TokenBalances {
             balances,
             total_supply,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{TokenAmount, TokenHolder};
+
+    #[test]
+    fn test_token_balances() {
+        let mut balances = TokenBalances::new();
+        let holder1 = TokenHolder::new(
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap(),
+            None,
+        );
+        let holder2 = TokenHolder::new(
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap(),
+            None,
+        );
+
+        let value1 = TokenAmount::from(100u32);
+        let value2 = TokenAmount::from(200u32);
+
+        balances.credit_balance(&holder1, value1.clone());
+        balances.credit_balance(&holder2, value2.clone());
+
+        assert_eq!(balances.balance_of(&holder1), value1);
+        assert_eq!(balances.balance_of(&holder2), value2);
+        assert_eq!(balances.total_supply(), value1.clone() + value2.clone());
+        assert_eq!(balances.holder_count(), 2);
+
+        balances.debit_balance(&holder1, value1.clone()).unwrap();
+        balances.debit_balance(&holder2, value2.clone()).unwrap();
+
+        assert_eq!(balances.balance_of(&holder1), TokenAmount::from(0u32));
+        assert_eq!(balances.balance_of(&holder2), TokenAmount::from(0u32));
+        assert_eq!(balances.total_supply(), 0u32.into());
+        assert_eq!(balances.holder_count(), 0);
+    }
+
+    #[test]
+    fn test_token_balances_to_vec() {
+        let mut balances = TokenBalances::new();
+        let holder1 = TokenHolder::new(
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap(),
+            None,
+        );
+        let holder2 = TokenHolder::new(
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap(),
+            None,
+        );
+        let value1 = TokenAmount::from(100u32);
+        let value2 = TokenAmount::from(200u32);
+
+        balances.credit_balance(&holder1, value1.clone());
+        balances.credit_balance(&holder2, value2.clone());
+        let vec = balances.to_vec();
+        assert_eq!(vec.len(), 2);
+    }
+
+    #[test]
+    fn test_token_balances_restore_from() {
+        let mut balances = TokenBalances::new();
+        let holder1 = TokenHolder::new(
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap(),
+            None,
+        );
+        let holder2 = TokenHolder::new(
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap(),
+            None,
+        );
+        let value1 = TokenAmount::from(100u32);
+        let value2 = TokenAmount::from(200u32);
+
+        let mut balance_backup = Vec::new();
+        balance_backup.push((holder1, value1.clone()));
+        balance_backup.push((holder2, value2.clone()));
+
+        balances.restore_from(balance_backup);
+
+        assert_eq!(balances.balance_of(&holder1), value1);
+        assert_eq!(balances.balance_of(&holder2), value2);
+
+        assert_eq!(balances.total_supply(), value1 + value2);
     }
 }
