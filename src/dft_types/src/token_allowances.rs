@@ -66,13 +66,7 @@ impl TokenAllowances {
                     self.0.insert(*owner, temp);
                 }
             }
-            None => {
-                if value > TokenAmount::from(0u32) {
-                    let mut inner = HashMap::new();
-                    inner.insert(*spender, new_spender_allowance);
-                    self.0.insert(*owner, inner);
-                }
-            }
+            _ => {}
         };
         Ok(())
     }
