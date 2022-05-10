@@ -219,25 +219,24 @@ mod tests {
 
         let block_height = BigUint::from(6u32);
         let block_timestamp = now;
+        let tx_hash = compute_hash("test2".as_bytes());
         let tx_info: TransactionInfo = TransactionInfo {
             block_timestamp: block_timestamp.clone(),
-            tx_hash: compute_hash("test2".as_bytes()),
+            tx_hash: tx_hash.clone(),
         };
         window.push_transaction(block_height.clone(), tx_info.clone());
-        assert_eq!(window.transactions_by_height.len(), 2);
-        assert_eq!(window.transactions_by_hash.len(), 2);
+        assert!(window.contains_transaction(tx_hash));
+        assert_eq!(window.transactions_count_in_window(), 2);
 
         let removed = window.purge_old_transactions(now);
         assert_eq!(removed, 1);
-        assert_eq!(window.transactions_by_height.len(), 1);
-        assert_eq!(window.transactions_by_hash.len(), 1);
+        assert_eq!(window.transactions_count_in_window(), 1);
 
         let removed = window.purge_old_transactions(
             now + window.transaction_window + constants::PERMITTED_DRIFT + 1,
         );
         assert_eq!(removed, 1);
-        assert_eq!(window.transactions_by_height.len(), 0);
-        assert_eq!(window.transactions_by_hash.len(), 0);
+        assert_eq!(window.transactions_count_in_window(), 0);
     }
 
     #[test]
@@ -263,13 +262,10 @@ mod tests {
                 tx_hash: compute_hash(format!("test{}", i).as_bytes()),
             };
             window.push_transaction(block_height.clone(), tx_info.clone());
-
-            assert_eq!(window.transactions_by_height.len(), i + 1);
-            assert_eq!(window.transactions_by_hash.len(), i + 1);
-
-            let result = window.throttle_check(now);
-            assert_eq!(result, Ok(()));
         }
+
+        let result = window.throttle_check(now);
+        assert_eq!(result, Ok(()));
 
         // push new transaction
         let block_height = BigUint::from(push_txs_count + 1);
@@ -280,8 +276,7 @@ mod tests {
         };
         window.push_transaction(block_height.clone(), tx_info.clone());
 
-        assert_eq!(window.transactions_by_height.len(), push_txs_count + 1);
-        assert_eq!(window.transactions_by_hash.len(), push_txs_count + 1);
+        assert_eq!(window.transactions_count_in_window(), push_txs_count + 1);
 
         // check throttling
         let result = window.throttle_check(now);
@@ -312,8 +307,7 @@ mod tests {
                 tx_hash: compute_hash(format!("test{}", i).as_bytes()),
             };
             window.push_transaction(block_height.clone(), tx_info.clone());
-            assert_eq!(window.transactions_by_height.len(), i + 1);
-            assert_eq!(window.transactions_by_hash.len(), i + 1);
+            assert_eq!(window.transactions_count_in_window(), i + 1);
         }
 
         let encoded = window.encode();
