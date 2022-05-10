@@ -49,3 +49,44 @@ impl From<TokenMetadata> for CandidTokenMetadata {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_bigint::BigUint;
+
+    #[test]
+    fn test_token_metadata_new() {
+        let token_metadata = TokenMetadata::new(
+            "name".to_string(),
+            "symbol".to_string(),
+            1,
+            TokenFee::new(1u32.into(), 2, 3),
+        );
+        assert_eq!(token_metadata.name, "name");
+        assert_eq!(token_metadata.symbol, "symbol");
+        assert_eq!(token_metadata.decimals, 1u8);
+        assert_eq!(token_metadata.fee.minimum, BigUint::from(1u32));
+        assert_eq!(token_metadata.fee.rate, 2);
+        assert_eq!(token_metadata.fee.rate_decimals, 3);
+    }
+
+    #[test]
+    fn test_to_candid_type() {
+        let token_metadata = TokenMetadata::new(
+            "name".to_string(),
+            "symbol".to_string(),
+            1,
+            TokenFee::new(1u32.into(), 2, 3),
+        );
+
+        let candid_token_metadata: CandidTokenMetadata = token_metadata.clone().into();
+
+        assert_eq!(candid_token_metadata.name, "name");
+        assert_eq!(candid_token_metadata.symbol, "symbol");
+        assert_eq!(candid_token_metadata.decimals, 1u8);
+        assert_eq!(token_metadata.fee.minimum, BigUint::from(1u32));
+        assert_eq!(token_metadata.fee.rate, 2);
+        assert_eq!(token_metadata.fee.rate_decimals, 3);
+    }
+}
