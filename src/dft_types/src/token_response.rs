@@ -147,11 +147,7 @@ mod tests {
                     caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                         .parse()
                         .unwrap(),
-                    new_fee: TokenFee {
-                        minimum: 1u32.into(),
-                        rate: 1u32.into(),
-                        rate_decimals: 8,
-                    },
+                    new_fee: TokenFee::new(1u32.into(), 1u32, 8),
                 },
                 created_at: 2,
             },
