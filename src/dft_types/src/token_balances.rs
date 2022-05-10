@@ -128,6 +128,9 @@ mod tests {
         assert_eq!(balances.total_supply(), value1.clone() + value2.clone());
         assert_eq!(balances.holder_count(), 2);
 
+        let res = balances.debit_balance(&holder1, value1.clone() + 1u32);
+        assert_eq!(res, Err(DFTError::InsufficientBalance));
+
         balances.debit_balance(&holder1, value1.clone()).unwrap();
         balances.debit_balance(&holder2, value2.clone()).unwrap();
 
