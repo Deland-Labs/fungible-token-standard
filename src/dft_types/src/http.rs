@@ -100,6 +100,7 @@ impl HttpResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn test_merge_default_headers() {
         let headers = vec![("test_header".into(), "123".into())];
@@ -146,5 +147,66 @@ mod tests {
         let result = HttpResponse::unauthorized();
         assert_eq!(result.status_code, 401);
         assert_eq!(result.headers.len(), 3);
+    }
+
+    #[test]
+    fn test_forbidden() {
+        let result = HttpResponse::forbidden();
+        assert_eq!(result.status_code, 403);
+        assert_eq!(result.headers.len(), 3);
+    }
+
+    #[test]
+    fn test_not_found() {
+        let result = HttpResponse::not_found();
+        assert_eq!(result.status_code, 404);
+        assert_eq!(result.headers.len(), 3);
+    }
+
+    #[test]
+    fn test_internal_server_error() {
+        let result = HttpResponse::internal_server_error();
+        assert_eq!(result.status_code, 500);
+        assert_eq!(result.headers.len(), 3);
+    }
+
+    #[test]
+    fn test_default_headers_merge() {
+        let headers = vec![("test_header".into(), "123".into())];
+        let result = HttpResponse::merge_default_headers(headers);
+        assert_eq!(result.len(), 4);
+        assert_eq!(result[0].0, "Access-Control-Allow-Origin");
+        assert_eq!(result[0].1, "*");
+        assert_eq!(result[1].0, "Content-Type");
+        assert_eq!(result[1].1, "application/json");
+        assert_eq!(result[2].0, "Power-By");
+        assert_eq!(result[2].1, "Deland Labs");
+        assert_eq!(result[3].0, "test_header");
+        assert_eq!(result[3].1, "123");
+    }
+
+    #[test]
+    fn test_req_path() {
+        let req = HttpRequest {
+            method: "".to_string(),
+            url: "/test/path?test=123".to_string(),
+            headers: vec![],
+            body: Default::default(),
+        };
+        assert_eq!(req.path(), "/test/path");
+    }
+
+    #[test]
+    fn test_req_params() {
+        let req = HttpRequest {
+            method: "".to_string(),
+            url: "123.com/test/path?test=123".to_string(),
+            headers: vec![],
+            body: Default::default(),
+        };
+
+        let result = req.params();
+        assert_eq!(result.len(), 1);
+        assert_eq!(result["test"], "123");
     }
 }
