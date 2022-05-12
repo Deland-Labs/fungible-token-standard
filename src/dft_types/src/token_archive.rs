@@ -369,27 +369,50 @@ mod tests {
             archived_end_block_height.clone() + 1u32
         );
 
+        archive.unlock_after_archiving();
+
+        let new_storage_canister_id: Principal =
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap();
+
+        archive.lock_for_archiving();
+        archive.pre_append_storage_canister(new_storage_canister_id);
+        archive.append_scaling_storage_canister(new_storage_canister_id);
+        let last_storage_index = archive.last_storage_canister_index();
+        assert_eq!(last_storage_index, 1);
+
+        let new_archived_end_block_height = BigUint::from(300u32);
+        archive.update_scaling_storage_blocks_range(
+            last_storage_index,
+            new_archived_end_block_height.clone(),
+        );
+
+        assert_eq!(archive.storage_canisters().len(), 2);
+        assert_eq!(archive.storage_canisters_block_ranges().len(), 2);
+
         let indexes = archive.index();
 
-        assert_eq!(indexes.len(), 1);
-        assert_eq!(
-            indexes[0].0,
-            (BigUint::from(0u32), archived_end_block_height.clone())
-        );
+        assert_eq!(indexes.len(), 2);
+        assert_eq!(indexes[0].0, (BigUint::from(0u32), BigUint::from(200u32)));
         assert_eq!(indexes[0].1, storage_canister_id);
+        assert_eq!(indexes[1].1, new_storage_canister_id);
 
         let archives = archive.archives();
 
-        assert_eq!(archives.len(), 1);
+        assert_eq!(archives.len(), 2);
         assert_eq!(archives[0].start_block_height, Nat::from(0u32));
-        assert_eq!(
-            archives[0].end_block_height,
-            Nat::from(archived_end_block_height.clone())
-        );
+        assert_eq!(archives[1].start_block_height, Nat::from(201u32));
+        assert_eq!(archives[0].end_block_height, Nat::from(200u32));
         assert_eq!(archives[0].canister_id, storage_canister_id);
+        assert_eq!(archives[1].canister_id, new_storage_canister_id);
         assert_eq!(
             archives[0].num_blocks,
-            Nat::from(archived_end_block_height + 1u32)
+            Nat::from(archived_end_block_height.clone() + 1u32)
+        );
+        assert_eq!(
+            archives[1].num_blocks,
+            Nat::from(new_archived_end_block_height - archived_end_block_height)
         );
     }
 }
