@@ -116,7 +116,7 @@ impl Archive {
                 canister_id: id,
                 start_block_height: start.clone().into(),
                 end_block_height: end.clone().into(),
-                num_blocks: (end - start).into(),
+                num_blocks: (end - start + 1u32).into(),
             })
             .collect()
     }
@@ -137,12 +137,15 @@ impl Archive {
     }
 
     pub fn pre_append_storage_canister(&mut self, canister_id: Principal) {
+        assert!(self.archiving_in_progress);
         assert!(self.latest_storage_canister.is_none());
         self.latest_storage_canister = Some(canister_id);
     }
     pub fn append_scaling_storage_canister(&mut self, canister_id: Principal) {
+        assert!(self.archiving_in_progress);
         assert_eq!(canister_id, self.latest_storage_canister.unwrap());
         if self.archiving_in_progress {
+            assert!(!self.storage_canisters.contains(&canister_id));
             self.storage_canisters.push(canister_id);
             self.latest_storage_canister = None;
         }
@@ -153,9 +156,8 @@ impl Archive {
         storage_index: usize,
         end_block_height: BlockHeight,
     ) {
-        if !self.archiving_in_progress {
-            return;
-        }
+        assert!(self.archiving_in_progress);
+
         let last_range: Option<(BlockHeight, BlockHeight)> = self
             .storage_canisters_block_ranges
             .last()
@@ -202,5 +204,192 @@ impl Archive {
         if self.archiving_in_progress {
             self.archiving_in_progress = false;
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_bigint::BigUint;
+
+    #[test]
+    #[should_panic]
+    fn test_latest_storage_canister() {
+        let archive = Archive::default();
+        assert!(archive.latest_storage_canister().is_none());
+        assert!(archive.last_storage_canister_id().is_none());
+        assert!(archive.storage_canisters().is_empty());
+        assert_eq!(archive.storage_canisters_block_ranges().len(), 0);
+        assert_eq!(archive.last_storage_canister_index(), 0);
+    }
+
+    #[test]
+    fn test_lock_for_archiving() {
+        let mut archive = Archive::default();
+
+        let lock_res = archive.lock_for_archiving();
+        assert!(lock_res);
+        let lock_res = archive.lock_for_archiving();
+        assert!(!lock_res);
+    }
+
+    #[test]
+    fn test_unlock_after_archiving() {
+        let mut archive = Archive::default();
+        archive.lock_for_archiving();
+        archive.unlock_after_archiving();
+        let res = archive.lock_for_archiving();
+        assert!(res);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_prepend_storage_canister_without_lock_should_panic() {
+        let mut archive = Archive::default();
+        let storage_canister_id: Principal =
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap();
+        archive.pre_append_storage_canister(storage_canister_id);
+    }
+
+    #[test]
+    fn test_prepend_storage_canister() {
+        let mut archive = Archive::default();
+        archive.lock_for_archiving();
+        let storage_canister_id: Principal =
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap();
+        archive.pre_append_storage_canister(storage_canister_id);
+        assert_eq!(archive.storage_canisters().len(), 0);
+        assert_eq!(archive.storage_canisters_block_ranges().len(), 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_append_storage_canister_without_lock_should_panic() {
+        let mut archive = Archive::default();
+        archive.lock_for_archiving();
+        let storage_canister_id: Principal =
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap();
+        archive.pre_append_storage_canister(storage_canister_id);
+        archive.unlock_after_archiving();
+        archive.append_scaling_storage_canister(storage_canister_id);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_append_storage_canister_without_pre_append_should_panic() {
+        let mut archive = Archive::default();
+        archive.lock_for_archiving();
+        let storage_canister_id: Principal =
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap();
+        archive.append_scaling_storage_canister(storage_canister_id);
+    }
+
+    #[test]
+    fn test_append_storage_canister() {
+        let mut archive = Archive::default();
+        archive.lock_for_archiving();
+        let storage_canister_id: Principal =
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap();
+        archive.pre_append_storage_canister(storage_canister_id);
+        archive.append_scaling_storage_canister(storage_canister_id);
+        assert_eq!(archive.storage_canisters().len(), 1);
+        assert_eq!(archive.storage_canisters_block_ranges().len(), 0);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_append_storage_canister_with_same_id_should_panic() {
+        let mut archive = Archive::default();
+        archive.lock_for_archiving();
+        let storage_canister_id: Principal =
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap();
+        archive.pre_append_storage_canister(storage_canister_id);
+        archive.append_scaling_storage_canister(storage_canister_id);
+        archive.append_scaling_storage_canister(storage_canister_id);
+    }
+
+    #[test]
+    fn test_update_storage_canister_block_range() {
+        let mut archive = Archive::default();
+        archive.lock_for_archiving();
+        let storage_canister_id: Principal =
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap();
+        archive.pre_append_storage_canister(storage_canister_id);
+        archive.append_scaling_storage_canister(storage_canister_id);
+        let last_storage_index = archive.last_storage_canister_index();
+        assert_eq!(last_storage_index, 0);
+
+        let archived_end_block_height = BigUint::from(100u32);
+        archive.update_scaling_storage_blocks_range(
+            last_storage_index,
+            archived_end_block_height.clone(),
+        );
+
+        assert_eq!(archive.storage_canisters().len(), 1);
+        assert_eq!(archive.storage_canisters_block_ranges().len(), 1);
+        assert_eq!(
+            archive.storage_canisters_block_ranges()[last_storage_index].0,
+            BigUint::from(0u32)
+        );
+        assert_eq!(
+            archive.storage_canisters_block_ranges()[last_storage_index].1,
+            archived_end_block_height
+        );
+
+        let archived_end_block_height = BigUint::from(200u32);
+        archive.update_scaling_storage_blocks_range(
+            last_storage_index,
+            archived_end_block_height.clone(),
+        );
+        assert_eq!(
+            archive.storage_canisters_block_ranges()[last_storage_index].0,
+            BigUint::from(0u32)
+        );
+        assert_eq!(
+            archive.storage_canisters_block_ranges()[last_storage_index].1,
+            archived_end_block_height
+        );
+
+        assert_eq!(
+            archive.scaling_storage_block_height_offset(),
+            archived_end_block_height.clone() + 1u32
+        );
+
+        let indexes = archive.index();
+
+        assert_eq!(indexes.len(), 1);
+        assert_eq!(
+            indexes[0].0,
+            (BigUint::from(0u32), archived_end_block_height.clone())
+        );
+        assert_eq!(indexes[0].1, storage_canister_id);
+
+        let archives = archive.archives();
+
+        assert_eq!(archives.len(), 1);
+        assert_eq!(archives[0].start_block_height, Nat::from(0u32));
+        assert_eq!(
+            archives[0].end_block_height,
+            Nat::from(archived_end_block_height.clone())
+        );
+        assert_eq!(archives[0].canister_id, storage_canister_id);
+        assert_eq!(
+            archives[0].num_blocks,
+            Nat::from(archived_end_block_height + 1u32)
+        );
     }
 }
