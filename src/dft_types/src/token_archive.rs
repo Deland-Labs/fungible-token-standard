@@ -159,8 +159,7 @@ impl Archive {
         assert!(self.archiving_in_progress);
 
         let last_range: Option<(BlockHeight, BlockHeight)> = self
-            .storage_canisters_block_ranges
-            .last()
+            .last_storage_canister_range()
             .map(|(start, end)| (start.clone(), end.clone()));
 
         let range = self.storage_canisters_block_ranges.get_mut(storage_index);
@@ -210,6 +209,7 @@ impl Archive {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::constants::MAX_MESSAGE_SIZE_BYTES;
     use num_bigint::BigUint;
 
     #[test]
@@ -322,7 +322,14 @@ mod tests {
 
     #[test]
     fn test_update_storage_canister_block_range() {
-        let mut archive = Archive::default();
+        let archive_options = ArchiveOptions {
+            trigger_threshold: 2000,
+            num_blocks_to_archive: 1000,
+            node_max_memory_size_bytes: Option::from(MAX_CANISTER_STORAGE_BYTES),
+            max_message_size_bytes: Option::from(MAX_MESSAGE_SIZE_BYTES),
+            cycles_for_archive_creation: Option::from(CYCLES_PER_AUTO_SCALING),
+        };
+        let mut archive = Archive::new(archive_options);
         archive.lock_for_archiving();
         let storage_canister_id: Principal =
             "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
