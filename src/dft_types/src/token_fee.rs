@@ -59,3 +59,39 @@ impl From<CandidTokenFee> for TokenFee {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_fee_calc_approve_fee() {
+        let fee = TokenFee::new(1u32.into(), 1, 8);
+        let amount = TokenAmount::from(1000u32);
+        assert_eq!(fee.calc_approve_fee(&amount), 1u32.into());
+
+        let fee = TokenFee::new(1u32.into(), 1, 2);
+        let amount = TokenAmount::from(1000u32);
+        assert_eq!(fee.calc_approve_fee(&amount), 1u32.into());
+    }
+
+    #[test]
+    fn test_token_fee_calc_transfer_fee() {
+        let fee = TokenFee::new(1u32.into(), 1, 8);
+        let amount = TokenAmount::from(1000u32);
+        assert_eq!(fee.calc_transfer_fee(&amount), 1u32.into());
+
+        let fee = TokenFee::new(1u32.into(), 1, 2);
+        let amount = TokenAmount::from(1000u32);
+        assert_eq!(fee.calc_transfer_fee(&amount), 10u32.into());
+    }
+
+    #[test]
+    fn test_to_candid_token_fee() {
+        let fee = TokenFee::new(1u32.into(), 1, 8);
+        let candid_fee = CandidTokenFee::from(fee);
+        assert_eq!(candid_fee.minimum, Nat::from(1u32));
+        assert_eq!(candid_fee.rate, 1);
+        assert_eq!(candid_fee.rate_decimals, 8);
+    }
+}

@@ -127,13 +127,100 @@ impl EncodedBlock {
     }
 }
 
-#[test]
-fn test_block_size() {
-    let block_size = std::mem::size_of::<Block>();
-    let should_be_size = 184;
-    assert_eq!(
-        should_be_size, block_size,
-        "Block size should be {} bytes, but is {} bytes",
-        should_be_size, block_size
-    );
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{CandidOperation, TokenHolder};
+    use dft_utils::sha256::compute_hash;
+    use std::convert::TryInto;
+
+    #[test]
+    fn test_block_size() {
+        let block_size = std::mem::size_of::<Block>();
+        let should_be_size = 184;
+        assert_eq!(
+            should_be_size, block_size,
+            "Block size should be {} bytes, but is {} bytes",
+            should_be_size, block_size
+        );
+    }
+
+    #[test]
+    fn test_block_encode_decode() {
+        let token_id: Principal = "ryjl3-tyaaa-aaaaa-aaaba-cai".parse().unwrap();
+        let caller: Principal = "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+            .parse()
+            .unwrap();
+        let new_fee_to: Principal =
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap();
+        let parent_hash = compute_hash(token_id.as_slice());
+        let now: u64 = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+        let transaction = Transaction {
+            operation: Operation::FeeToModify {
+                caller: caller.clone(),
+                new_fee_to: TokenHolder::new(new_fee_to.clone(), None),
+            },
+            created_at: now,
+        };
+        let block =
+            Block::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
+        let encoded_block = block.clone().encode().unwrap();
+        let decoded_block = encoded_block.clone().decode().unwrap();
+        assert_eq!(block, decoded_block);
+
+        assert_eq!(now, block.timestamp());
+
+        let encoded_block_bytes = encoded_block.clone().into_vec();
+        assert_eq!(encoded_block_bytes.len(), encoded_block.size_bytes());
+        let decoded_block_bytes = decoded_block.encode().unwrap().into_vec();
+        assert_eq!(encoded_block_bytes, decoded_block_bytes);
+
+        let tx = block.transaction();
+        let tx_hash = tx.hash_with_token_id(&token_id);
+        assert_eq!(tx_hash, transaction.hash_with_token_id(&token_id));
+    }
+
+    #[test]
+    fn test_block_to_candid_block() {
+        let token_id: Principal = "ryjl3-tyaaa-aaaaa-aaaba-cai".parse().unwrap();
+        let caller: Principal = "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+            .parse()
+            .unwrap();
+        let new_owner: Principal =
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap();
+        let parent_hash = compute_hash(token_id.as_slice());
+        let now: u64 = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+        let transaction = Transaction {
+            operation: Operation::OwnerModify {
+                caller: caller.clone(),
+                new_owner: new_owner.clone(),
+            },
+            created_at: now,
+        };
+        let block =
+            Block::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
+        let candidate_block: CandidBlock = block.into();
+
+        match candidate_block.transaction.operation {
+            CandidOperation::OwnerModify { caller, new_owner } => {
+                assert_eq!(caller, caller);
+                assert_eq!(new_owner, new_owner);
+            }
+            _ => {}
+        };
+    }
 }

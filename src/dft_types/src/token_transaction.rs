@@ -170,3 +170,90 @@ impl From<Transaction> for CandidTransaction {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_hash_with_token_id() {
+        let tx = Transaction {
+            operation: Operation::Approve {
+                caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
+                    .parse()
+                    .unwrap(),
+                owner: "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                    .parse()
+                    .unwrap(),
+                spender: "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                    .parse()
+                    .unwrap(),
+                value: 1u32.into(),
+                fee: 1u32.into(),
+            },
+            created_at: 1,
+        };
+        let token_id = Principal::from_text("ryjl3-tyaaa-aaaaa-aaaba-cai").unwrap();
+        let tx_hash = tx.hash_with_token_id(&token_id);
+        assert_eq!(
+            hex::encode(&tx_hash),
+            "2d90ad32cab94625bcde25ae30eb9c9ddd9a48b2041c32678144fec3aa15e0c6"
+        );
+    }
+
+    #[test]
+    fn test_transaction_to_candid_transaction() {
+        let tx = Transaction {
+            operation: Operation::Approve {
+                caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
+                    .parse()
+                    .unwrap(),
+                owner: "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                    .parse()
+                    .unwrap(),
+                spender: "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                    .parse()
+                    .unwrap(),
+                value: 1u32.into(),
+                fee: 1u32.into(),
+            },
+            created_at: 1,
+        };
+        let candid_tx = CandidTransaction::from(tx.clone());
+        assert_eq!(candid_tx.created_at, tx.created_at);
+    }
+
+    #[test]
+    fn test_operation_to_candid_operation() {
+        let operation = Operation::Transfer {
+            caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
+                .parse()
+                .unwrap(),
+            from: "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap(),
+            to: "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap(),
+            value: 1u32.into(),
+            fee: 1u32.into(),
+        };
+        let candid_operation = CandidOperation::from(operation);
+        assert_eq!(
+            candid_operation,
+            CandidOperation::Transfer {
+                caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
+                    .parse()
+                    .unwrap(),
+                from: "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                    .parse()
+                    .unwrap(),
+                to: "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                    .parse()
+                    .unwrap(),
+                value: 1u32.into(),
+                fee: 1u32.into(),
+            }
+        );
+    }
+}
