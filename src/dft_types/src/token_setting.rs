@@ -2,7 +2,7 @@ use crate::*;
 use candid::{Deserialize, Principal};
 use serde::Serialize;
 
-#[derive(Default, Debug, Clone, Deserialize, Serialize)]
+#[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct TokenSetting {
     inner: TokenSettingInner,
 }
@@ -129,7 +129,7 @@ impl TokenSetting {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 struct TokenSettingInner {
     token_id: Principal,
     logo: Option<Vec<u8>>,
@@ -169,5 +169,81 @@ impl StableState for TokenSetting {
         Ok(TokenSetting {
             inner: token_setting_inner,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_setting_encode_decode() {
+        let token_setting = TokenSetting::default();
+        let encoded = token_setting.encode();
+        let decoded = TokenSetting::decode(encoded).unwrap();
+        assert_eq!(token_setting, decoded);
+    }
+
+    #[test]
+    fn test_token_setting_set_logo() {
+        let mut token_setting = TokenSetting::default();
+        token_setting.set_logo(Some(vec![1, 2, 3]));
+        assert_eq!(token_setting.logo(), Some(vec![1, 2, 3]));
+    }
+
+    #[test]
+    fn test_token_setting_set_owner() {
+        let mut token_setting = TokenSetting::default();
+        let owner = "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+            .parse()
+            .unwrap();
+        token_setting.set_owner(owner);
+        assert_eq!(token_setting.owner(), owner);
+    }
+
+    #[test]
+    fn test_token_setting_set_fee() {
+        let mut token_setting = TokenSetting::default();
+        let fee = TokenFee::new(1u32.into(), 2, 3);
+        token_setting.set_fee(fee.clone());
+        assert_eq!(token_setting.fee(), fee);
+    }
+
+    #[test]
+    fn test_token_setting_set_fee_to() {
+        let mut token_setting = TokenSetting::default();
+        let fee_to = TokenHolder::new(
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap(),
+            None,
+        );
+        token_setting.set_fee_to(fee_to.clone());
+        assert_eq!(token_setting.fee_to(), fee_to);
+    }
+
+    #[test]
+    fn test_token_setting_set_minter() {
+        let mut token_setting = TokenSetting::default();
+        let minter: Principal = "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+            .parse()
+            .unwrap();
+        token_setting.add_minter(minter.clone());
+        assert_eq!(token_setting.minters(), vec![minter]);
+    }
+
+    #[test]
+    fn test_token_setting_default() {
+        let mut token_setting = TokenSetting::default();
+
+        assert_eq!(token_setting.token_id(), &Principal::anonymous());
+        assert_eq!(token_setting.logo(), None);
+        assert_eq!(token_setting.name(), "");
+        assert_eq!(token_setting.symbol(), "");
+        assert_eq!(token_setting.decimals(), 0);
+        assert_eq!(token_setting.owner(), Principal::anonymous());
+        assert_eq!(token_setting.minters(), Vec::new());
+        assert_eq!(token_setting.fee(), TokenFee::default());
+        assert_eq!(token_setting.fee_to(), TokenHolder::empty());
     }
 }
