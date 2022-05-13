@@ -33,7 +33,7 @@ pub struct ArchiveInfo {
     num_blocks: Nat,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Archive {
     storage_canisters: Vec<Principal>,
     // Temporary storage of newly created auto-scaling storage canister
@@ -141,6 +141,7 @@ impl Archive {
         assert!(self.latest_storage_canister.is_none());
         self.latest_storage_canister = Some(canister_id);
     }
+
     pub fn append_scaling_storage_canister(&mut self, canister_id: Principal) {
         assert!(self.archiving_in_progress);
         assert_eq!(canister_id, self.latest_storage_canister.unwrap());
@@ -246,10 +247,7 @@ mod tests {
     #[should_panic]
     fn test_prepend_storage_canister_without_lock_should_panic() {
         let mut archive = Archive::default();
-        let storage_canister_id: Principal =
-            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
-                .parse()
-                .unwrap();
+        let storage_canister_id: Principal = "rno2w-sqaaa-aaaaa-aaacq-cai".parse().unwrap();
         archive.pre_append_storage_canister(storage_canister_id);
     }
 
@@ -257,10 +255,7 @@ mod tests {
     fn test_prepend_storage_canister() {
         let mut archive = Archive::default();
         archive.lock_for_archiving();
-        let storage_canister_id: Principal =
-            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
-                .parse()
-                .unwrap();
+        let storage_canister_id: Principal = "rno2w-sqaaa-aaaaa-aaacq-cai".parse().unwrap();
         archive.pre_append_storage_canister(storage_canister_id);
         assert_eq!(archive.storage_canisters().len(), 0);
         assert_eq!(archive.storage_canisters_block_ranges().len(), 0);
@@ -271,10 +266,7 @@ mod tests {
     fn test_append_storage_canister_without_lock_should_panic() {
         let mut archive = Archive::default();
         archive.lock_for_archiving();
-        let storage_canister_id: Principal =
-            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
-                .parse()
-                .unwrap();
+        let storage_canister_id: Principal = "rno2w-sqaaa-aaaaa-aaacq-cai".parse().unwrap();
         archive.pre_append_storage_canister(storage_canister_id);
         archive.unlock_after_archiving();
         archive.append_scaling_storage_canister(storage_canister_id);
@@ -285,10 +277,7 @@ mod tests {
     fn test_append_storage_canister_without_pre_append_should_panic() {
         let mut archive = Archive::default();
         archive.lock_for_archiving();
-        let storage_canister_id: Principal =
-            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
-                .parse()
-                .unwrap();
+        let storage_canister_id: Principal = "rno2w-sqaaa-aaaaa-aaacq-cai".parse().unwrap();
         archive.append_scaling_storage_canister(storage_canister_id);
     }
 
@@ -296,10 +285,7 @@ mod tests {
     fn test_append_storage_canister() {
         let mut archive = Archive::default();
         archive.lock_for_archiving();
-        let storage_canister_id: Principal =
-            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
-                .parse()
-                .unwrap();
+        let storage_canister_id: Principal = "rno2w-sqaaa-aaaaa-aaacq-cai".parse().unwrap();
         archive.pre_append_storage_canister(storage_canister_id);
         archive.append_scaling_storage_canister(storage_canister_id);
         assert_eq!(archive.storage_canisters().len(), 1);
@@ -311,10 +297,7 @@ mod tests {
     fn test_append_storage_canister_with_same_id_should_panic() {
         let mut archive = Archive::default();
         archive.lock_for_archiving();
-        let storage_canister_id: Principal =
-            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
-                .parse()
-                .unwrap();
+        let storage_canister_id: Principal = "rno2w-sqaaa-aaaaa-aaacq-cai".parse().unwrap();
         archive.pre_append_storage_canister(storage_canister_id);
         archive.append_scaling_storage_canister(storage_canister_id);
         archive.append_scaling_storage_canister(storage_canister_id);
@@ -331,10 +314,7 @@ mod tests {
         };
         let mut archive = Archive::new(archive_options);
         archive.lock_for_archiving();
-        let storage_canister_id: Principal =
-            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
-                .parse()
-                .unwrap();
+        let storage_canister_id: Principal = "rno2w-sqaaa-aaaaa-aaacq-cai".parse().unwrap();
         archive.pre_append_storage_canister(storage_canister_id);
         archive.append_scaling_storage_canister(storage_canister_id);
         let last_storage_index = archive.last_storage_canister_index();
@@ -378,10 +358,7 @@ mod tests {
 
         archive.unlock_after_archiving();
 
-        let new_storage_canister_id: Principal =
-            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
-                .parse()
-                .unwrap();
+        let new_storage_canister_id: Principal = "r7inp-6aaaa-aaaaa-aaabq-cai".parse().unwrap();
 
         archive.lock_for_archiving();
         archive.pre_append_storage_canister(new_storage_canister_id);

@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::collections::VecDeque;
 use std::convert::TryInto;
 
-#[derive(Clone, Deserialize, Serialize, Debug)]
+#[derive(Clone, Deserialize, Serialize, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Blockchain {
     pub blocks: Vec<EncodedBlock>,
     pub tx_window: TokenTransactionWindow,
@@ -87,10 +87,6 @@ impl Blockchain {
         }
     }
 
-    pub fn last(&self) -> Option<&EncodedBlock> {
-        self.blocks.last()
-    }
-
     pub fn num_archived_blocks(&self) -> BlockHeight {
         self.num_archived_blocks.clone()
     }
@@ -100,7 +96,8 @@ impl Blockchain {
     }
 
     pub fn local_block_range(&self) -> std::ops::Range<BlockHeight> {
-        self.num_archived_blocks.clone()..self.num_archived_blocks.clone() + self.blocks.len()
+        self.num_archived_blocks.clone()
+            ..self.num_archived_blocks.clone() + self.blocks.len() - 1u32
     }
 
     pub fn chain_length(&self) -> BlockHeight {
@@ -167,5 +164,137 @@ impl StableState for Blockchain {
             archive,
             num_archived_blocks,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use dft_utils::range_utils::make_range;
+    use std::collections::HashMap;
+    use std::time::SystemTime;
+
+    #[test]
+    fn test_blockchain_encode_decode() {
+        let mut blockchain = Blockchain::default();
+        let token_id: Principal = "rkp4c-7iaaa-aaaaa-aaaca-cai".parse().unwrap();
+        let caller: Principal = "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+            .parse()
+            .unwrap();
+        let new_owner: Principal =
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap();
+        let now: u64 = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+
+        let timestamp = now.clone();
+        let transaction = Transaction {
+            operation: Operation::OwnerModify {
+                caller: caller.clone(),
+                new_owner: new_owner.clone(),
+            },
+            created_at: timestamp.clone(),
+        };
+        blockchain.add_tx_to_block(&token_id, transaction.clone(), timestamp);
+
+        // Encode and decode the blockchain
+        let encoded_blockchain = blockchain.clone().encode();
+        let decoded_blockchain = Blockchain::decode(encoded_blockchain).unwrap();
+
+        // Check that the decoded blockchain is the same as the original
+        assert_eq!(blockchain, decoded_blockchain);
+    }
+
+    #[test]
+    fn test_blockchain_archive() {
+        let mut blockchain = Blockchain::default();
+        let token_id: Principal = "rkp4c-7iaaa-aaaaa-aaaca-cai".parse().unwrap();
+        let caller: Principal = "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+            .parse()
+            .unwrap();
+        let new_owner: Principal =
+            "o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae"
+                .parse()
+                .unwrap();
+        let now: u64 = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos()
+            .try_into()
+            .unwrap();
+
+        // add 3000 txs to blockchain
+        for i in 0..3000 {
+            let timestamp = now.clone() + i as u64;
+            let transaction = Transaction {
+                operation: Operation::OwnerModify {
+                    caller: caller.clone(),
+                    new_owner: new_owner.clone(),
+                },
+                created_at: timestamp.clone(),
+            };
+            blockchain.add_tx_to_block(&token_id, transaction.clone(), timestamp);
+
+            if i == 1000 {
+                // archive the first 1000 txs
+                let blocks = blockchain.get_blocks_for_archiving(
+                    blockchain.archive.trigger_threshold as usize,
+                    blockchain.archive.num_blocks_to_archive as usize,
+                );
+                assert_eq!(blocks.len(), 0);
+                assert_eq!(blockchain.num_archived_blocks(), BigUint::from(0u64));
+                assert_eq!(blockchain.num_unarchived_blocks(), (i + 1) as u64);
+                assert_eq!(blockchain.chain_length(), BigUint::from((i + 1) as u64));
+                assert_eq!(
+                    blockchain.local_block_range(),
+                    make_range(0u32.into(), 1000)
+                );
+            }
+
+            if i == 2000 {
+                // archive the next 1000 txs
+                let blocks = blockchain.get_blocks_for_archiving(
+                    blockchain.archive.trigger_threshold as usize,
+                    blockchain.archive.num_blocks_to_archive as usize,
+                );
+                assert_eq!(blocks.len(), 1000);
+                blockchain.remove_archived_blocks(blocks.len());
+                assert_eq!(
+                    blockchain.num_archived_blocks(),
+                    BigUint::from(blocks.len() as u64)
+                );
+                assert_eq!(
+                    blockchain.num_unarchived_blocks(),
+                    i as u64 - (blocks.len() - 1) as u64
+                );
+                assert_eq!(blockchain.chain_length(), BigUint::from((i + 1) as u64));
+                assert_eq!(
+                    blockchain.local_block_range(),
+                    make_range(1000u32.into(), 1000)
+                );
+            }
+
+            if i == 3000 {
+                // archive the last 1000 txs
+                let blocks = blockchain.get_blocks_for_archiving(
+                    blockchain.archive.trigger_threshold as usize,
+                    blockchain.archive.num_blocks_to_archive as usize,
+                );
+                assert_eq!(blocks.len(), 1000);
+                blockchain.remove_archived_blocks(blocks.len());
+                assert_eq!(blockchain.num_archived_blocks(), BigUint::from(2000u64));
+                assert_eq!(blockchain.num_unarchived_blocks(), blocks.len() as u64);
+                assert_eq!(blockchain.chain_length(), BigUint::from(i as u64));
+                assert_eq!(
+                    blockchain.local_block_range(),
+                    make_range(2000u32.into(), 1000)
+                );
+            }
+        }
     }
 }
