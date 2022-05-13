@@ -171,7 +171,6 @@ impl StableState for Blockchain {
 mod tests {
     use super::*;
     use dft_utils::range_utils::make_range;
-    use std::collections::HashMap;
     use std::time::SystemTime;
 
     #[test]
@@ -200,7 +199,7 @@ mod tests {
             },
             created_at: timestamp.clone(),
         };
-        blockchain.add_tx_to_block(&token_id, transaction.clone(), timestamp);
+        let _ = blockchain.add_tx_to_block(&token_id, transaction.clone(), timestamp.clone());
 
         // Encode and decode the blockchain
         let encoded_blockchain = blockchain.clone().encode();
@@ -208,6 +207,11 @@ mod tests {
 
         // Check that the decoded blockchain is the same as the original
         assert_eq!(blockchain, decoded_blockchain);
+
+        let res = blockchain.add_tx_to_block(&token_id, transaction.clone(), timestamp.clone());
+
+        assert!(res.is_err());
+        assert_eq!(res.unwrap_err(), DFTError::TxDuplicate)
     }
 
     #[test]
@@ -229,7 +233,7 @@ mod tests {
             .unwrap();
 
         // add 3000 txs to blockchain
-        for i in 0..3000 {
+        for i in 0..=3000u32 {
             let timestamp = now.clone() + i as u64;
             let transaction = Transaction {
                 operation: Operation::OwnerModify {
@@ -238,8 +242,9 @@ mod tests {
                 },
                 created_at: timestamp.clone(),
             };
-            blockchain.add_tx_to_block(&token_id, transaction.clone(), timestamp);
-
+            let _ = blockchain.add_tx_to_block(&token_id, transaction.clone(), timestamp);
+            let inside_block = blockchain.get(i.into()).unwrap();
+            assert_eq!(inside_block.decode().unwrap().timestamp, timestamp);
             if i == 1000 {
                 // archive the first 1000 txs
                 let blocks = blockchain.get_blocks_for_archiving(
@@ -288,8 +293,8 @@ mod tests {
                 assert_eq!(blocks.len(), 1000);
                 blockchain.remove_archived_blocks(blocks.len());
                 assert_eq!(blockchain.num_archived_blocks(), BigUint::from(2000u64));
-                assert_eq!(blockchain.num_unarchived_blocks(), blocks.len() as u64);
-                assert_eq!(blockchain.chain_length(), BigUint::from(i as u64));
+                assert_eq!(blockchain.num_unarchived_blocks(), 1001u64);
+                assert_eq!(blockchain.chain_length(), BigUint::from((i + 1) as u64));
                 assert_eq!(
                     blockchain.local_block_range(),
                     make_range(2000u32.into(), 1000)

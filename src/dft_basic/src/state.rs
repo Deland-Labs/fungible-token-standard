@@ -7,7 +7,7 @@ use std::cell::RefCell;
 thread_local! {
       pub static STATE : State = State::default();
 }
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct State {
     pub token_setting: RefCell<TokenSetting>,
     pub token_desc: RefCell<TokenDescription>,
@@ -80,4 +80,34 @@ fn post_upgrade() {
         let restore_state = State::decode(bytes).expect("Decoding stable memory failed");
         s.replace(restore_state);
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use num_bigint::BigUint;
+
+    #[test]
+    fn test_state_write_read() {
+        let state = State::default();
+        let owner = TokenHolder::new(
+            "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+                .parse()
+                .unwrap(),
+            None,
+        );
+        let balance = BigUint::from(100u32);
+        state
+            .balances
+            .borrow_mut()
+            .credit_balance(&owner, balance.clone());
+        let bytes = state.encode();
+        let restore_state = State::decode(bytes.clone()).expect("Decoding stable memory failed");
+        let restore_bytes = restore_state.encode();
+
+        let copy_state = State::default();
+        copy_state.replace(restore_state);
+        assert_eq!(copy_state.balances.borrow().balance_of(&owner), balance);
+        assert_eq!(bytes, restore_bytes);
+    }
 }

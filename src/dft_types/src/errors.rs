@@ -350,4 +350,21 @@ mod tests {
             "Unknown error, detail: \"test\""
         );
     }
+
+    #[test]
+    fn test_from_error_info_to_dft_error() {
+        for i in 1..10000u32 {
+            let error_info = ErrorInfo {
+                code: i,
+                message: "test".to_owned(),
+            };
+            let dft_error: DFTError = error_info.into();
+
+            if i > 29 {
+                assert_eq!(dft_error.code(), 10000u32);
+            } else {
+                assert_eq!(dft_error.code(), i);
+            }
+        }
+    }
 }

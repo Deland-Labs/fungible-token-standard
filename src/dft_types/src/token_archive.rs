@@ -161,7 +161,7 @@ impl Archive {
 
         let last_range: Option<(BlockHeight, BlockHeight)> = self
             .last_storage_canister_range()
-            .map(|(start, end)| (start.clone(), end.clone()));
+            .map(|(start, end)| (start, end));
 
         let range = self.storage_canisters_block_ranges.get_mut(storage_index);
 
