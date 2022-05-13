@@ -109,17 +109,6 @@ impl TokenTransactionWindow {
             {
                 return Err(DFTError::TooManyTransactionsInReplayPreventionWindow);
             }
-
-            assert!(
-                false,
-                "throttle check,{}  {}",
-                self.transactions_by_height
-                    .get(num_in_window.saturating_sub(max_rate))
-                    .map(|x| x.block_timestamp)
-                    .unwrap_or_else(|| 0)
-                    + 10u64.pow(9),
-                &now
-            );
         }
 
         Ok(())

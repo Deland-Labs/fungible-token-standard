@@ -50,23 +50,20 @@ impl TokenAllowances {
         if spender_allowance < value {
             return Err(DFTError::InsufficientAllowance);
         }
-        let new_spender_allowance = spender_allowance - value.clone();
-        match self.0.get(owner) {
-            Some(inner) => {
-                let mut temp = inner.clone();
-                if new_spender_allowance == TokenAmount::from(0u32) {
-                    temp.remove(spender);
-                    if temp.is_empty() {
-                        self.0.remove(owner);
-                    } else {
-                        self.0.insert(*owner, temp);
-                    }
+        let new_spender_allowance = spender_allowance - value;
+        if let Some(inner) = self.0.get(owner) {
+            let mut temp = inner.clone();
+            if new_spender_allowance == TokenAmount::from(0u32) {
+                temp.remove(spender);
+                if temp.is_empty() {
+                    self.0.remove(owner);
                 } else {
-                    temp.insert(*spender, new_spender_allowance);
                     self.0.insert(*owner, temp);
                 }
+            } else {
+                temp.insert(*spender, new_spender_allowance);
+                self.0.insert(*owner, temp);
             }
-            _ => {}
         };
         Ok(())
     }

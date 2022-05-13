@@ -234,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_token_setting_default() {
-        let mut token_setting = TokenSetting::default();
+        let token_setting = TokenSetting::default();
 
         assert_eq!(token_setting.token_id(), &Principal::anonymous());
         assert_eq!(token_setting.logo(), None);
