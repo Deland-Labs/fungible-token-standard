@@ -1,4 +1,9 @@
 # Fungible Token Standard
+[![stars](https://img.shields.io/github/stars/Deland-Labs/fungible-token-standard)](https://img.shields.io/github/stars/Deland-Labs/fungible-token-standard)
+[![codecov](https://codecov.io/gh/Deland-Labs/fungible-token-standard/branch/main/graph/badge.svg?token=C0594RE316)](https://codecov.io/gh/Deland-Labs/fungible-token-standard)
+[![license](https://img.shields.io/github/license/Deland-Labs/fungible-token-standard)](https://img.shields.io/github/license/Deland-Labs/fungible-token-standard)
+[![twitter](https://img.shields.io/twitter/url?label=twitter&style=social&url=https%3A%2F%2Ftwitter.com%2FDelandLabs)](https://img.shields.io/twitter/url?label=twitter&style=social&url=https%3A%2F%2Ftwitter.com%2FDelandLabs)
+
 
 ## Tutorial
 
@@ -42,7 +47,7 @@ pre-commit install
 
 ## About us
 
-We are from Deland-Labs team.
+We are from Deland Labs team.
 
 We are building a decentralized exchange based on Dfinity with Open Order Protocol.
 
