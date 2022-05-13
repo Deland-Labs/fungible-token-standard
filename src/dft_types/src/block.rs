@@ -86,7 +86,7 @@ impl Block {
     }
 }
 
-#[derive(Serialize, Deserialize, CandidType, Debug, Clone)]
+#[derive(Serialize, Deserialize, CandidType, Debug, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct EncodedBlock(pub serde_bytes::ByteBuf);
 
 impl From<Vec<u8>> for EncodedBlock {
