@@ -3,7 +3,11 @@ use ic_cdk::api;
 use ic_cdk::export::candid::{CandidType, Nat, Principal};
 use serde::Deserialize;
 
+<<<<<<< HEAD
 #[derive(CandidType, Clone, Deserialize, Debug,PartialEq, PartialOrd, Ord, Eq)]
+=======
+#[derive(CandidType, Clone, Deserialize, Debug)]
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
 pub struct CanisterIdRecord {
     pub canister_id: Principal,
 }
@@ -79,9 +83,20 @@ pub trait IICManagementAPI {
     ) -> Result<(), String>;
 }
 
+<<<<<<< HEAD
 #[derive(Default)]
 pub struct ICManagementAPI;
 
+=======
+pub struct ICManagementAPI;
+
+impl ICManagementAPI {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
 #[async_trait]
 impl IICManagementAPI for ICManagementAPI {
     async fn create_canister(&self, args: CreateCanisterArgs) -> Result<CanisterIdRecord, String> {

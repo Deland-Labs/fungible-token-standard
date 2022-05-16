@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 use std::collections::VecDeque;
+=======
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
 use async_trait::async_trait;
 use candid::Principal;
 use dft_types::{BooleanResult, CommonResult, DFTError, EncodedBlock};
@@ -11,17 +14,33 @@ pub trait IDFTTxStorageAPI {
     async fn batch_append(
         &self,
         storage_canister_id: Principal,
+<<<<<<< HEAD
         blocks: VecDeque<EncodedBlock>,
     ) -> CommonResult<()>;
 }
 #[derive(Default)]
 pub struct DFTTxStorageAPI;
 
+=======
+        blocks: Vec<EncodedBlock>,
+    ) -> CommonResult<()>;
+}
+
+pub struct DFTTxStorageAPI;
+
+impl DFTTxStorageAPI {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
 #[async_trait]
 impl IDFTTxStorageAPI for DFTTxStorageAPI {
     async fn batch_append(
         &self,
         storage_canister_id: Principal,
+<<<<<<< HEAD
         blocks: VecDeque<EncodedBlock>,
     ) -> CommonResult<()> {
         //save the txs to auto-scaling storage
@@ -29,6 +48,15 @@ impl IDFTTxStorageAPI for DFTTxStorageAPI {
             api::call::call(storage_canister_id, "batchAppend", (blocks, )).await;
         match res {
             Ok((res, )) => match res {
+=======
+        blocks: Vec<EncodedBlock>,
+    ) -> CommonResult<()> {
+        //save the txs to auto-scaling storage
+        let res: Result<(BooleanResult,), (RejectionCode, String)> =
+            api::call::call(storage_canister_id, "batchAppend", (blocks,)).await;
+        match res {
+            Ok((res,)) => match res {
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
                 BooleanResult::Ok(sucess) => {
                     if sucess {
                         debug!("batchAppend success");

@@ -167,7 +167,11 @@ async fn approve(
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
                     let tx_id = hex::encode(tx_hash.as_ref());
+<<<<<<< HEAD
                     let auto_scaling_service = AutoScalingStorageService::new(token_id);
+=======
+                    let auto_scaling_service = AutoScalingStorageService::new();
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
                     auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id,
@@ -226,7 +230,11 @@ async fn transfer_from(
                 ) {
                     Ok((block_height, block_hash, tx_hash)) => {
                         set_certified_data(&block_hash);
+<<<<<<< HEAD
                         let auto_scaling_service = AutoScalingStorageService::new(token_id);
+=======
+                        let auto_scaling_service = AutoScalingStorageService::new();
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
                         auto_scaling_service.exec_auto_scaling_strategy().await;
                         OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
@@ -273,7 +281,11 @@ async fn transfer(
             ) {
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
+<<<<<<< HEAD
                     let auto_scaling_service = AutoScalingStorageService::new(token_id);
+=======
+                    let auto_scaling_service = AutoScalingStorageService::new();
+>>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
                     auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
