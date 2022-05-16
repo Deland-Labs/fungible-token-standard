@@ -1,5 +1,5 @@
 use candid::{candid_method, Nat};
-use dft_basic::auto_scaling_storage::exec_auto_scaling_strategy;
+use dft_basic::auto_scaling_storage::AutoScalingStorageService;
 use dft_basic::service::basic_service;
 use dft_types::*;
 use dft_utils::ic_logger::ICLogger;
@@ -166,7 +166,8 @@ async fn approve(
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
                     let tx_id = hex::encode(tx_hash.as_ref());
-                    exec_auto_scaling_strategy().await;
+                    let auto_scaling_service = AutoScalingStorageService::new();
+                    auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id,
                         block_height: block_height.into(),
@@ -223,7 +224,8 @@ async fn transfer_from(
                 ) {
                     Ok((block_height, block_hash, tx_hash)) => {
                         set_certified_data(&block_hash);
-                        exec_auto_scaling_strategy().await;
+                        let auto_scaling_service = AutoScalingStorageService::new();
+                        auto_scaling_service.exec_auto_scaling_strategy().await;
                         OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
                             block_height: block_height.into(),
@@ -268,7 +270,8 @@ async fn transfer(
             ) {
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
-                    exec_auto_scaling_strategy().await;
+                    let auto_scaling_service = AutoScalingStorageService::new();
+                    auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
                         block_height: block_height.into(),
