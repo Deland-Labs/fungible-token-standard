@@ -1,5 +1,5 @@
 use candid::{candid_method, Nat};
-use dft_basic::auto_scaling_storage::exec_auto_scaling_strategy;
+use dft_basic::auto_scaling_storage::AutoScalingStorageService;
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::*;
@@ -41,6 +41,7 @@ async fn batch_mint(
         })
         .collect();
 
-    exec_auto_scaling_strategy().await;
+    let auto_scaling_service = AutoScalingStorageService::new();
+    auto_scaling_service.exec_auto_scaling_strategy().await;
     batch_res
 }
