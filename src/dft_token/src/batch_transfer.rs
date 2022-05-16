@@ -48,7 +48,11 @@ async fn batch_transfer(
         })
         .collect();
 
+<<<<<<< HEAD
     let auto_scaling_service = AutoScalingStorageService::new(token_id);
+=======
+    let auto_scaling_service = AutoScalingStorageService::new();
+>>>>>>> 626ad9f (Fix: auto scaling)
     auto_scaling_service.exec_auto_scaling_strategy().await;
     batch_res
 }
@@ -100,7 +104,11 @@ async fn batch_transfer_from(
                 })
                 .collect();
 
+<<<<<<< HEAD
             let auto_scaling_service = AutoScalingStorageService::new(token_id);
+=======
+            let auto_scaling_service = AutoScalingStorageService::new();
+>>>>>>> 626ad9f (Fix: auto scaling)
             auto_scaling_service.exec_auto_scaling_strategy().await;
             batch_res
         }
