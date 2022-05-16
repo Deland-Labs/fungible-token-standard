@@ -14,6 +14,7 @@ async fn burn_from(
     created_at: Option<u64>,
 ) -> OperationResult {
     let caller = api::caller();
+    let token_id = api::id();
     let spender = TokenHolder::new(caller, from_sub_account);
     let owner_parse_res = owner.parse::<TokenHolder>();
     match owner_parse_res {
@@ -27,7 +28,7 @@ async fn burn_from(
                 api::time(),
             ) {
                 Ok((block_height, _, tx_hash)) => {
-                    let auto_scaling_service = AutoScalingStorageService::new();
+                    let auto_scaling_service = AutoScalingStorageService::new(token_id);
                     auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
@@ -50,10 +51,11 @@ async fn burn(
     created_at: Option<u64>,
 ) -> OperationResult {
     let caller = api::caller();
+    let token_id = api::id();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
     match dft_burnable::burn(&caller, &transfer_from, value.0, created_at, api::time()) {
         Ok((block_height, _, tx_hash)) => {
-            let auto_scaling_service = AutoScalingStorageService::new();
+            let auto_scaling_service = AutoScalingStorageService::new(token_id);
             auto_scaling_service.exec_auto_scaling_strategy().await;
             OperationResult::Ok {
                 tx_id: hex::encode(tx_hash.as_ref()),

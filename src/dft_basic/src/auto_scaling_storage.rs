@@ -3,11 +3,7 @@ use crate::service::blockchain_service;
 use candid::encode_args;
 use dft_types::constants::*;
 use dft_types::*;
-use ic_cdk::api::call::RejectionCode;
-use ic_cdk::{
-    api,
-    export::{candid::Nat, Principal},
-};
+use ic_cdk::export::{candid::Nat, Principal};
 use log::{debug, error, info};
 use std::collections::VecDeque;
 use std::ops::{Add, Sub};
@@ -18,13 +14,15 @@ const AUTO_SCALING_STORAGE_CANISTER_WASM: &[u8] =
     std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
 
 pub struct AutoScalingStorageService {
+    pub token_id: Principal,
     pub ic_management: Arc<dyn IICManagementAPI>,
     pub dft_tx_storage: Arc<dyn IDFTTxStorageAPI>,
 }
 
 impl AutoScalingStorageService {
-    pub fn new() -> Self {
+    pub fn new(token_id: Principal) -> Self {
         Self {
+            token_id,
             ic_management: Arc::new(ICManagementAPI::new()),
             dft_tx_storage: Arc::new(DFTTxStorageAPI::new()),
         }
@@ -55,7 +53,7 @@ impl AutoScalingStorageService {
             return;
         }
 
-        if (self.send_blocks_to_archive(blocks_to_archive).await).is_ok() {
+        if (self.send_blocks_to_archive(blocks_to_archive, archive_size_bytes).await).is_ok() {
             info!(
                 "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
                 archive_size_bytes, max_msg_size, num_blocks
@@ -78,7 +76,7 @@ impl AutoScalingStorageService {
 
     async fn get_or_create_available_storage_id(
         &self,
-        archive_size_bytes: u32,
+        archive_size_bytes: usize,
     ) -> CommonResult<Principal> {
         let mut last_storage_id = blockchain_service::last_auto_scaling_storage_canister_id();
 
@@ -92,13 +90,14 @@ impl AutoScalingStorageService {
             let status = self.ic_management.canister_status(req).await;
             match status {
                 Ok(res) => {
-                    info!(
-                        "current scaling storage used memory_size is {}",
-                        res.memory_size
+                    debug!(
+                        "current scaling storage used memory_size is {},max is {},available memory_size is {},archive_size_bytes is {}",
+                        res.memory_size, MAX_CANISTER_STORAGE_BYTES,MAX_CANISTER_STORAGE_BYTES - (res.memory_size.clone().0 + MIN_CANISTER_STORAGE_BYTES + archive_size_bytes.clone()),
+                        archive_size_bytes.clone()
                     );
-                    if (Nat::from(MAX_CANISTER_STORAGE_BYTES) - res.memory_size)
-                        .lt(&archive_size_bytes)
+                    if MAX_CANISTER_STORAGE_BYTES <= res.memory_size + MIN_CANISTER_STORAGE_BYTES + archive_size_bytes.clone()
                     {
+                        debug!("is_necessary_create_new_storage_canister");
                         is_necessary_create_new_storage_canister = true;
                     } else {
                         return Ok(last_storage_id.unwrap());
@@ -114,7 +113,7 @@ impl AutoScalingStorageService {
 
         if is_necessary_create_new_storage_canister {
             last_storage_id = blockchain_service::latest_storage_canister();
-            let token_id = api::id();
+            let token_id = self.token_id;
             let block_height_offset: Nat =
                 blockchain_service::scaling_storage_block_height_offset().into();
 
@@ -125,7 +124,7 @@ impl AutoScalingStorageService {
                     token_id,
                     block_height_offset,
                 )
-                .await?;
+                    .await?;
             } else {
                 let new_scaling_storage_canister_id = self
                     .create_new_scaling_storage_canister(token_id, block_height_offset)
@@ -166,7 +165,7 @@ impl AutoScalingStorageService {
                     token_id,
                     block_height_offset,
                 )
-                .await?;
+                    .await?;
                 Ok(cdr.canister_id)
             }
             Err(msg) => {
@@ -220,35 +219,18 @@ impl AutoScalingStorageService {
     async fn send_blocks_to_archive(
         &self,
         blocks_to_archive: VecDeque<EncodedBlock>,
+        archive_size_bytes: usize,
     ) -> CommonResult<()> {
         let storage_canister_id = self
-            .get_or_create_available_storage_id(blocks_to_archive.len() as u32)
+            .get_or_create_available_storage_id(archive_size_bytes)
             .await?;
 
         debug!("storage_canister_id is {}", storage_canister_id.to_text());
-        //save the txs to auto-scaling storage
-        let res: Result<(BooleanResult,), (RejectionCode, String)> =
-            api::call::call(storage_canister_id, "batchAppend", (blocks_to_archive,)).await;
-        match res {
-            Ok((res,)) => match res {
-                BooleanResult::Ok(sucess) => {
-                    if sucess {
-                        debug!("batchAppend success");
-                        Ok(())
-                    } else {
-                        error!("batchAppend failed");
-                        Err(DFTError::MoveTxToScalingStorageFailed)
-                    }
-                }
-                BooleanResult::Err(err) => Err(err.into()),
-            },
-            Err((_, msg)) => {
-                error!("batchAppend: save to auto-scaling storage failed,{0}", msg);
-                Err(DFTError::MoveTxToScalingStorageFailed)
-            }
-        }
+        self.dft_tx_storage
+            .batch_append(storage_canister_id, blocks_to_archive)
+            .await
     }
 }
-//
-// #[cfg(test)]
-// mod tests;
+
+#[cfg(test)]
+mod tests;

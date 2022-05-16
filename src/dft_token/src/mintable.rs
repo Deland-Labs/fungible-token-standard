@@ -26,13 +26,14 @@ fn remove_minter(minter: Principal, created_at: Option<u64>) -> BooleanResult {
 #[update(name = "mint")]
 #[candid_method(update, rename = "mint")]
 async fn mint(to: String, value: Nat, created_at: Option<u64>) -> OperationResult {
+    let token_id = api::id();
     let holder_parse_res = to.parse::<TokenHolder>();
 
     match holder_parse_res {
         Ok(holder) => {
             match dft_mintable::mint(&api::caller(), &holder, value.0, created_at, api::time()) {
                 Ok((block_height, _, tx_hash)) => {
-                    let auto_scaling_service = AutoScalingStorageService::new();
+                    let auto_scaling_service = AutoScalingStorageService::new(token_id);
                     auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
