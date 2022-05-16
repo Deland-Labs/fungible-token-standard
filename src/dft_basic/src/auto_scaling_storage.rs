@@ -29,6 +29,10 @@ impl AutoScalingStorageService {
         }
 =======
 
+// Auto-scaling tx  storage canister wasm package bytes
+const AUTO_SCALING_STORAGE_CANISTER_WASM: &[u8] =
+    std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
+
 pub struct AutoScalingStorageService {
     pub ic_management: Arc<dyn IICManagementAPI>,
     pub dft_tx_storage: Arc<dyn IDFTTxStorageAPI>,
@@ -463,6 +467,12 @@ impl AutoScalingStorageService {
             .await
     }
 }
+<<<<<<< HEAD
 
 #[cfg(test)]
 mod tests;
+=======
+//
+// #[cfg(test)]
+// mod tests;
+>>>>>>> 296c84f (Issue: async test)
