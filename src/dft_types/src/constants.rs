@@ -19,6 +19,3 @@ pub const DEFAULT_TRANSACTION_WINDOW: u64 = 24 * 60 * 60 * (10u64.pow(9));
 pub const DEFAULT_MAX_TRANSACTIONS_IN_WINDOW: u64 = 1_000_000u64;
 // permitted drift (nanos)
 pub const PERMITTED_DRIFT: u64 = 60 * (10u64.pow(9));
-// Auto-scaling tx  storage canister wasm package bytes
-pub const AUTO_SCALING_STORAGE_CANISTER_WASM: &[u8] =
-    std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
