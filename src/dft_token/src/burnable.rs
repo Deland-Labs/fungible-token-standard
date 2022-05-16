@@ -1,5 +1,5 @@
 use candid::{candid_method, Nat};
-use dft_basic::auto_scaling_storage::exec_auto_scaling_strategy;
+use dft_basic::auto_scaling_storage::AutoScalingStorageService;
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::*;
@@ -27,7 +27,8 @@ async fn burn_from(
                 api::time(),
             ) {
                 Ok((block_height, _, tx_hash)) => {
-                    exec_auto_scaling_strategy().await;
+                    let auto_scaling_service = AutoScalingStorageService::new();
+                    auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
                         block_height: block_height.into(),
@@ -52,7 +53,8 @@ async fn burn(
     let transfer_from = TokenHolder::new(caller, from_sub_account);
     match dft_burnable::burn(&caller, &transfer_from, value.0, created_at, api::time()) {
         Ok((block_height, _, tx_hash)) => {
-            exec_auto_scaling_strategy().await;
+            let auto_scaling_service = AutoScalingStorageService::new();
+            auto_scaling_service.exec_auto_scaling_strategy().await;
             OperationResult::Ok {
                 tx_id: hex::encode(tx_hash.as_ref()),
                 block_height: block_height.into(),
