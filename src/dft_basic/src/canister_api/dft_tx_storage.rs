@@ -1,7 +1,11 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 use std::collections::VecDeque;
 =======
 >>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
+=======
+use std::collections::VecDeque;
+>>>>>>> 202560d (Unit Test: auto scaling storage)
 use async_trait::async_trait;
 use candid::Principal;
 use dft_types::{BooleanResult, CommonResult, DFTError, EncodedBlock};
@@ -15,6 +19,7 @@ pub trait IDFTTxStorageAPI {
         &self,
         storage_canister_id: Principal,
 <<<<<<< HEAD
+<<<<<<< HEAD
         blocks: VecDeque<EncodedBlock>,
     ) -> CommonResult<()>;
 }
@@ -23,6 +28,9 @@ pub struct DFTTxStorageAPI;
 
 =======
         blocks: Vec<EncodedBlock>,
+=======
+        blocks: VecDeque<EncodedBlock>,
+>>>>>>> 202560d (Unit Test: auto scaling storage)
     ) -> CommonResult<()>;
 }
 
@@ -41,6 +49,7 @@ impl IDFTTxStorageAPI for DFTTxStorageAPI {
         &self,
         storage_canister_id: Principal,
 <<<<<<< HEAD
+<<<<<<< HEAD
         blocks: VecDeque<EncodedBlock>,
     ) -> CommonResult<()> {
         //save the txs to auto-scaling storage
@@ -50,13 +59,20 @@ impl IDFTTxStorageAPI for DFTTxStorageAPI {
             Ok((res, )) => match res {
 =======
         blocks: Vec<EncodedBlock>,
+=======
+        blocks: VecDeque<EncodedBlock>,
+>>>>>>> 202560d (Unit Test: auto scaling storage)
     ) -> CommonResult<()> {
         //save the txs to auto-scaling storage
-        let res: Result<(BooleanResult,), (RejectionCode, String)> =
-            api::call::call(storage_canister_id, "batchAppend", (blocks,)).await;
+        let res: Result<(BooleanResult, ), (RejectionCode, String)> =
+            api::call::call(storage_canister_id, "batchAppend", (blocks, )).await;
         match res {
+<<<<<<< HEAD
             Ok((res,)) => match res {
 >>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
+=======
+            Ok((res, )) => match res {
+>>>>>>> 202560d (Unit Test: auto scaling storage)
                 BooleanResult::Ok(sucess) => {
                     if sucess {
                         debug!("batchAppend success");

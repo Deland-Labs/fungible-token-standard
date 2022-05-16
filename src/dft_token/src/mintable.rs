@@ -34,10 +34,14 @@ async fn mint(to: String, value: Nat, created_at: Option<u64>) -> OperationResul
             match dft_mintable::mint(&api::caller(), &holder, value.0, created_at, api::time()) {
                 Ok((block_height, _, tx_hash)) => {
 <<<<<<< HEAD
+<<<<<<< HEAD
                     let auto_scaling_service = AutoScalingStorageService::new(token_id);
 =======
                     let auto_scaling_service = AutoScalingStorageService::new();
 >>>>>>> 626ad9f (Fix: auto scaling)
+=======
+                    let auto_scaling_service = AutoScalingStorageService::new(token_id);
+>>>>>>> 202560d (Unit Test: auto scaling storage)
                     auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),

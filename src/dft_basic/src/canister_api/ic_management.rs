@@ -4,10 +4,14 @@ use ic_cdk::export::candid::{CandidType, Nat, Principal};
 use serde::Deserialize;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #[derive(CandidType, Clone, Deserialize, Debug,PartialEq, PartialOrd, Ord, Eq)]
 =======
 #[derive(CandidType, Clone, Deserialize, Debug)]
 >>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
+=======
+#[derive(CandidType, Clone, Deserialize, Debug,PartialEq, PartialOrd, Ord, Eq)]
+>>>>>>> 202560d (Unit Test: auto scaling storage)
 pub struct CanisterIdRecord {
     pub canister_id: Principal,
 }
