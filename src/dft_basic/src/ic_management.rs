@@ -140,19 +140,3 @@ pub async fn install_canister(
     };
     Ok(())
 }
-
-pub async fn deposit_cycles(id_record: CanisterIdRecord) -> Result<(), String> {
-    let res: Result<(), _> = api::call::call(
-        Principal::management_canister(),
-        "canister_status",
-        (id_record,),
-    )
-    .await;
-    match res {
-        Ok(_) => Ok(()),
-        Err((code, msg)) => Err(format!(
-            "An error happened during the call: {}: {}",
-            code as u8, msg
-        )),
-    }
-}
