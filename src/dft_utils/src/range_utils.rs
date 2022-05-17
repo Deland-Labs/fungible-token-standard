@@ -63,21 +63,21 @@ mod tests {
             make_range(BigUint::from(0u32), 0),
             Range {
                 start: BigUint::from(0u32),
-                end: BigUint::from(0u32)
+                end: BigUint::from(0u32),
             }
         );
         assert_eq!(
             make_range(BigUint::from(0u32), 1),
             Range {
                 start: BigUint::from(0u32),
-                end: BigUint::from(1u32)
+                end: BigUint::from(1u32),
             }
         );
         assert_eq!(
             make_range(BigUint::from(10u32), 15),
             Range {
                 start: BigUint::from(10u32),
-                end: BigUint::from(25u32)
+                end: BigUint::from(25u32),
             }
         );
     }
@@ -88,6 +88,12 @@ mod tests {
         let range2 = make_range(BigUint::from(20u32), 25);
         let range3 = make_range(BigUint::from(20u32), 5);
         assert_eq!(intersect(&range1, &range2), range3);
+
+        let range1 = make_range(BigUint::from(0u32), 1000);
+        let range2 = make_range(BigUint::from(2000u32), 1000);
+        assert_eq!(intersect(&range1, &range2), Range { start: BigUint::from(2000u32), end: BigUint::from(1000u32) });
+
+        assert_eq!(head(&Range { start: BigUint::from(2000u32), end: BigUint::from(1000u32) }, 100), Range { start: BigUint::from(2000u32), end: BigUint::from(1000u32) });
     }
 
     #[test]

@@ -11,12 +11,14 @@ use std::sync::Once;
 
 static INIT: Once = Once::new();
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 pub(crate) fn canister_module_init() {
     INIT.call_once(|| {
         ICLogger::init();
     });
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[init]
 #[candid_method(init)]
 #[allow(clippy::too_many_arguments)]
@@ -61,48 +63,56 @@ async fn canister_init(
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "owner")]
 #[candid_method(query, rename = "owner")]
 fn owner() -> Principal {
     basic_service::owner()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "name")]
 #[candid_method(query, rename = "name")]
 fn get_name() -> String {
     basic_service::name()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "symbol")]
 #[candid_method(query, rename = "symbol")]
 fn get_symbol() -> String {
     basic_service::symbol()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "decimals")]
 #[candid_method(query, rename = "decimals")]
 fn get_decimals() -> u8 {
     basic_service::decimals()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "totalSupply")]
 #[candid_method(query, rename = "totalSupply")]
 fn get_total_supply() -> Nat {
     basic_service::total_supply().into()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
 fn get_fee_setting() -> CandidTokenFee {
     basic_service::fee().into()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
 fn get_meta_data() -> CandidTokenMetadata {
     basic_service::metadata().into()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "desc")]
 #[candid_method(query, rename = "desc")]
 fn get_desc_info() -> Vec<(String, String)> {
@@ -112,12 +122,14 @@ fn get_desc_info() -> Vec<(String, String)> {
         .collect()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "logo")]
 #[candid_method(query, rename = "logo")]
 fn logo() -> Vec<u8> {
     basic_service::logo().unwrap_or_default()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "balanceOf")]
 #[candid_method(query, rename = "balanceOf")]
 fn balance_of(holder: String) -> Nat {
@@ -128,6 +140,7 @@ fn balance_of(holder: String) -> Nat {
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "allowance")]
 #[candid_method(query, rename = "allowance")]
 fn allowance(owner: String, spender: String) -> Nat {
@@ -143,6 +156,7 @@ fn allowance(owner: String, spender: String) -> Nat {
     0u32.into()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "approve")]
 #[candid_method(update, rename = "approve")]
 async fn approve(
@@ -181,6 +195,7 @@ async fn approve(
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "allowancesOf")]
 #[candid_method(query, rename = "allowancesOf")]
 fn allowances_of_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
@@ -193,6 +208,7 @@ fn allowances_of_holder(holder: String) -> Vec<(TokenHolder, Nat)> {
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "transferFrom")]
 #[candid_method(update, rename = "transferFrom")]
 async fn transfer_from(
@@ -242,6 +258,7 @@ async fn transfer_from(
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "transfer")]
 #[candid_method(update, rename = "transfer")]
 async fn transfer(
@@ -287,6 +304,7 @@ async fn transfer(
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "tokenInfo")]
 #[candid_method(query, rename = "tokenInfo")]
 fn get_token_info() -> TokenInfo {
@@ -296,12 +314,14 @@ fn get_token_info() -> TokenInfo {
     token_info
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "blockByHeight")]
 #[candid_method(query, rename = "blockByHeight")]
 fn block_by_height(block_height: Nat) -> BlockResult {
     basic_service::block_by_height(block_height.0)
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "blocksByQuery")]
 #[candid_method(query, rename = "blocksByQuery")]
 fn blocks_by_query(start: Nat, count: usize) -> QueryBlocksResult {
@@ -310,6 +330,7 @@ fn blocks_by_query(start: Nat, count: usize) -> QueryBlocksResult {
     res
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "archives")]
 #[candid_method(query, rename = "archives")]
 fn archives() -> Vec<ArchiveInfo> {

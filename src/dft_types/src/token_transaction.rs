@@ -43,6 +43,7 @@ pub enum Operation {
     },
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(CandidType, Deserialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CandidOperation {
     Approve {
@@ -154,6 +155,7 @@ impl Transaction {
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(CandidType, Deserialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CandidTransaction {
     pub operation: CandidOperation,
