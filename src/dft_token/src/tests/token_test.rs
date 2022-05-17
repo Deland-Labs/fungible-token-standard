@@ -272,8 +272,8 @@ fn test_token_basic_set_desc(test_owner: Principal) {
         "TWITTER".to_owned(),
         "https://twitter.com/DelandLabs".to_owned(),
     )]
-    .into_iter()
-    .collect();
+        .into_iter()
+        .collect();
     // set desc by other caller will failed
     let res = management_service::set_desc(&other_caller(), new_desc.clone());
     assert!(res.is_err(), "set_desc should be err");
@@ -287,8 +287,8 @@ fn test_token_basic_set_desc(test_owner: Principal) {
         "TWITTER1".to_owned(),
         "https://twitter.com/DelandLabs1".to_owned(),
     )]
-    .into_iter()
-    .collect();
+        .into_iter()
+        .collect();
     let res = management_service::set_desc(&test_owner, new_desc1.clone());
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");
@@ -683,12 +683,13 @@ fn test_token_basic_mint_burn(
     #[case] test_token: (),
     test_owner: Principal,
     test_minter: Principal,
+    other_caller: Principal,
     now: u64,
 ) {
     let minter_holder = TokenHolder::new(test_minter, None);
 
     // mint token to from_holder
-    let mint_val = TokenAmount::from(10000u32);
+    let mint_val = TokenAmount::from(20000u32);
     // mint with not minter will fail
     let _mint_res = dft_mintable::mint(
         &test_owner,
@@ -742,9 +743,45 @@ fn test_token_basic_mint_burn(
     let owner_balance = basic_service::balance_of(&minter_holder);
     assert_eq!(owner_balance, mint_val.clone() - burn_val.clone());
 
+    // burn from
+    let burn_from_val = TokenAmount::from(1000u32);
+    let spender = TokenHolder::new(other_caller, None);
+    let approve_res = basic_service::approve(
+        &test_minter,
+        &minter_holder,
+        &spender,
+        burn_from_val.clone() * 2u32,
+        None,
+        now.clone(),
+    );
+
+    assert_eq!(approve_res.is_ok(), true);
+
+    let burn_res = dft_burnable::burn_from(
+        &other_caller,
+        &minter_holder,
+        &spender,
+        burn_from_val.clone(),
+        None,
+        now.clone(),
+    );
+
+    assert_eq!(burn_res.is_ok(), true);
     // check total supply
     let total_supply = basic_service::total_supply();
-    assert_eq!(total_supply, mint_val - burn_val);
+    assert_eq!(total_supply, mint_val - burn_val - burn_from_val.clone());
+
+
+    let burn_res = dft_burnable::burn_from(
+        &other_caller,
+        &minter_holder,
+        &spender,
+        1u32.into(),
+        None,
+        now.clone() + 1u64,
+    );
+
+    assert_eq!(burn_res, Err(DFTError::BurnValueTooSmall));
 
     // burn value less than minimum fee will fail
     let burn_val = TokenAmount::from(1u32);
@@ -755,7 +792,14 @@ fn test_token_basic_mint_burn(
         None,
         now.clone(),
     );
-    assert!(burn_res.is_err());
+    assert_eq!(burn_res, Err(DFTError::BurnValueTooSmall));
+
+    let token_metrics = basic_service::token_metrics();
+
+    assert_eq!(token_metrics.allowance_size, 1);
+    assert_eq!(token_metrics.total_block_count, 5);
+    assert_eq!(token_metrics.local_block_count, 5);
+    assert_eq!(token_metrics.holders, 2);
 }
 
 // test token approve/transfer_from/transfer anonymous call should fail

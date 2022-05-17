@@ -1,5 +1,5 @@
 use candid::{candid_method, Nat};
-use dft_basic::auto_scaling_storage::exec_auto_scaling_strategy;
+use dft_basic::auto_scaling_storage::AutoScalingStorageService;
 use dft_basic::service::basic_service;
 use dft_types::*;
 use dft_utils::ic_logger::ICLogger;
@@ -152,6 +152,7 @@ async fn approve(
     created_at: Option<u64>,
 ) -> OperationResult {
     let caller = api::caller();
+    let token_id = api::id();
     let owner_holder = TokenHolder::new(caller, owner_sub_account);
     match spender.parse::<TokenHolder>() {
         Ok(spender_holder) => {
@@ -166,7 +167,8 @@ async fn approve(
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
                     let tx_id = hex::encode(tx_hash.as_ref());
-                    exec_auto_scaling_strategy().await;
+                    let auto_scaling_service = AutoScalingStorageService::new(token_id);
+                    auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id,
                         block_height: block_height.into(),
@@ -201,6 +203,7 @@ async fn transfer_from(
     created_at: Option<u64>,
 ) -> OperationResult {
     let caller = api::caller();
+    let token_id = api::id();
     let now = api::time();
     let spender = TokenHolder::new(caller, spender_sub_account);
 
@@ -223,7 +226,8 @@ async fn transfer_from(
                 ) {
                     Ok((block_height, block_hash, tx_hash)) => {
                         set_certified_data(&block_hash);
-                        exec_auto_scaling_strategy().await;
+                        let auto_scaling_service = AutoScalingStorageService::new(token_id);
+                        auto_scaling_service.exec_auto_scaling_strategy().await;
                         OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
                             block_height: block_height.into(),
@@ -247,6 +251,7 @@ async fn transfer(
     created_at: Option<u64>,
 ) -> OperationResult {
     let caller = api::caller();
+    let token_id = api::id();
     let now = api::time();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
     let receiver_parse_result = to.parse::<TokenReceiver>();
@@ -268,7 +273,8 @@ async fn transfer(
             ) {
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
-                    exec_auto_scaling_strategy().await;
+                    let auto_scaling_service = AutoScalingStorageService::new(token_id);
+                    auto_scaling_service.exec_auto_scaling_strategy().await;
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
                         block_height: block_height.into(),

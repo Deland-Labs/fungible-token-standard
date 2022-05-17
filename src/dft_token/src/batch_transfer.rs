@@ -1,5 +1,5 @@
 use candid::{candid_method, Nat};
-use dft_basic::{auto_scaling_storage::exec_auto_scaling_strategy, service::basic_service};
+use dft_basic::{auto_scaling_storage::AutoScalingStorageService, service::basic_service};
 use dft_types::*;
 use ic_cdk::api;
 use ic_cdk_macros::*;
@@ -18,6 +18,7 @@ async fn batch_transfer(
     );
     let now = api::time();
     let caller = api::caller();
+    let token_id= api::id();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
 
     let batch_res: Vec<OperationResult> = transfer_requests //
@@ -47,7 +48,8 @@ async fn batch_transfer(
         })
         .collect();
 
-    exec_auto_scaling_strategy().await;
+    let auto_scaling_service = AutoScalingStorageService::new(token_id);
+    auto_scaling_service.exec_auto_scaling_strategy().await;
     batch_res
 }
 
@@ -64,6 +66,7 @@ async fn batch_transfer_from(
         "batch mint requests must be less than 500"
     );
     let caller = api::caller();
+    let token_id = api::id();
     let now = api::time();
     let spender = TokenHolder::new(caller, spender_sub_account);
 
@@ -97,7 +100,8 @@ async fn batch_transfer_from(
                 })
                 .collect();
 
-            exec_auto_scaling_strategy().await;
+            let auto_scaling_service = AutoScalingStorageService::new(token_id);
+            auto_scaling_service.exec_auto_scaling_strategy().await;
             batch_res
         }
         _ => api::trap(DFTError::InvalidArgFormatFrom.to_string().as_ref()),
