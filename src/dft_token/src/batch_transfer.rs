@@ -5,6 +5,7 @@ use ic_cdk::api;
 use ic_cdk_macros::*;
 use std::string::String;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "batchTransfer")]
 #[candid_method(update, rename = "batchTransfer")]
 async fn batch_transfer(
@@ -61,6 +62,7 @@ async fn batch_transfer(
     batch_res
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "batchTransferFrom")]
 #[candid_method(update, rename = "batchTransferFrom")]
 async fn batch_transfer_from(

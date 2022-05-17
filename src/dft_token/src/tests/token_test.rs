@@ -1,4 +1,4 @@
-use candid::Principal;
+use candid::{Principal};
 use dft_basic::service::{basic_service, management_service};
 use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
 use dft_types::*;
@@ -462,10 +462,12 @@ fn test_token_basic_approve(
     test_owner: Principal,
     test_minter: Principal,
     test_spender: Principal,
+    other_caller: Principal,
     now: u64,
 ) {
     let minter_holder = TokenHolder::new(test_minter.clone(), None);
     let spender_holder = TokenHolder::new(test_spender.clone(), None);
+    let other_holder = TokenHolder::new(other_caller.clone(), None);
 
     // mint token to owner_holder
     let mint_val = TokenAmount::from(10000u32);
@@ -518,6 +520,27 @@ fn test_token_basic_approve(
     // check total supply
     let total_supply = basic_service::total_supply();
     assert_eq!(total_supply, mint_val.clone());
+
+    // approve
+    let approve_rs = basic_service::approve(
+        &test_minter,
+        &minter_holder,
+        &other_holder,
+        approve_val.clone(),
+        None,
+        now,
+    );
+
+    let allowances = basic_service::allowances_of(&minter_holder);
+    assert_eq!(allowances.len(), 2);
+
+    for allowance in allowances.clone() {
+        if allowance.0.to_hex() == spender_holder.clone().to_hex() {
+            assert_eq!(allowance.1, new_approve_val, "{:?}", allowances.clone());
+        } else {
+            assert_eq!(allowance.1, approve_val, "{:?}", allowances.clone());
+        }
+    }
 }
 
 #[rstest]
