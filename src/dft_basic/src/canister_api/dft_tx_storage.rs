@@ -24,6 +24,7 @@ pub trait IDFTTxStorageAPI {
     ) -> CommonResult<()>;
 }
 #[derive(Default)]
+<<<<<<< HEAD
 pub struct DFTTxStorageAPI;
 
 =======
@@ -43,6 +44,10 @@ impl DFTTxStorageAPI {
 }
 
 >>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
+=======
+pub struct DFTTxStorageAPI;
+
+>>>>>>> 831bf3a (Fix: auto scaling storage test issue)
 #[async_trait]
 impl IDFTTxStorageAPI for DFTTxStorageAPI {
     async fn batch_append(

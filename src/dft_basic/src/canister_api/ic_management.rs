@@ -88,6 +88,7 @@ pub trait IICManagementAPI {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #[derive(Default)]
 pub struct ICManagementAPI;
 
@@ -101,6 +102,11 @@ impl ICManagementAPI {
 }
 
 >>>>>>> ebc4cf1 (Refactor: auto_scaling_storage for unit test)
+=======
+#[derive(Default)]
+pub struct ICManagementAPI;
+
+>>>>>>> 831bf3a (Fix: auto scaling storage test issue)
 #[async_trait]
 impl IICManagementAPI for ICManagementAPI {
     async fn create_canister(&self, args: CreateCanisterArgs) -> Result<CanisterIdRecord, String> {

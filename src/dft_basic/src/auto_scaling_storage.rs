@@ -43,8 +43,8 @@ impl AutoScalingStorageService {
     pub fn new(token_id: Principal) -> Self {
         Self {
             token_id,
-            ic_management: Arc::new(ICManagementAPI::new()),
-            dft_tx_storage: Arc::new(DFTTxStorageAPI::new()),
+            ic_management: Arc::new(ICManagementAPI::default()),
+            dft_tx_storage: Arc::new(DFTTxStorageAPI::default()),
         }
     }
     pub async fn exec_auto_scaling_strategy(&self) {
@@ -197,10 +197,10 @@ impl AutoScalingStorageService {
                 Ok(res) => {
                     debug!(
                         "current scaling storage used memory_size is {},max is {},available memory_size is {},archive_size_bytes is {}",
-                        res.memory_size, MAX_CANISTER_STORAGE_BYTES,MAX_CANISTER_STORAGE_BYTES - (res.memory_size.clone().0 + MIN_CANISTER_STORAGE_BYTES + archive_size_bytes.clone()),
+                        res.memory_size, MAX_CANISTER_STORAGE_BYTES,MAX_CANISTER_STORAGE_BYTES - (res.memory_size.clone().0 +  archive_size_bytes),
                         archive_size_bytes.clone()
                     );
-                    if MAX_CANISTER_STORAGE_BYTES <= res.memory_size + MIN_CANISTER_STORAGE_BYTES + archive_size_bytes.clone()
+                    if MAX_CANISTER_STORAGE_BYTES <= res.memory_size + archive_size_bytes
                     {
                         debug!("is_necessary_create_new_storage_canister");
                         is_necessary_create_new_storage_canister = true;

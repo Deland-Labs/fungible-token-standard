@@ -395,6 +395,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
 ) {
     test_token();
 <<<<<<< HEAD
+<<<<<<< HEAD
     let mut toggle_return = false;
 
     mock_ic_management_api
@@ -413,22 +414,30 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
             }
         });
 =======
+=======
+    let mut toggle_return = false;
+>>>>>>> 831bf3a (Fix: auto scaling storage test issue)
 
     mock_ic_management_api
         .expect_create_canister()
-
-        .return_once(|_| {
-            Ok(CanisterIdRecord {
-                canister_id: test_auto_scaling_storage_id2(),
-            })
-        })
-        .return_once(|_| {
-            Ok(CanisterIdRecord {
-                canister_id: test_auto_scaling_storage_id(),
-            })
+        .times(2)
+        .returning(move |_| {
+            if !toggle_return {
+                toggle_return = true;
+                Ok(CanisterIdRecord {
+                    canister_id: test_auto_scaling_storage_id(),
+                })
+            } else {
+                Ok(CanisterIdRecord {
+                    canister_id: test_auto_scaling_storage_id2(),
+                })
+            }
         });
+<<<<<<< HEAD
 
 >>>>>>> 202560d (Unit Test: auto scaling storage)
+=======
+>>>>>>> 831bf3a (Fix: auto scaling storage test issue)
     mock_ic_management_api
         .expect_canister_install()
         .returning(move |_, _, _| Ok(()));
@@ -447,6 +456,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
                 module_hash: None,
                 controller: test_token_id(),
 <<<<<<< HEAD
+<<<<<<< HEAD
                 memory_size: (MAX_CANISTER_STORAGE_BYTES - 161000u32)
                     .into(),
                 cycles: 0u32.into(),
@@ -460,6 +470,15 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
             })
         })
 >>>>>>> 202560d (Unit Test: auto scaling storage)
+=======
+                memory_size: (MAX_CANISTER_STORAGE_BYTES - 161000u32)
+                    .into(),
+                cycles: 0u32.into(),
+            })
+        });
+    mock_ic_management_api
+        .expect_canister_status()
+>>>>>>> 831bf3a (Fix: auto scaling storage test issue)
         .return_once(move |_| {
             Ok(CanisterStatusResponse {
                 status: CanisterStatus::Running,
@@ -471,6 +490,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
                 },
                 module_hash: None,
                 controller: test_token_id(),
+<<<<<<< HEAD
 <<<<<<< HEAD
                 memory_size: (MAX_CANISTER_STORAGE_BYTES - 100).into(),
                 cycles: 0u32.into(),
@@ -484,6 +504,12 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         });
 
 >>>>>>> 202560d (Unit Test: auto scaling storage)
+=======
+                memory_size: (MAX_CANISTER_STORAGE_BYTES - 100).into(),
+                cycles: 0u32.into(),
+            })
+        });
+>>>>>>> 831bf3a (Fix: auto scaling storage test issue)
     mock_dft_tx_storage_api
         .expect_batch_append()
         .returning(move |_, _| Ok(()));
@@ -502,6 +528,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         service.exec_auto_scaling_strategy().await;
 
 <<<<<<< HEAD
+<<<<<<< HEAD
         if i >= 2000u64 && i < 2999u64 {
             assert_eq!(
                 blockchain_service::last_auto_scaling_storage_canister_id().unwrap(),
@@ -513,6 +540,13 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
                 blockchain_service::last_auto_scaling_storage_canister_id().unwrap(),
                 test_auto_scaling_storage_id()
 >>>>>>> 202560d (Unit Test: auto scaling storage)
+=======
+        if i >= 2000u64 && i < 2999u64 {
+            assert_eq!(
+                blockchain_service::last_auto_scaling_storage_canister_id().unwrap(),
+                test_auto_scaling_storage_id(),
+                "last {},test {}", blockchain_service::last_auto_scaling_storage_canister_id().unwrap().to_text(), test_auto_scaling_storage_id().to_text()
+>>>>>>> 831bf3a (Fix: auto scaling storage test issue)
             );
         }
         if i >= 3000u64 {
