@@ -5,6 +5,7 @@ use ic_cdk::api;
 use ic_cdk_macros::*;
 use std::string::String;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "batchMint")]
 #[candid_method(update, rename = "batchMint")]
 async fn batch_mint(

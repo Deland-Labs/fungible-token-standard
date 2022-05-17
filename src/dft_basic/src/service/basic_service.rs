@@ -285,25 +285,33 @@ pub fn blocks_by_query(start: BlockHeight, count: usize) -> QueryBlocksResult {
             MAX_BLOCKS_PER_REQUEST as usize,
         );
 
-        let local_start: usize = (effective_local_range.start.clone() - local_range.start)
-            .try_into()
-            .unwrap();
-        let range_len: usize = range_utils::range_len(&effective_local_range)
-            .try_into()
-            .unwrap();
-        let local_end = local_start + range_len;
+        let local_blocks: Vec<CandidBlock> = if !effective_local_range.is_empty() {
+            let local_start: usize = (effective_local_range.start.clone() - local_range.start)
+                .try_into()
+                .unwrap();
+            let range_len: usize = range_utils::range_len(&effective_local_range)
+                .try_into()
+                .unwrap();
+            let local_end = local_start + range_len;
 
-        let local_blocks: Vec<CandidBlock> = blockchain.blocks[local_start..local_end]
-            .iter()
-            .map(|enc_block| -> CandidBlock {
-                enc_block
-                    .decode()
-                    .expect("bug: failed to decode encoded block")
-                    .into()
-            })
-            .collect();
+            blockchain.blocks[local_start..local_end]
+                .iter()
+                .map(|enc_block| -> CandidBlock {
+                    enc_block
+                        .decode()
+                        .expect("bug: failed to decode encoded block")
+                        .into()
+                })
+                .collect()
+        } else {
+            Vec::new()
+        };
 
-        let archived_blocks_range = requested_range.start..effective_local_range.start.clone();
+        let archived_blocks_range = if effective_local_range.is_empty() {
+            requested_range
+        } else {
+            requested_range.start..effective_local_range.start.clone()
+        };
 
         let archived_blocks = blockchain
             .archive

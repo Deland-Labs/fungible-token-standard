@@ -2,7 +2,7 @@ use super::AutoScalingStorageService;
 use crate::canister_api::*;
 use crate::service::{basic_service, blockchain_service, management_service};
 use async_trait::async_trait;
-use candid::Principal;
+use candid::{Nat, Principal};
 use dft_types::constants::{
     DEFAULT_FEE_RATE_DECIMALS, MAX_CANISTER_STORAGE_BYTES, MIN_CANISTER_STORAGE_BYTES,
 };
@@ -467,6 +467,20 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         assert_eq!(call_res.is_ok(), true);
         service.exec_auto_scaling_strategy().await;
 
+        let block_res = basic_service::block_by_height(i.into());
+
+        match block_res {
+            BlockResult::Ok(block) => {
+                assert_eq!(block.timestamp, now.clone() + i);
+            }
+            BlockResult::Err(e) => {
+                assert!(false, "Error: {:?}", e);
+            }
+            BlockResult::Forward(f) => {
+                assert!(false, "Forward: {:?}", f);
+            }
+        }
+
         if i >= 2000u64 && i < 2999u64 {
             assert_eq!(
                 blockchain_service::last_auto_scaling_storage_canister_id().unwrap(),
@@ -486,4 +500,59 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         blockchain_service::archived_blocks_num(),
         BigUint::from(2000u32)
     );
+
+    let block_res = basic_service::block_by_height(999u32.into());
+
+    match block_res {
+        BlockResult::Forward(f) => {
+            assert_eq!(f, test_auto_scaling_storage_id());
+        }
+        _ => { assert!(false, "Error: {:?}", block_res); }
+    }
+
+    let block_res = basic_service::block_by_height(1000u32.into());
+
+    match block_res {
+        BlockResult::Forward(f) => {
+            assert_eq!(f, test_auto_scaling_storage_id2());
+        }
+        _ => { assert!(false, "Error: {:?}", block_res); }
+    }
+
+    let block_res = basic_service::block_by_height(2000u32.into());
+
+    match block_res {
+        BlockResult::Ok(block) => {
+            assert_eq!(block.timestamp, now.clone() + 2000u64);
+        }
+        BlockResult::Err(e) => {
+            assert!(false, "Error: {:?}", e);
+        }
+        BlockResult::Forward(f) => {
+            assert!(false, "Forward: {:?}", f);
+        }
+    }
+
+    let block_res = basic_service::blocks_by_query(0u32.into(), 100);
+
+    assert_eq!(block_res.chain_length, Nat::from(3001u32));
+    assert_eq!(block_res.blocks.len(), 0);
+    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
+    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
+        start: Nat::from(0u32),
+        length: 100,
+        storage_canister_id: test_auto_scaling_storage_id(),
+    }]);
+
+    let block_res = basic_service::blocks_by_query(1000u32.into(), 100);
+
+    assert_eq!(block_res.chain_length, Nat::from(3001u32));
+    assert_eq!(block_res.blocks.len(), 0);
+    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
+    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
+        start: Nat::from(1000u32),
+        length: 100,
+        storage_canister_id: test_auto_scaling_storage_id2(),
+    }]);
 }
+
