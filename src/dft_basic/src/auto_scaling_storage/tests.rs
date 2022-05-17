@@ -25,18 +25,6 @@ fn other_caller() -> Principal {
     Principal::from_text("qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe").unwrap()
 }
 
-// minter
-#[fixture]
-fn test_minter() -> Principal {
-    Principal::from_text("o5y7v-htz2q-vk7fc-cqi4m-bqvwa-eth75-sc2wz-ubuev-curf2-rbipe-tae").unwrap()
-}
-
-// spender
-#[fixture]
-fn test_spender() -> Principal {
-    Principal::from_text("7zap4-dnqjf-k2oei-jj2uj-sw6db-eksrj-kzc5h-nmki4-x5fcn-w53an-gae").unwrap()
-}
-
 #[fixture]
 fn test_fee_to() -> Principal {
     Principal::from_text("7b6mv-nyoey-gkj2b-2r6mp-fa2rr-6ktwc-qrx7e-l3eax-32jd7-ahwnj-3qe").unwrap()
@@ -468,14 +456,10 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         assert_eq!(call_res.is_ok(), true);
         service.exec_auto_scaling_strategy().await;
 
-
         let block_res = basic_service::block_by_height(i.into());
 
-        match block_res {
-            BlockResult::Ok(block) => {
-                assert_eq!(block.timestamp, now.clone() + i);
-            }
-            _ => {}
+        if let BlockResult::Ok(block) = block_res {
+            assert_eq!(block.timestamp, now.clone() + i);
         }
 
         if i >= 2000u64 && i < 2999u64 {
@@ -491,31 +475,61 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
             );
         }
     }
-
-    assert_eq!(
-        blockchain_service::archived_blocks_num(),
-        BigUint::from(2000u32)
-    );
+    assert_eq!(blockchain_service::archived_blocks_num(), BigUint::from(2000u32));
 
     let block_res = basic_service::block_by_height(999u32.into());
 
-    if let BlockResult::Forward(f) = block_res {
-        assert_eq!(f, test_auto_scaling_storage_id());
-    }
+    if let BlockResult::Forward(f) = block_res { assert_eq!(f, test_auto_scaling_storage_id()); }
 
     let block_res = basic_service::block_by_height(1000u32.into());
 
-    if let BlockResult::Forward(f) = block_res {
-        assert_eq!(f, test_auto_scaling_storage_id2());
-    }
+    if let BlockResult::Forward(f) = block_res { assert_eq!(f, test_auto_scaling_storage_id2()); }
 
     let block_res = basic_service::block_by_height(2000u32.into());
 
-    if let BlockResult::Ok(block) = block_res {
-        assert_eq!(block.timestamp, now.clone() + 2000u64);
-    }
+    if let BlockResult::Ok(block) = block_res { assert_eq!(block.timestamp, now.clone() + 2000u64); }
 
     let block_res = basic_service::block_by_height(3001u32.into());
 
     assert_eq!(block_res, BlockResult::Err(DFTError::NonExistentBlockHeight.into()));
+
+    let block_res = basic_service::blocks_by_query(0u32.into(), 100);
+
+    assert_eq!(block_res.chain_length, Nat::from(3001u32));
+    assert_eq!(block_res.blocks.len(), 0);
+    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
+    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
+        start: Nat::from(0u32),
+        length: 100,
+        storage_canister_id: test_auto_scaling_storage_id(),
+    }]);
+
+    let block_res = basic_service::blocks_by_query(1000u32.into(), 100);
+
+    assert_eq!(block_res.chain_length, Nat::from(3001u32));
+    assert_eq!(block_res.blocks.len(), 0);
+    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
+    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
+        start: Nat::from(1000u32),
+        length: 100,
+        storage_canister_id: test_auto_scaling_storage_id2(),
+    }]);
+
+    let block_res = basic_service::blocks_by_query(1990u32.into(), 100);
+
+    assert_eq!(block_res.chain_length, Nat::from(3001u32));
+    assert_eq!(block_res.blocks.len(), 90);
+    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
+    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
+        start: Nat::from(1990u32),
+        length: 10,
+        storage_canister_id: test_auto_scaling_storage_id2(),
+    }]);
+
+    let block_res = basic_service::blocks_by_query(2000u32.into(), 100);
+
+    assert_eq!(block_res.chain_length, Nat::from(3001u32));
+    assert_eq!(block_res.blocks.len(), 100);
+    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
+    assert_eq!(block_res.archived_blocks, vec![]);
 }
