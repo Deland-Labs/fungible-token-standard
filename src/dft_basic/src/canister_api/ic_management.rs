@@ -82,6 +82,7 @@ pub trait IICManagementAPI {
 #[derive(Default)]
 pub struct ICManagementAPI;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[async_trait]
 impl IICManagementAPI for ICManagementAPI {
     async fn create_canister(&self, args: CreateCanisterArgs) -> Result<CanisterIdRecord, String> {

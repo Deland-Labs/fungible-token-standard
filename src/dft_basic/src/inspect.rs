@@ -33,6 +33,8 @@ static OWNER_METHODS: [&str; 6] = [
 static HOLDER_METHODS: [&str; 3] = ["approve", "transfer", "burn"];
 
 //static SPENDER_METHODS: [&str; 3] = ["transferFrom", "burnFrom"];
+
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[inspect_message]
 fn inspect_message() {
     let method = api::call::method_name();
