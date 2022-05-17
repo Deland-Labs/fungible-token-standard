@@ -14,14 +14,8 @@ pub trait IDFTTxStorageAPI {
         blocks: VecDeque<EncodedBlock>,
     ) -> CommonResult<()>;
 }
-
+#[derive(Default)]
 pub struct DFTTxStorageAPI;
-
-impl DFTTxStorageAPI {
-    pub fn new() -> Self {
-        Self
-    }
-}
 
 #[async_trait]
 impl IDFTTxStorageAPI for DFTTxStorageAPI {

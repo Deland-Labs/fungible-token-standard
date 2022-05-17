@@ -79,13 +79,8 @@ pub trait IICManagementAPI {
     ) -> Result<(), String>;
 }
 
+#[derive(Default)]
 pub struct ICManagementAPI;
-
-impl ICManagementAPI {
-    pub fn new() -> Self {
-        Self
-    }
-}
 
 #[async_trait]
 impl IICManagementAPI for ICManagementAPI {

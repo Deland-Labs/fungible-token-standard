@@ -394,21 +394,23 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
     now: u64,
 ) {
     test_token();
+    let mut toggle_return = false;
 
     mock_ic_management_api
         .expect_create_canister()
-
-        .return_once(|_| {
-            Ok(CanisterIdRecord {
-                canister_id: test_auto_scaling_storage_id2(),
-            })
-        })
-        .return_once(|_| {
-            Ok(CanisterIdRecord {
-                canister_id: test_auto_scaling_storage_id(),
-            })
+        .times(2)
+        .returning(move |_| {
+            if !toggle_return {
+                toggle_return = true;
+                Ok(CanisterIdRecord {
+                    canister_id: test_auto_scaling_storage_id(),
+                })
+            } else {
+                Ok(CanisterIdRecord {
+                    canister_id: test_auto_scaling_storage_id2(),
+                })
+            }
         });
-
     mock_ic_management_api
         .expect_canister_install()
         .returning(move |_, _, _| Ok(()));
@@ -426,10 +428,13 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
                 },
                 module_hash: None,
                 controller: test_token_id(),
-                memory_size: (MAX_CANISTER_STORAGE_BYTES - MIN_CANISTER_STORAGE_BYTES - 100).into(),
+                memory_size: (MAX_CANISTER_STORAGE_BYTES - 161000u32)
+                    .into(),
                 cycles: 0u32.into(),
             })
-        })
+        });
+    mock_ic_management_api
+        .expect_canister_status()
         .return_once(move |_| {
             Ok(CanisterStatusResponse {
                 status: CanisterStatus::Running,
@@ -441,12 +446,10 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
                 },
                 module_hash: None,
                 controller: test_token_id(),
-                memory_size: (MAX_CANISTER_STORAGE_BYTES - MIN_CANISTER_STORAGE_BYTES - 161000u32)
-                    .into(),
+                memory_size: (MAX_CANISTER_STORAGE_BYTES - 100).into(),
                 cycles: 0u32.into(),
             })
         });
-
     mock_dft_tx_storage_api
         .expect_batch_append()
         .returning(move |_, _| Ok(()));
@@ -464,10 +467,11 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         assert_eq!(call_res.is_ok(), true);
         service.exec_auto_scaling_strategy().await;
 
-        if i >= 2000u64 {
+        if i >= 2000u64 && i < 2999u64 {
             assert_eq!(
                 blockchain_service::last_auto_scaling_storage_canister_id().unwrap(),
-                test_auto_scaling_storage_id()
+                test_auto_scaling_storage_id(),
+                "last {},test {}", blockchain_service::last_auto_scaling_storage_canister_id().unwrap().to_text(), test_auto_scaling_storage_id().to_text()
             );
         }
         if i >= 3000u64 {
