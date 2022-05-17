@@ -52,7 +52,7 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
 }
 
 #[cfg_attr(coverage_nightly, no_coverage)]
-#[derive(CandidType, Debug, Clone)]
+#[derive(CandidType, Debug, Clone,PartialEq,   Eq)]
 pub enum BlockResult {
     // Return tx record if exist in the DFT cache txs
     Ok(CandidBlock),

@@ -475,14 +475,13 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
             BlockResult::Ok(block) => {
                 assert_eq!(block.timestamp, now.clone() + i);
             }
-            _ => { panic!("Not exception error"); }
+            _ => {}
         }
 
         if i >= 2000u64 && i < 2999u64 {
             assert_eq!(
                 blockchain_service::last_auto_scaling_storage_canister_id().unwrap(),
-                test_auto_scaling_storage_id(),
-                "last {},test {}", blockchain_service::last_auto_scaling_storage_canister_id().unwrap().to_text(), test_auto_scaling_storage_id().to_text()
+                test_auto_scaling_storage_id()
             );
         }
         if i >= 3000u64 {
@@ -500,50 +499,23 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
 
     let block_res = basic_service::block_by_height(999u32.into());
 
-    match block_res {
-        BlockResult::Forward(f) => {
-            assert_eq!(f, test_auto_scaling_storage_id());
-        }
-        _ => { panic!("Not exception error"); }
+    if let BlockResult::Forward(f) = block_res {
+        assert_eq!(f, test_auto_scaling_storage_id());
     }
 
     let block_res = basic_service::block_by_height(1000u32.into());
 
-    match block_res {
-        BlockResult::Forward(f) => {
-            assert_eq!(f, test_auto_scaling_storage_id2());
-        }
-        _ => { panic!("Not exception error"); }
+    if let BlockResult::Forward(f) = block_res {
+        assert_eq!(f, test_auto_scaling_storage_id2());
     }
 
     let block_res = basic_service::block_by_height(2000u32.into());
 
-    match block_res {
-        BlockResult::Ok(block) => {
-            assert_eq!(block.timestamp, now.clone() + 2000u64);
-        }
-        _ => { panic!("Not exception error"); }
+    if let BlockResult::Ok(block) = block_res {
+        assert_eq!(block.timestamp, now.clone() + 2000u64);
     }
 
-    let block_res = basic_service::blocks_by_query(0u32.into(), 100);
+    let block_res = basic_service::block_by_height(3001u32.into());
 
-    assert_eq!(block_res.chain_length, Nat::from(3001u32));
-    assert_eq!(block_res.blocks.len(), 0);
-    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
-    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
-        start: Nat::from(0u32),
-        length: 100,
-        storage_canister_id: test_auto_scaling_storage_id(),
-    }]);
-
-    let block_res = basic_service::blocks_by_query(1000u32.into(), 100);
-
-    assert_eq!(block_res.chain_length, Nat::from(3001u32));
-    assert_eq!(block_res.blocks.len(), 0);
-    assert_eq!(block_res.first_block_index, Nat::from(2000u32));
-    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
-        start: Nat::from(1000u32),
-        length: 100,
-        storage_canister_id: test_auto_scaling_storage_id2(),
-    }]);
+    assert_eq!(block_res, BlockResult::Err(DFTError::NonExistentBlockHeight.into()));
 }
