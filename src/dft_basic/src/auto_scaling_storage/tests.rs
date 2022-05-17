@@ -475,12 +475,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
             BlockResult::Ok(block) => {
                 assert_eq!(block.timestamp, now.clone() + i);
             }
-            BlockResult::Err(e) => {
-                assert!(false, "Error: {:?}", e);
-            }
-            BlockResult::Forward(f) => {
-                assert!(false, "Forward: {:?}", f);
-            }
+            _ => { panic!("Not exception error"); }
         }
 
         if i >= 2000u64 && i < 2999u64 {
@@ -509,7 +504,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         BlockResult::Forward(f) => {
             assert_eq!(f, test_auto_scaling_storage_id());
         }
-        _ => { assert!(false, "Error: {:?}", block_res); }
+        _ => { panic!("Not exception error"); }
     }
 
     let block_res = basic_service::block_by_height(1000u32.into());
@@ -518,7 +513,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         BlockResult::Forward(f) => {
             assert_eq!(f, test_auto_scaling_storage_id2());
         }
-        _ => { assert!(false, "Error: {:?}", block_res); }
+        _ => { panic!("Not exception error"); }
     }
 
     let block_res = basic_service::block_by_height(2000u32.into());
@@ -527,12 +522,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
         BlockResult::Ok(block) => {
             assert_eq!(block.timestamp, now.clone() + 2000u64);
         }
-        BlockResult::Err(e) => {
-            assert!(false, "Error: {:?}", e);
-        }
-        BlockResult::Forward(f) => {
-            assert!(false, "Forward: {:?}", f);
-        }
+        _ => { panic!("Not exception error"); }
     }
 
     let block_res = basic_service::blocks_by_query(0u32.into(), 100);
