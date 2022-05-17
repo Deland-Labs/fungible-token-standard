@@ -913,3 +913,13 @@ fn test_token_basic_minters_add_remove(test_owner: Principal, test_minter: Princ
     let minters = dft_mintable::minters();
     assert_eq!(minters.len(), 0);
 }
+
+#[rstest]
+fn test_set_owner(test_owner: Principal, other_caller: Principal, now: u64) {
+    test_token_with_0_fee_rate();
+    let res = management_service::set_owner(&test_owner, other_caller, None,now);
+    assert!(res.is_ok());
+    assert_eq!(basic_service::owner(), other_caller);
+    let res = management_service::set_owner(&test_owner, other_caller, None,now);
+    assert_eq!(res, Err(DFTError::OnlyOwnerAllowCallIt));
+}

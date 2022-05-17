@@ -17,6 +17,7 @@ pub trait IDFTTxStorageAPI {
 #[derive(Default)]
 pub struct DFTTxStorageAPI;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[async_trait]
 impl IDFTTxStorageAPI for DFTTxStorageAPI {
     async fn batch_append(
