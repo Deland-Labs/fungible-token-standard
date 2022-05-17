@@ -94,4 +94,16 @@ mod tests {
         assert_eq!(candid_fee.rate, 1);
         assert_eq!(candid_fee.rate_decimals, 8);
     }
+    #[test]
+    fn test_from_candid_fee_to_token_fee() {
+        let fee = CandidTokenFee {
+            minimum: 1u32.into(),
+            rate: 1u32,
+            rate_decimals: 8u8,
+        };
+        let token_fee = TokenFee::from(fee.clone());
+        assert_eq!(token_fee.minimum, fee.minimum.0);
+        assert_eq!(token_fee.rate, fee.rate);
+        assert_eq!(token_fee.rate_decimals, fee.rate_decimals);
+    }
 }

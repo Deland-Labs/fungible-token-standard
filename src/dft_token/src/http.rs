@@ -6,6 +6,7 @@ use ic_cdk_macros::query;
 use json_pretty::PrettyFormatter;
 use log::debug;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query]
 #[candid_method(query, rename = "http_request")]
 fn http_request(req: HttpRequest) -> HttpResponse {

@@ -51,7 +51,8 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
     }
 }
 
-#[derive(CandidType, Debug, Clone)]
+#[cfg_attr(coverage_nightly, no_coverage)]
+#[derive(CandidType, Debug, Clone,PartialEq,   Eq)]
 pub enum BlockResult {
     // Return tx record if exist in the DFT cache txs
     Ok(CandidBlock),
@@ -69,7 +70,8 @@ pub enum BlockListResult {
     Err(ErrorInfo),
 }
 
-#[derive(Debug, CandidType, Deserialize)]
+#[cfg_attr(coverage_nightly, no_coverage)]
+#[derive(Debug, CandidType, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ArchivedBlocksRange {
     pub start: Nat,
     pub length: u64,
@@ -77,6 +79,7 @@ pub struct ArchivedBlocksRange {
     pub storage_canister_id: Principal,
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(Debug, CandidType, Deserialize)]
 pub struct QueryBlocksResult {
     #[serde(rename = "chainLength")]
@@ -92,6 +95,7 @@ pub struct QueryBlocksResult {
 pub type TransactionList = Vec<Transaction>;
 pub type CandidTransactionList = Vec<CandidTransaction>;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(CandidType, Debug, Clone)]
 pub enum TransactionResult {
     // Return tx if exist in the DFT cache txs
@@ -165,7 +169,7 @@ mod tests {
             operation_result,
             OperationResult::Ok {
                 tx_id: hex::encode(tx_hash),
-                block_height: block_height.into()
+                block_height: block_height.into(),
             }
         );
     }

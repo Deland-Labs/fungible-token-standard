@@ -5,6 +5,7 @@ use ic_cdk::api;
 use ic_cdk_macros::*;
 use std::string::String;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "burnFrom")]
 #[candid_method(update, rename = "burnFrom")]
 async fn burn_from(
@@ -43,6 +44,7 @@ async fn burn_from(
     }
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "burn")]
 #[candid_method(update, rename = "burn")]
 async fn burn(

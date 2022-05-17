@@ -5,24 +5,28 @@ use ic_cdk::api;
 use ic_cdk_macros::*;
 use std::string::String;
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "minters")]
 #[candid_method(query, rename = "minters")]
 fn minters() -> Vec<Principal> {
     dft_mintable::minters()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "addMinter")]
 #[candid_method(update, rename = "addMinter")]
 fn add_minter(minter: Principal, created_at: Option<u64>) -> BooleanResult {
     dft_mintable::add_minter(&api::caller(), minter, created_at, api::time()).into()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "removeMinter")]
 #[candid_method(update, rename = "removeMinter")]
 fn remove_minter(minter: Principal, created_at: Option<u64>) -> BooleanResult {
     dft_mintable::remove_minter(&api::caller(), minter, created_at, api::time()).into()
 }
 
+#[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "mint")]
 #[candid_method(update, rename = "mint")]
 async fn mint(to: String, value: Nat, created_at: Option<u64>) -> OperationResult {
