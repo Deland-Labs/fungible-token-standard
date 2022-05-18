@@ -8,6 +8,7 @@ use ic_cdk::{api, export::Principal};
 use ic_cdk_macros::*;
 use std::string::String;
 use std::sync::Once;
+use dft_basic::canister_api::{ITransferNotifyAPI, TransferNotifyAPI};
 
 static INIT: Once = Once::new();
 
@@ -242,8 +243,8 @@ async fn transfer_from(
                 ) {
                     Ok((block_height, block_hash, tx_hash)) => {
                         set_certified_data(&block_hash);
-                        let auto_scaling_service = AutoScalingStorageService::new(token_id);
-                        auto_scaling_service.exec_auto_scaling_strategy().await;
+                        AutoScalingStorageService::new(token_id).exec_auto_scaling_strategy().await;
+                        TransferNotifyAPI::default().notify(&to, &from_token_holder, &value.0);
                         OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
                             block_height: block_height.into(),
@@ -290,8 +291,8 @@ async fn transfer(
             ) {
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
-                    let auto_scaling_service = AutoScalingStorageService::new(token_id);
-                    auto_scaling_service.exec_auto_scaling_strategy().await;
+                    AutoScalingStorageService::new(token_id).exec_auto_scaling_strategy().await;
+                    TransferNotifyAPI::default().notify(&to, &transfer_from, &value.0);
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
                         block_height: block_height.into(),
