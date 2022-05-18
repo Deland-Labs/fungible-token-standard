@@ -1,9 +1,17 @@
-use crate::{BlockHash, CandidTransaction, CommonResult, DFTError, Transaction};
+use crate::{BlockHash, Transaction, CommonResult, DFTError, InnerTransaction};
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use std::borrow::Cow;
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
+pub struct InnerBlock {
+    #[serde(rename = "parentHash")]
+    pub parent_hash: BlockHash,
+    pub transaction: InnerTransaction,
+    pub timestamp: u64,
+}
+
+#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct Block {
     #[serde(rename = "parentHash")]
     pub parent_hash: BlockHash,
@@ -11,17 +19,9 @@ pub struct Block {
     pub timestamp: u64,
 }
 
-#[derive(CandidType, Deserialize, Clone, Debug, PartialEq, Eq)]
-pub struct CandidBlock {
-    #[serde(rename = "parentHash")]
-    pub parent_hash: BlockHash,
-    pub transaction: CandidTransaction,
-    pub timestamp: u64,
-}
-
-impl From<Block> for CandidBlock {
-    fn from(block: Block) -> Self {
-        CandidBlock {
+impl From<InnerBlock> for Block {
+    fn from(block: InnerBlock) -> Self {
+        Block {
             parent_hash: block.parent_hash,
             transaction: block.transaction.into(),
             timestamp: block.timestamp,
@@ -29,11 +29,11 @@ impl From<Block> for CandidBlock {
     }
 }
 
-impl Block {
+impl InnerBlock {
     pub fn new_from_transaction(
         token_id: &Principal,
         parent_hash: Option<BlockHash>,
-        transaction: Transaction,
+        transaction: InnerTransaction,
         timestamp: u64,
     ) -> Self {
         Self {
@@ -58,7 +58,7 @@ impl Block {
         self.parent_hash
     }
 
-    pub fn transaction(&self) -> Cow<Transaction> {
+    pub fn transaction(&self) -> Cow<InnerTransaction> {
         Cow::Borrowed(&self.transaction)
     }
 
@@ -84,9 +84,9 @@ impl EncodedBlock {
         dft_utils::sha256::compute_hash(&combine_bytes)
     }
 
-    pub fn decode(&self) -> CommonResult<Block> {
+    pub fn decode(&self) -> CommonResult<InnerBlock> {
         let bytes = self.0.to_vec();
-        let block = bincode::deserialize::<Block>(&bytes[..]);
+        let block = bincode::deserialize::<InnerBlock>(&bytes[..]);
         match block {
             Ok(b) => Ok(b),
             Err(e) => Err(DFTError::Unknown {
@@ -111,13 +111,13 @@ impl EncodedBlock {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{CandidOperation, TokenHolder, Operation};
+    use crate::{Operation, TokenHolder, InnerOperation};
     use dft_utils::sha256::compute_hash;
     use std::convert::TryInto;
 
     #[test]
     fn test_block_size() {
-        let block_size = std::mem::size_of::<Block>();
+        let block_size = std::mem::size_of::<InnerBlock>();
         let should_be_size = 184;
         assert_eq!(should_be_size, block_size);
     }
@@ -139,15 +139,15 @@ mod tests {
             .as_nanos()
             .try_into()
             .unwrap();
-        let transaction = Transaction {
-            operation: Operation::FeeToModify {
+        let transaction = InnerTransaction {
+            operation: InnerOperation::FeeToModify {
                 caller: caller.clone(),
                 new_fee_to: TokenHolder::new(new_fee_to.clone(), None),
             },
             created_at: now,
         };
         let block =
-            Block::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
+            InnerBlock::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
         let encoded_block = block.clone().encode().unwrap();
         let decoded_block = encoded_block.clone().decode().unwrap();
         assert_eq!(block, decoded_block);
@@ -181,18 +181,18 @@ mod tests {
             .as_nanos()
             .try_into()
             .unwrap();
-        let transaction = Transaction {
-            operation: Operation::OwnerModify {
+        let transaction = InnerTransaction {
+            operation: InnerOperation::OwnerModify {
                 caller: caller.clone(),
                 new_owner: new_owner.clone(),
             },
             created_at: now,
         };
         let block =
-            Block::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
-        let candidate_block: CandidBlock = block.into();
+            InnerBlock::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
+        let candidate_block: Block = block.into();
 
-        if let CandidOperation::OwnerModify { caller, new_owner } =
+        if let Operation::OwnerModify { caller, new_owner } =
         candidate_block.transaction.operation
         {
             assert_eq!(caller, caller);

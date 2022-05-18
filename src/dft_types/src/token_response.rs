@@ -1,6 +1,6 @@
 use crate::{
-    ActorResult, BlockHash, BlockHeight, CandidBlock, CandidTransaction, CommonResult, ErrorInfo,
-    Transaction, TransactionHash, TransactionId,
+    ActorResult, BlockHash, BlockHeight, Block, Transaction, CommonResult, ErrorInfo,
+    InnerTransaction, TransactionHash, TransactionId,
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
 
@@ -55,7 +55,7 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
 #[derive(CandidType, Debug, Clone,PartialEq,   Eq)]
 pub enum BlockResult {
     // Return tx record if exist in the DFT cache txs
-    Ok(CandidBlock),
+    Ok(Block),
     // If not storage in DFT cache txs, return the storage canister id
     Forward(Principal),
     // Such as out of tx index or tx id not exist
@@ -65,7 +65,7 @@ pub enum BlockResult {
 #[derive(CandidType, Debug, Clone)]
 pub enum BlockListResult {
     // Return tx record if exist in the DFT cache txs
-    Ok(Vec<CandidBlock>),
+    Ok(Vec<Block>),
     // Such as out of tx index or tx id not exist
     Err(ErrorInfo),
 }
@@ -85,21 +85,21 @@ pub struct QueryBlocksResult {
     #[serde(rename = "chainLength")]
     pub chain_length: Nat,
     pub certificate: Option<serde_bytes::ByteBuf>,
-    pub blocks: Vec<CandidBlock>,
+    pub blocks: Vec<Block>,
     #[serde(rename = "firstBlockIndex")]
     pub first_block_index: Nat,
     #[serde(rename = "archivedBlocks")]
     pub archived_blocks: Vec<ArchivedBlocksRange>,
 }
 
-pub type TransactionList = Vec<Transaction>;
-pub type CandidTransactionList = Vec<CandidTransaction>;
+pub type TransactionList = Vec<InnerTransaction>;
+pub type CandidTransactionList = Vec<Transaction>;
 
 #[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(CandidType, Debug, Clone)]
 pub enum TransactionResult {
     // Return tx if exist in the DFT cache txs
-    Ok(CandidTransaction),
+    Ok(Transaction),
     // If not storage in DFT cache txs, return the storage canister id
     Forward(Principal),
     // Such as out of tx index or tx id not exist
@@ -130,7 +130,7 @@ impl From<CommonResult<TransactionList>> for TransactionListResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{CandidOperation, CandidTokenFee, Operation, TokenFee};
+    use crate::{Operation, TokenFee, InnerOperation, InnerTokenFee};
     use dft_utils::sha256::compute_hash;
     use num_bigint::BigUint;
 
@@ -177,8 +177,8 @@ mod tests {
     #[test]
     fn test_transaction_list_common_result_to_transaction_list_result() {
         let tx_list = vec![
-            Transaction {
-                operation: Operation::AddMinter {
+            InnerTransaction {
+                operation: InnerOperation::AddMinter {
                     caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                         .parse()
                         .unwrap(),
@@ -188,12 +188,12 @@ mod tests {
                 },
                 created_at: 1,
             },
-            Transaction {
-                operation: Operation::FeeModify {
+            InnerTransaction {
+                operation: InnerOperation::FeeModify {
                     caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                         .parse()
                         .unwrap(),
-                    new_fee: TokenFee::new(1u32.into(), 1u32, 8),
+                    new_fee: InnerTokenFee::new(1u32.into(), 1u32, 8),
                 },
                 created_at: 2,
             },
@@ -206,7 +206,7 @@ mod tests {
                 assert_eq!(tx_list.len(), 2);
                 assert_eq!(
                     tx_list[0].operation,
-                    CandidOperation::AddMinter {
+                    Operation::AddMinter {
                         caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                             .parse()
                             .unwrap(),
@@ -217,11 +217,11 @@ mod tests {
                 );
                 assert_eq!(
                     tx_list[1].operation,
-                    CandidOperation::FeeModify {
+                    Operation::FeeModify {
                         caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                             .parse()
                             .unwrap(),
-                        new_fee: CandidTokenFee {
+                        new_fee: TokenFee {
                             minimum: 1u32.into(),
                             rate: 1u32.into(),
                             rate_decimals: 8,

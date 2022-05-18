@@ -16,7 +16,7 @@ impl TokenSetting {
         symbol: String,
         decimals: u8,
         owner: Principal,
-        fee: TokenFee,
+        fee: InnerTokenFee,
         fee_to: TokenHolder,
     ) -> Self {
         TokenSetting {
@@ -110,11 +110,11 @@ impl TokenSetting {
         self.inner.minters.retain(|x| x != &minter);
     }
 
-    pub fn fee(&self) -> TokenFee {
+    pub fn fee(&self) -> InnerTokenFee {
         self.inner.fee.clone()
     }
 
-    pub fn set_fee(&mut self, fee: TokenFee) {
+    pub fn set_fee(&mut self, fee: InnerTokenFee) {
         self.inner.fee = fee;
     }
 
@@ -124,8 +124,8 @@ impl TokenSetting {
     pub fn set_fee_to(&mut self, fee_to: TokenHolder) {
         self.inner.fee_to = fee_to;
     }
-    pub fn metadata(&self) -> TokenMetadata {
-        TokenMetadata::new(self.name(), self.symbol(), self.decimals(), self.fee())
+    pub fn metadata(&self) -> InnerTokenMetadata {
+        InnerTokenMetadata::new(self.name(), self.symbol(), self.decimals(), self.fee())
     }
 }
 
@@ -138,7 +138,7 @@ struct TokenSettingInner {
     decimals: u8,
     owner: Principal,
     minters: Vec<Principal>,
-    fee: TokenFee,
+    fee: InnerTokenFee,
     fee_to: TokenHolder,
 }
 
@@ -152,7 +152,7 @@ impl Default for TokenSettingInner {
             decimals: 0,
             owner: Principal::anonymous(),
             minters: Vec::new(),
-            fee: TokenFee::default(),
+            fee: InnerTokenFee::default(),
             fee_to: TokenHolder::empty(),
         }
     }
@@ -204,7 +204,7 @@ mod tests {
     #[test]
     fn test_token_setting_set_fee() {
         let mut token_setting = TokenSetting::default();
-        let fee = TokenFee::new(1u32.into(), 2, 3);
+        let fee = InnerTokenFee::new(1u32.into(), 2, 3);
         token_setting.set_fee(fee.clone());
         assert_eq!(token_setting.fee(), fee);
     }
@@ -243,7 +243,7 @@ mod tests {
         assert_eq!(token_setting.decimals(), 0);
         assert_eq!(token_setting.owner(), Principal::anonymous());
         assert_eq!(token_setting.minters(), Vec::new());
-        assert_eq!(token_setting.fee(), TokenFee::default());
+        assert_eq!(token_setting.fee(), InnerTokenFee::default());
         assert_eq!(token_setting.fee_to(), TokenHolder::empty());
     }
 }

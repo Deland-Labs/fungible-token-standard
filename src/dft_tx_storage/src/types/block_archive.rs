@@ -89,11 +89,11 @@ mod tests {
 
         let mut total_byte_size: usize = 0;
         for i in 0..5u64 {
-            let block = Block::new_from_transaction(
+            let block = InnerBlock::new_from_transaction(
                 &test_token_id,
                 Some(genesis_block_hash),
-                Transaction {
-                    operation: Operation::Transfer {
+                InnerTransaction {
+                    operation: InnerOperation::Transfer {
                         caller: from_holder.clone(),
                         from: from_holder,
                         to: to_holder,

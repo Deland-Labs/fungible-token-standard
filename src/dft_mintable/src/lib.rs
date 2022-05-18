@@ -23,8 +23,8 @@ pub fn mint(
         }
 
         let created_at = created_at.unwrap_or(now);
-        let tx = Transaction {
-            operation: Operation::Transfer {
+        let tx = InnerTransaction {
+            operation: InnerOperation::Transfer {
                 caller: TokenHolder::new(*caller, None),
                 from: TokenHolder::empty(),
                 to: *to,
@@ -60,8 +60,8 @@ pub fn add_minter(
             return Ok(true);
         }
         let created_at = created_at.unwrap_or(now);
-        let tx = Transaction {
-            operation: Operation::AddMinter {
+        let tx = InnerTransaction {
+            operation: InnerOperation::AddMinter {
                 caller: *caller,
                 minter,
             },
@@ -87,8 +87,8 @@ pub fn remove_minter(
             return Ok(true);
         }
         let created_at = created_at.unwrap_or(now);
-        let tx = Transaction {
-            operation: Operation::RemoveMinter {
+        let tx = InnerTransaction {
+            operation: InnerOperation::RemoveMinter {
                 caller: *caller,
                 minter,
             },

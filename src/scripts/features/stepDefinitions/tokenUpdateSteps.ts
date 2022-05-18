@@ -95,7 +95,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)", will success$/, asyn
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to TokenFee
+    // convert optionArray to InnerTokenFee
     const fee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
@@ -125,7 +125,7 @@ When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, a
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to TokenFee
+    // convert optionArray to InnerTokenFee
     const fee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
@@ -144,7 +144,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" twice, the second wil
     const optionArray = parseRawTableToJsonArray(rawTable);
     const option = optionArray[0];
     const decimals = await actor!.decimals();
-    // convert optionArray to TokenFee
+    // convert optionArray to InnerTokenFee
     const fee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
@@ -223,7 +223,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with passed "(\d+)" d
     const decimals = await actor!.decimals();
     const nowNanos = BigInt(new Date().getTime()) * 1000000n;
     const passedNanos = nowNanos - BigInt(passedDays) * 24n * 60n * 60n * 1000000000n;
-    // convert optionArray to TokenFee
+    // convert optionArray to InnerTokenFee
     const newFee: CandidTokenFee = {
         minimum: parseToOrigin(option.minimum, decimals),
         rate: Number(parseToOrigin(option.rate, option.rate_decimals)),

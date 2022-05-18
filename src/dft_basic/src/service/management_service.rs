@@ -27,8 +27,8 @@ pub fn set_owner(
         }
 
         let created_at = created_at.unwrap_or(now);
-        let tx = Transaction {
-            operation: Operation::OwnerModify {
+        let tx = InnerTransaction {
+            operation: InnerOperation::OwnerModify {
                 caller: *caller,
                 new_owner,
             },
@@ -43,7 +43,7 @@ pub fn set_owner(
 
 pub fn set_fee(
     caller: &Principal,
-    new_fee: TokenFee,
+    new_fee: InnerTokenFee,
     created_at: Option<u64>,
     now: u64,
 ) -> CommonResult<bool> {
@@ -60,8 +60,8 @@ pub fn set_fee(
         }
 
         let created_at = created_at.unwrap_or(now);
-        let tx = Transaction {
-            operation: Operation::FeeModify {
+        let tx = InnerTransaction {
+            operation: InnerOperation::FeeModify {
                 caller: *caller,
                 new_fee: new_fee.clone(),
             },
@@ -93,8 +93,8 @@ pub fn set_fee_to(
         }
 
         let created_at = created_at.unwrap_or(now);
-        let tx = Transaction {
-            operation: Operation::FeeToModify {
+        let tx = InnerTransaction {
+            operation: InnerOperation::FeeToModify {
                 caller: *caller,
                 new_fee_to,
             },

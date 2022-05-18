@@ -85,8 +85,8 @@ fn test_total_supply() -> u128 {
 
 // test fee 0 rate
 #[fixture]
-fn test_fee_0_rate() -> TokenFee {
-    TokenFee {
+fn test_fee_0_rate() -> InnerTokenFee {
+    InnerTokenFee {
         minimum: 2u32.into(),
         rate: 0,
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
@@ -95,8 +95,8 @@ fn test_fee_0_rate() -> TokenFee {
 
 // test fee non 0 rate
 #[fixture]
-fn test_fee_non_0_rate() -> TokenFee {
-    TokenFee {
+fn test_fee_non_0_rate() -> InnerTokenFee {
+    InnerTokenFee {
         minimum: 2u32.into(),
         rate: 1,
         rate_decimals: 2,
@@ -180,7 +180,7 @@ fn test_token_basic_logo_invalid_image(
     test_name: String,
     test_symbol: String,
     test_decimals: u8,
-    test_fee_0_rate: TokenFee,
+    test_fee_0_rate: InnerTokenFee,
 ) {
     let fee_to = TokenHolder::new(test_owner.clone(), None);
 
@@ -216,7 +216,7 @@ fn test_token_basic_initialize_all_parameters() {
 #[rstest]
 fn test_token_basic_set_fee(test_owner: Principal, now: u64) {
     test_token_with_0_fee_rate();
-    let new_fee = TokenFee {
+    let new_fee = InnerTokenFee {
         minimum: TokenAmount::from(2u32),
         rate: 0,
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,
@@ -230,7 +230,7 @@ fn test_token_basic_set_fee(test_owner: Principal, now: u64) {
 #[rstest]
 fn test_token_basic_set_fee_invalid_owner(other_caller: Principal, now: u64) {
     test_token_with_0_fee_rate();
-    let new_fee = TokenFee {
+    let new_fee = InnerTokenFee {
         minimum: TokenAmount::from(2u32),
         rate: 0,
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,

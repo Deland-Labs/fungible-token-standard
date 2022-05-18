@@ -19,7 +19,7 @@ pub struct TokenTransactionWindow {
     /// the last `transaction_window` period.
     transactions_by_hash: BTreeMap<TransactionHash, BlockHeight>,
     /// The transactions in the transaction window, sorted by block
-    /// index / block timestamp. (Block timestamps are monotonically
+    /// index / block timestamp. (InnerBlock timestamps are monotonically
     /// non-decreasing, so this is the same.)
     transactions_by_height: VecDeque<TransactionInfo>,
 }

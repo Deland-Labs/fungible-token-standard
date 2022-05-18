@@ -1,7 +1,7 @@
 use crate::{state::STATE, types::StorageInfo};
 use candid::Principal;
 use dft_types::constants::MAX_BLOCKS_PER_REQUEST;
-use dft_types::{BlockListResult, BlockResult, CandidBlock, CommonResult, DFTError, EncodedBlock};
+use dft_types::{BlockListResult, BlockResult, Block, CommonResult, DFTError, EncodedBlock};
 use num_bigint::BigUint;
 use std::convert::TryInto;
 
@@ -72,7 +72,7 @@ pub fn get_blocks_by_query(start_block_height: BigUint, size: usize) -> BlockLis
                 inner_index_end
             };
 
-            let mut res: Vec<CandidBlock> = Vec::new();
+            let mut res: Vec<Block> = Vec::new();
             for i in inner_index_start..inner_index_end {
                 let block = block_archive.get_block(i).unwrap();
                 res.push(block.decode().unwrap().into());
@@ -101,7 +101,7 @@ pub fn get_storage_info() -> StorageInfo {
 mod tests {
     use super::*;
     use candid::Nat;
-    use dft_types::{Block, CandidOperation, ErrorInfo, Operation, TokenHolder, Transaction};
+    use dft_types::{InnerBlock, Operation, ErrorInfo, InnerOperation, TokenHolder, InnerTransaction};
     use std::ops::Add;
 
     #[test]
@@ -164,7 +164,7 @@ mod tests {
         init(test_token_id, block_height_offset.clone(), now);
 
         let mut blocks = Vec::new();
-        let mut pre_block: Option<Block> = None;
+        let mut pre_block: Option<InnerBlock> = None;
         let loop_times = 500u64;
 
         for i in 0..loop_times {
@@ -179,11 +179,11 @@ mod tests {
             } else {
                 None
             };
-            let block = Block::new_from_transaction(
+            let block = InnerBlock::new_from_transaction(
                 &test_token_id,
                 pre_block_hash,
-                Transaction {
-                    operation: Operation::Transfer {
+                InnerTransaction {
+                    operation: InnerOperation::Transfer {
                         caller: from_holder.clone(),
                         from: from_holder,
                         to: to_holder,
@@ -207,7 +207,7 @@ mod tests {
             let block = get_block_by_height(block_height_offset.clone() + block_height.clone());
             match block {
                 BlockResult::Ok(b) => match b.transaction.operation {
-                    CandidOperation::Transfer { value, .. } => {
+                    Operation::Transfer { value, .. } => {
                         assert_eq!(value, Nat::from(1000u64 + i));
                     }
                     _ => panic!("unexpected operation"),

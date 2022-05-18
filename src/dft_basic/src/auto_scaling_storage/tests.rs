@@ -62,8 +62,8 @@ fn test_decimals() -> u8 {
 
 // test fee 0 rate
 #[fixture]
-fn test_fee() -> TokenFee {
-    TokenFee {
+fn test_fee() -> InnerTokenFee {
+    InnerTokenFee {
         minimum: 2u32.into(),
         rate: 0,
         rate_decimals: DEFAULT_FEE_RATE_DECIMALS,

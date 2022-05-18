@@ -34,7 +34,7 @@ fn set_desc_info(desc_data: Vec<(String, String)>) -> BooleanResult {
 #[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "setFee")]
 #[candid_method(update, rename = "setFee")]
-fn set_fee(fee: CandidTokenFee, created_at: Option<u64>) -> BooleanResult {
+fn set_fee(fee: TokenFee, created_at: Option<u64>) -> BooleanResult {
     let caller = api::caller();
     management_service::set_fee(&caller, fee.into(), created_at, api::time()).into()
 }

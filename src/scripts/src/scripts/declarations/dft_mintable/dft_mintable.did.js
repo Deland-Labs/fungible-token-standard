@@ -1,5 +1,5 @@
 export const idlFactory = ({ IDL }) => {
-  const CandidTokenFee = IDL.Record({
+  const TokenFee = IDL.Record({
     'rate' : IDL.Nat32,
     'minimum' : IDL.Nat,
     'rateDecimals' : IDL.Nat8,
@@ -23,7 +23,7 @@ export const idlFactory = ({ IDL }) => {
     'canisterId' : IDL.Principal,
     'endBlockHeight' : IDL.Nat,
   });
-  const CandidOperation = IDL.Variant({
+  const Operation = IDL.Variant({
     'FeeToModify' : IDL.Record({
       'newFeeTo' : IDL.Text,
       'caller' : IDL.Principal,
@@ -39,10 +39,7 @@ export const idlFactory = ({ IDL }) => {
       'minter' : IDL.Principal,
       'caller' : IDL.Principal,
     }),
-    'FeeModify' : IDL.Record({
-      'newFee' : CandidTokenFee,
-      'caller' : IDL.Principal,
-    }),
+    'FeeModify' : IDL.Record({ 'newFee' : TokenFee, 'caller' : IDL.Principal }),
     'AddMinter' : IDL.Record({
       'minter' : IDL.Principal,
       'caller' : IDL.Principal,
@@ -59,17 +56,17 @@ export const idlFactory = ({ IDL }) => {
       'caller' : IDL.Principal,
     }),
   });
-  const CandidTransaction = IDL.Record({
+  const Transaction = IDL.Record({
     'createdAt' : IDL.Nat64,
-    'operation' : CandidOperation,
+    'operation' : Operation,
   });
-  const CandidBlock = IDL.Record({
-    'transaction' : CandidTransaction,
+  const Block = IDL.Record({
+    'transaction' : Transaction,
     'timestamp' : IDL.Nat64,
     'parentHash' : IDL.Vec(IDL.Nat8),
   });
   const BlockResult = IDL.Variant({
-    'Ok' : CandidBlock,
+    'Ok' : Block,
     'Err' : ErrorInfo,
     'Forward' : IDL.Principal,
   });
@@ -82,7 +79,7 @@ export const idlFactory = ({ IDL }) => {
     'chainLength' : IDL.Nat,
     'certificate' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'archivedBlocks' : IDL.Vec(ArchivedBlocksRange),
-    'blocks' : IDL.Vec(CandidBlock),
+    'blocks' : IDL.Vec(Block),
     'firstBlockIndex' : IDL.Nat,
   });
   const HttpRequest = IDL.Record({
@@ -103,14 +100,14 @@ export const idlFactory = ({ IDL }) => {
     'streaming_strategy' : IDL.Opt(StreamingStrategy),
     'status_code' : IDL.Nat16,
   });
-  const CandidTokenMetadata = IDL.Record({
-    'fee' : CandidTokenFee,
+  const TokenMetadata = IDL.Record({
+    'fee' : TokenFee,
     'decimals' : IDL.Nat8,
     'name' : IDL.Text,
     'symbol' : IDL.Text,
   });
   const TokenInfo = IDL.Record({
-    'fee' : CandidTokenFee,
+    'fee' : TokenFee,
     'chainLength' : IDL.Nat,
     'certificate' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'owner' : IDL.Principal,
@@ -154,10 +151,10 @@ export const idlFactory = ({ IDL }) => {
       ),
     'decimals' : IDL.Func([], [IDL.Nat8], ['query']),
     'desc' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))], ['query']),
-    'fee' : IDL.Func([], [CandidTokenFee], ['query']),
+    'fee' : IDL.Func([], [TokenFee], ['query']),
     'http_request' : IDL.Func([HttpRequest], [HttpResponse], ['query']),
     'logo' : IDL.Func([], [IDL.Vec(IDL.Nat8)], ['query']),
-    'meta' : IDL.Func([], [CandidTokenMetadata], ['query']),
+    'meta' : IDL.Func([], [TokenMetadata], ['query']),
     'mint' : IDL.Func(
         [IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],
         [OperationResult],
@@ -176,11 +173,7 @@ export const idlFactory = ({ IDL }) => {
         [BooleanResult],
         [],
       ),
-    'setFee' : IDL.Func(
-        [CandidTokenFee, IDL.Opt(IDL.Nat64)],
-        [BooleanResult],
-        [],
-      ),
+    'setFee' : IDL.Func([TokenFee, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
     'setFeeTo' : IDL.Func([IDL.Text, IDL.Opt(IDL.Nat64)], [BooleanResult], []),
     'setLogo' : IDL.Func([IDL.Opt(IDL.Vec(IDL.Nat8))], [BooleanResult], []),
     'setOwner' : IDL.Func(
@@ -211,7 +204,7 @@ export const idlFactory = ({ IDL }) => {
   });
 };
 export const init = ({ IDL }) => {
-  const CandidTokenFee = IDL.Record({
+  const TokenFee = IDL.Record({
     'rate' : IDL.Nat32,
     'minimum' : IDL.Nat,
     'rateDecimals' : IDL.Nat8,
@@ -230,7 +223,7 @@ export const init = ({ IDL }) => {
     IDL.Text,
     IDL.Nat8,
     IDL.Nat,
-    CandidTokenFee,
+    TokenFee,
     IDL.Opt(IDL.Principal),
     IDL.Opt(ArchiveOptions),
   ];

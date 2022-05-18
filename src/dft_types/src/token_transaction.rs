@@ -1,9 +1,9 @@
-use crate::{CandidTokenFee, TokenAmount, TokenFee, TokenHolder, TokenReceiver, TransactionHash};
+use crate::{TokenFee, TokenAmount, InnerTokenFee, TokenHolder, TokenReceiver, TransactionHash};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
 
 #[derive(Deserialize, Serialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum Operation {
+pub enum InnerOperation {
     Approve {
         caller: Principal,
         owner: TokenHolder,
@@ -17,6 +17,48 @@ pub enum Operation {
         to: TokenReceiver,
         value: TokenAmount,
         fee: TokenAmount,
+    },
+    FeeModify {
+        caller: Principal,
+        #[serde(rename = "newFee")]
+        new_fee: InnerTokenFee,
+    },
+    OwnerModify {
+        caller: Principal,
+        #[serde(rename = "newOwner")]
+        new_owner: Principal,
+    },
+    FeeToModify {
+        caller: Principal,
+        #[serde(rename = "newFeeTo")]
+        new_fee_to: TokenHolder,
+    },
+    AddMinter {
+        caller: Principal,
+        minter: Principal,
+    },
+    RemoveMinter {
+        caller: Principal,
+        minter: Principal,
+    },
+}
+
+#[cfg_attr(coverage_nightly, no_coverage)]
+#[derive(CandidType, Deserialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum Operation {
+    Approve {
+        caller: Principal,
+        owner: TokenHolder,
+        spender: TokenHolder,
+        value: Nat,
+        fee: Nat,
+    },
+    Transfer {
+        caller: TokenHolder,
+        from: TokenHolder,
+        to: TokenReceiver,
+        value: Nat,
+        fee: Nat,
     },
     FeeModify {
         caller: Principal,
@@ -43,92 +85,50 @@ pub enum Operation {
     },
 }
 
-#[cfg_attr(coverage_nightly, no_coverage)]
-#[derive(CandidType, Deserialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CandidOperation {
-    Approve {
-        caller: Principal,
-        owner: TokenHolder,
-        spender: TokenHolder,
-        value: Nat,
-        fee: Nat,
-    },
-    Transfer {
-        caller: TokenHolder,
-        from: TokenHolder,
-        to: TokenReceiver,
-        value: Nat,
-        fee: Nat,
-    },
-    FeeModify {
-        caller: Principal,
-        #[serde(rename = "newFee")]
-        new_fee: CandidTokenFee,
-    },
-    OwnerModify {
-        caller: Principal,
-        #[serde(rename = "newOwner")]
-        new_owner: Principal,
-    },
-    FeeToModify {
-        caller: Principal,
-        #[serde(rename = "newFeeTo")]
-        new_fee_to: TokenHolder,
-    },
-    AddMinter {
-        caller: Principal,
-        minter: Principal,
-    },
-    RemoveMinter {
-        caller: Principal,
-        minter: Principal,
-    },
-}
-
-impl From<Operation> for CandidOperation {
-    fn from(operation: Operation) -> Self {
+impl From<InnerOperation> for Operation {
+    fn from(operation: InnerOperation) -> Self {
         match operation {
-            Operation::Approve {
+            InnerOperation::Approve {
                 caller,
                 owner,
                 spender,
                 value,
                 fee,
-            } => CandidOperation::Approve {
+            } => Operation::Approve {
                 caller,
                 owner,
                 spender,
                 value: value.into(),
                 fee: fee.into(),
             },
-            Operation::Transfer {
+            InnerOperation::Transfer {
                 caller,
                 from,
                 to,
                 value,
                 fee,
-            } => CandidOperation::Transfer {
+            } => Operation::Transfer {
                 caller,
                 from,
                 to,
                 value: value.into(),
                 fee: fee.into(),
             },
-            Operation::FeeModify { caller, new_fee } => CandidOperation::FeeModify {
+            InnerOperation::FeeModify { caller, new_fee } => Operation::FeeModify {
                 caller,
                 new_fee: new_fee.into(),
             },
-            Operation::OwnerModify { caller, new_owner } => {
-                CandidOperation::OwnerModify { caller, new_owner }
+            InnerOperation::OwnerModify { caller, new_owner } => {
+                Operation::OwnerModify { caller, new_owner }
             }
-            Operation::FeeToModify { caller, new_fee_to } => {
-                CandidOperation::FeeToModify { caller, new_fee_to }
+            InnerOperation::FeeToModify { caller, new_fee_to } => {
+                Operation::FeeToModify { caller, new_fee_to }
             }
-            Operation::AddMinter { caller, minter } => {
-                CandidOperation::AddMinter { caller, minter }
+            InnerOperation::AddMinter { caller, minter } => {
+                Operation::AddMinter { caller, minter }
             }
-            Operation::RemoveMinter { caller, minter } => {
-                CandidOperation::RemoveMinter { caller, minter }
+            InnerOperation::RemoveMinter { caller, minter } => {
+                Operation::RemoveMinter { caller, minter }
             }
         }
     }
@@ -141,12 +141,12 @@ pub struct TransactionInfo {
 }
 
 #[derive(Deserialize, Serialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Transaction {
-    pub operation: Operation,
+pub struct InnerTransaction {
+    pub operation: InnerOperation,
     pub created_at: u64,
 }
 
-impl Transaction {
+impl InnerTransaction {
     // hash token id + tx bytes, make sure tx hash unique
     pub fn hash_with_token_id(&self, token_id: &Principal) -> TransactionHash {
         let tx_bytes = bincode::serialize(&self).unwrap();
@@ -157,17 +157,17 @@ impl Transaction {
 
 #[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(CandidType, Deserialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct CandidTransaction {
-    pub operation: CandidOperation,
+pub struct Transaction {
+    pub operation: Operation,
     /// The time this transaction was created.
     #[serde(rename = "createdAt")]
     pub created_at: u64,
 }
 
-impl From<Transaction> for CandidTransaction {
-    fn from(tx: Transaction) -> Self {
-        CandidTransaction {
-            operation: CandidOperation::from(tx.operation),
+impl From<InnerTransaction> for Transaction {
+    fn from(tx: InnerTransaction) -> Self {
+        Transaction {
+            operation: Operation::from(tx.operation),
             created_at: tx.created_at,
         }
     }
@@ -179,8 +179,8 @@ mod tests {
 
     #[test]
     fn test_hash_with_token_id() {
-        let tx = Transaction {
-            operation: Operation::Approve {
+        let tx = InnerTransaction {
+            operation: InnerOperation::Approve {
                 caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                     .parse()
                     .unwrap(),
@@ -205,8 +205,8 @@ mod tests {
 
     #[test]
     fn test_transaction_to_candid_transaction() {
-        let tx = Transaction {
-            operation: Operation::Approve {
+        let tx = InnerTransaction {
+            operation: InnerOperation::Approve {
                 caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                     .parse()
                     .unwrap(),
@@ -221,13 +221,13 @@ mod tests {
             },
             created_at: 1,
         };
-        let candid_tx = CandidTransaction::from(tx.clone());
+        let candid_tx = Transaction::from(tx.clone());
         assert_eq!(candid_tx.created_at, tx.created_at);
     }
 
     #[test]
     fn test_operation_to_candid_operation() {
-        let operation = Operation::Transfer {
+        let operation = InnerOperation::Transfer {
             caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                 .parse()
                 .unwrap(),
@@ -240,10 +240,10 @@ mod tests {
             value: 1u32.into(),
             fee: 1u32.into(),
         };
-        let candid_operation = CandidOperation::from(operation);
+        let candid_operation = Operation::from(operation);
         assert_eq!(
             candid_operation,
-            CandidOperation::Transfer {
+            Operation::Transfer {
                 caller: "czjfo-ddpvm-6sibl-6zbox-ee5zq-bx3hc-e336t-s6pka-dupmy-wcxqi-fae"
                     .parse()
                     .unwrap(),
