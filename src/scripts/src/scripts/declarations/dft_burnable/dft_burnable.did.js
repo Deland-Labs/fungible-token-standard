@@ -111,10 +111,10 @@ export const idlFactory = ({ IDL }) => {
   const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const TokenInfo = IDL.Record({
     'fee' : CandidTokenFee,
+    'chainLength' : IDL.Nat,
     'certificate' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'owner' : IDL.Principal,
     'allowanceSize' : IDL.Nat64,
-    'blockHeight' : IDL.Nat,
     'holders' : IDL.Nat64,
     'archiveCanisters' : IDL.Vec(IDL.Principal),
     'feeTo' : IDL.Text,

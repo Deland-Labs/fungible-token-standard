@@ -92,10 +92,10 @@ type StreamingStrategy = variant {
 };
 type TokenInfo = record {
   fee : CandidTokenFee;
+  chainLength : nat;
   certificate : opt vec nat8;
   owner : principal;
   allowanceSize : nat64;
-  blockHeight : nat;
   holders : nat64;
   archiveCanisters : vec principal;
   feeTo : text;
