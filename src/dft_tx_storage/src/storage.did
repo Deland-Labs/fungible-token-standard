@@ -45,7 +45,7 @@ type StorageInfo = record {
   tokenId : principal;
   totalBlocksCount : nat;
   cycles : nat64;
-  totalBlockSizeBytes : nat;
+  totalBlockSizeBytes : nat64;
   blockHeightOffset : nat;
 };
 service : (principal, nat) -> {

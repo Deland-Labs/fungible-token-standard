@@ -1,5 +1,5 @@
 use crate::state::STATE;
-use candid::Principal;
+use candid::{Nat, Principal};
 use dft_types::constants::MAX_BLOCKS_PER_REQUEST;
 use dft_types::*;
 use dft_utils::*;
@@ -215,9 +215,9 @@ pub fn token_info() -> TokenInfo {
             holders: balances.holder_count(),
             allowance_size: allowances.allowance_size(),
             fee_to: settings.fee_to(),
-            block_height: blockchain.chain_length().into(),
-            storages: blockchain.archive.storage_canisters().to_vec(),
-            cycles: 0,
+            fee: settings.fee().into(),
+            chain_length: blockchain.chain_length().into(),
+            archive_canisters: blockchain.archive.storage_canisters().to_vec(),
             certificate: None,
         }
     })
@@ -230,9 +230,11 @@ pub fn token_metrics() -> TokenMetrics {
         let blockchain = s.blockchain.borrow();
         TokenMetrics {
             holders: balances.holder_count(),
-            total_block_count: blockchain.chain_length().into(),
+            chain_length: blockchain.chain_length().into(),
             local_block_count: (blockchain.blocks.len() as u64).into(),
             allowance_size: allowances.allowance_size(),
+            cycles_balance: Nat::from(0u64),
+            certificate: None,
         }
     })
 }

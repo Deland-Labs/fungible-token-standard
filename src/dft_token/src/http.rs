@@ -34,7 +34,7 @@ fn http_request(req: HttpRequest) -> HttpResponse {
 
             let metrics_json = format!(
                 "{{totalBlockHeight : {},localBlockCount : {},cycles : {},holders : {},allowanceSize : {}}}",
-                metrics.total_block_count,
+                metrics.chain_length,
                 metrics.local_block_count,
                 cycles,
                 metrics.holders,

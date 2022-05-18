@@ -13,7 +13,7 @@ When(
     async function (count, user) {
         const actor = createDFTBasicActor(user);
         const tokenInfo = await actor.tokenInfo();
-        assert.equal(tokenInfo.storages.length, parseInt(count));
+        assert.equal(tokenInfo.archiveCanisters.length, parseInt(count));
     }
 );
 
@@ -76,8 +76,8 @@ Then(
         if ("Forward" in blockRes) {
             const canisterId = blockRes.Forward;
             const tokenInfo = await actor!.tokenInfo();
-            // tokenInfo.storages should contains canisterId
-            const canisterIdVal = tokenInfo.storages.find(
+            // tokenInfo.archive_canisters should contain canisterId
+            const canisterIdVal = tokenInfo.archiveCanisters.find(
                 (storage) => storage === canisterId
             );
             assert.isNotNull(canisterIdVal);

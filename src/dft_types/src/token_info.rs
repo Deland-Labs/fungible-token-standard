@@ -1,17 +1,18 @@
-use super::TokenHolder;
+use super::{TokenHolder, CandidTokenFee};
 use candid::{CandidType, Deserialize, Nat, Principal};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TokenInfo {
     pub owner: Principal,
+    #[serde(rename = "blockHeight")]
+    pub chain_length: Nat,
     pub holders: usize,
     #[serde(rename = "allowanceSize")]
     pub allowance_size: usize,
     #[serde(rename = "feeTo")]
     pub fee_to: TokenHolder,
-    #[serde(rename = "blockHeight")]
-    pub block_height: Nat,
-    pub storages: Vec<Principal>,
-    pub cycles: u64,
+    pub fee: CandidTokenFee,
+    #[serde(rename = "archiveCanisters")]
+    pub archive_canisters: Vec<Principal>,
     pub certificate: Option<serde_bytes::ByteBuf>,
 }

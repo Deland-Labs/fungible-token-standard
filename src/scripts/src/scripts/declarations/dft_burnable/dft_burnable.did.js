@@ -110,14 +110,22 @@ export const idlFactory = ({ IDL }) => {
   });
   const BooleanResult = IDL.Variant({ 'Ok' : IDL.Bool, 'Err' : ErrorInfo });
   const TokenInfo = IDL.Record({
+    'fee' : CandidTokenFee,
     'certificate' : IDL.Opt(IDL.Vec(IDL.Nat8)),
     'owner' : IDL.Principal,
     'allowanceSize' : IDL.Nat64,
-    'cycles' : IDL.Nat64,
     'blockHeight' : IDL.Nat,
     'holders' : IDL.Nat64,
-    'storages' : IDL.Vec(IDL.Principal),
+    'archiveCanisters' : IDL.Vec(IDL.Principal),
     'feeTo' : IDL.Text,
+  });
+  const TokenMetrics = IDL.Record({
+    'chainLength' : IDL.Nat,
+    'certificate' : IDL.Opt(IDL.Vec(IDL.Nat8)),
+    'allowanceSize' : IDL.Nat64,
+    'localBlockCount' : IDL.Nat,
+    'holders' : IDL.Nat64,
+    'cyclesBalance' : IDL.Nat,
   });
   return IDL.Service({
     'allowance' : IDL.Func([IDL.Text, IDL.Text], [IDL.Nat], ['query']),
@@ -176,6 +184,7 @@ export const idlFactory = ({ IDL }) => {
       ),
     'symbol' : IDL.Func([], [IDL.Text], ['query']),
     'tokenInfo' : IDL.Func([], [TokenInfo], ['query']),
+    'tokenMetrics' : IDL.Func([], [TokenMetrics], ['query']),
     'totalSupply' : IDL.Func([], [IDL.Nat], ['query']),
     'transfer' : IDL.Func(
         [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],

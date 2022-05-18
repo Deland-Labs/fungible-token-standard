@@ -201,20 +201,33 @@ mod tests {
         let en1 = candid::encode_one(ai).unwrap();
         let en2 = candid::encode_one(ai.to_string()).unwrap();
 
-        assert_eq!(
-            &en1, &en2,
-            "Candid encoding of an account identifier and a string should be identical"
-        );
+        assert_eq!(&en1, &en2);
 
         let de1: String = candid::decode_one(&en1[..]).unwrap();
         let de2: AccountIdentifier = candid::decode_one(&en2[..]).unwrap();
 
-        assert_eq!(
-            de1.parse(),
-            Ok(de2),
-            "The types are the same after decoding, even through a different type"
-        );
+        assert_eq!(de1.parse(), Ok(de2));
 
         assert_eq!(de2, ai, "And the value itself hasn't changed");
+    }
+
+    #[test]
+    fn test_from_slice() {
+        let v = &[7; 28];
+        let ai = AccountIdentifier::from_slice(v.as_slice());
+        assert_eq!(ai.is_err(), true);
+    }
+
+    #[test]
+    fn test_from_principal_to_account_id() {
+        let p: Principal = "qupnt-ohzy3-npshw-oba2m-sttkq-tyawc-vufye-u5fbz-zb6yu-conr3-tqe"
+            .parse()
+            .unwrap();
+        let ai: AccountIdentifier = p.into();
+
+        assert_eq!(
+            ai.to_hex(),
+            "908ae30a212a1a73e8be38abc0f0ed525b1624fad332fac46c6cd3286241a678"
+        );
     }
 }

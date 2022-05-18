@@ -514,7 +514,7 @@ fn test_token_basic_approve(
         allowance_size
     );
     assert_eq!(
-        basic_service::token_info().block_height,
+        basic_service::token_info().chain_length,
         candid::Nat::from(4u32)
     );
     // check total supply
@@ -628,7 +628,7 @@ fn test_token_basic_transfer_from(
     let total_fee = transfer_fee + approve_fee;
     assert_eq!(fee_to_balance, total_fee);
     assert_eq!(
-        basic_service::token_info().block_height,
+        basic_service::token_info().chain_length,
         candid::Nat::from(4u32)
     );
     // check total supply
@@ -690,7 +690,7 @@ fn test_token_basic_transfer(
     let to_balance = basic_service::balance_of(&to_holder);
     assert_eq!(to_balance, transfer_val);
     assert_eq!(
-        basic_service::token_info().block_height,
+        basic_service::token_info().chain_length,
         candid::Nat::from(3u32)
     );
     // check total supply
@@ -820,9 +820,11 @@ fn test_token_basic_mint_burn(
     let token_metrics = basic_service::token_metrics();
 
     assert_eq!(token_metrics.allowance_size, 1);
-    assert_eq!(token_metrics.total_block_count, 5);
+    assert_eq!(token_metrics.chain_length, 5);
     assert_eq!(token_metrics.local_block_count, 5);
     assert_eq!(token_metrics.holders, 2);
+    assert_eq!(token_metrics.cycles_balance, 0);
+    assert_eq!(token_metrics.certificate, None);
 }
 
 // test token approve/transfer_from/transfer anonymous call should fail
