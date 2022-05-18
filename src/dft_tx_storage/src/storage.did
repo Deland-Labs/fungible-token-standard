@@ -1,16 +1,13 @@
-type BlockListResult = variant { Ok : vec CandidBlock; Err : ErrorInfo };
-type BlockResult = variant {
-  Ok : CandidBlock;
-  Err : ErrorInfo;
-  Forward : principal;
-};
-type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
-type CandidBlock = record {
-  transaction : CandidTransaction;
+type Block = record {
+  transaction : Transaction;
   timestamp : nat64;
   parentHash : vec nat8;
 };
-type CandidOperation = variant {
+type BlockListResult = variant { Ok : vec Block; Err : ErrorInfo };
+type BlockResult = variant { Ok : Block; Err : ErrorInfo; Forward : principal };
+type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
+type ErrorInfo = record { code : nat32; message : text };
+type Operation = variant {
   FeeToModify : record { newFeeTo : text; caller : principal };
   Approve : record {
     fee : nat;
@@ -20,7 +17,7 @@ type CandidOperation = variant {
     spender : text;
   };
   RemoveMinter : record { minter : principal; caller : principal };
-  FeeModify : record { newFee : CandidTokenFee; caller : principal };
+  FeeModify : record { newFee : TokenFee; caller : principal };
   AddMinter : record { minter : principal; caller : principal };
   Transfer : record {
     to : text;
@@ -31,16 +28,6 @@ type CandidOperation = variant {
   };
   OwnerModify : record { newOwner : principal; caller : principal };
 };
-type CandidTokenFee = record {
-  rate : nat32;
-  minimum : nat;
-  rateDecimals : nat8;
-};
-type CandidTransaction = record {
-  createdAt : nat64;
-  operation : CandidOperation;
-};
-type ErrorInfo = record { code : nat32; message : text };
 type StorageInfo = record {
   tokenId : principal;
   totalBlocksCount : nat;
@@ -48,6 +35,8 @@ type StorageInfo = record {
   totalBlockSizeBytes : nat64;
   blockHeightOffset : nat;
 };
+type TokenFee = record { rate : nat32; minimum : nat; rateDecimals : nat8 };
+type Transaction = record { createdAt : nat64; operation : Operation };
 service : (principal, nat) -> {
   batchAppend : (vec vec nat8) -> (BooleanResult);
   blockByHeight : (nat) -> (BlockResult) query;

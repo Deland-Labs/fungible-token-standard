@@ -30,7 +30,7 @@ async fn canister_init(
     symbol: String,
     decimals: u8,
     total_supply: Nat,
-    fee: CandidTokenFee,
+    fee: TokenFee,
     caller: Option<Principal>,
     archive_option: Option<ArchiveOptions>,
 ) {
@@ -101,14 +101,14 @@ fn get_total_supply() -> Nat {
 #[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "fee")]
 #[candid_method(query, rename = "fee")]
-fn get_fee_setting() -> CandidTokenFee {
+fn get_fee_setting() -> TokenFee {
     basic_service::fee().into()
 }
 
 #[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "meta")]
 #[candid_method(query, rename = "meta")]
-fn get_meta_data() -> CandidTokenMetadata {
+fn get_meta_data() -> TokenMetadata {
     basic_service::metadata().into()
 }
 

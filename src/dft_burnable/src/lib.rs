@@ -33,8 +33,8 @@ pub fn burn(
             return Err(DFTError::InsufficientBalance);
         }
 
-        let tx = Transaction {
-            operation: Operation::Transfer {
+        let tx = InnerTransaction {
+            operation: InnerOperation::Transfer {
                 caller: *owner,
                 from: *owner,
                 to: TokenHolder::empty(),
@@ -80,8 +80,8 @@ pub fn burn_from(
         if balances.balance_of(owner) < value {
             Err(DFTError::InsufficientBalance)
         } else {
-            let tx = Transaction {
-                operation: Operation::Transfer {
+            let tx = InnerTransaction {
+                operation: InnerOperation::Transfer {
                     caller: *spender,
                     from: *owner,
                     to: TokenHolder::empty(),

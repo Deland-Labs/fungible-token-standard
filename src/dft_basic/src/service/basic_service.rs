@@ -15,7 +15,7 @@ pub fn token_initialize(
     name: String,
     symbol: String,
     decimals: u8,
-    fee: TokenFee,
+    fee: InnerTokenFee,
     fee_to: TokenHolder,
     archive_options: Option<ArchiveOptions>,
 ) {
@@ -52,7 +52,7 @@ pub fn token_id() -> Principal {
     STATE.with(|s| *s.token_setting.borrow().token_id())
 }
 
-pub fn metadata() -> TokenMetadata {
+pub fn metadata() -> InnerTokenMetadata {
     STATE.with(|s| s.token_setting.borrow().metadata())
 }
 
@@ -60,7 +60,7 @@ pub fn owner() -> Principal {
     STATE.with(|s| s.token_setting.borrow().owner())
 }
 
-pub fn fee() -> TokenFee {
+pub fn fee() -> InnerTokenFee {
     STATE.with(|s| s.token_setting.borrow().fee())
 }
 
@@ -131,8 +131,8 @@ pub fn approve(
         if balances.balance_of(owner) < approve_fee {
             Err(DFTError::InsufficientBalance)
         } else {
-            let tx = Transaction {
-                operation: Operation::Approve {
+            let tx = InnerTransaction {
+                operation: InnerOperation::Approve {
                     caller: *caller,
                     owner: *owner,
                     spender: *spender,
@@ -287,7 +287,7 @@ pub fn blocks_by_query(start: BlockHeight, count: usize) -> QueryBlocksResult {
             MAX_BLOCKS_PER_REQUEST as usize,
         );
 
-        let local_blocks: Vec<CandidBlock> = if !effective_local_range.is_empty() {
+        let local_blocks: Vec<Block> = if !effective_local_range.is_empty() {
             let local_start: usize = (effective_local_range.start.clone() - local_range.start)
                 .try_into()
                 .unwrap();
@@ -298,7 +298,7 @@ pub fn blocks_by_query(start: BlockHeight, count: usize) -> QueryBlocksResult {
 
             blockchain.blocks[local_start..local_end]
                 .iter()
-                .map(|enc_block| -> CandidBlock {
+                .map(|enc_block| -> Block {
                     enc_block
                         .decode()
                         .expect("bug: failed to decode encoded block")
@@ -441,8 +441,8 @@ pub fn _transfer(
         if balances.balance_of(from) < value.clone() + transfer_fee.clone() {
             Err(DFTError::InsufficientBalance)
         } else {
-            let tx = Transaction {
-                operation: Operation::Transfer {
+            let tx = InnerTransaction {
+                operation: InnerOperation::Transfer {
                     caller: *tx_invoker,
                     from: *from,
                     to: *to,

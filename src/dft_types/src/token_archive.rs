@@ -171,7 +171,7 @@ impl Archive {
                 match last_range {
                     // If we haven't recorded any heights yet in any of the
                     // nodes then this is the **first archive node** and it
-                    // starts with Block at height 0
+                    // starts with InnerBlock at height 0
                     None => self
                         .storage_canisters_block_ranges
                         .push((0u32.into(), end_block_height)),

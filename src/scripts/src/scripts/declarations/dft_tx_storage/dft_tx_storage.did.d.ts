@@ -1,17 +1,18 @@
 import type { Principal } from '@dfinity/principal';
-export type BlockListResult = { 'Ok' : Array<CandidBlock> } |
+export interface Block {
+  'transaction' : Transaction,
+  'timestamp' : bigint,
+  'parentHash' : Array<number>,
+}
+export type BlockListResult = { 'Ok' : Array<Block> } |
   { 'Err' : ErrorInfo };
-export type BlockResult = { 'Ok' : CandidBlock } |
+export type BlockResult = { 'Ok' : Block } |
   { 'Err' : ErrorInfo } |
   { 'Forward' : Principal };
 export type BooleanResult = { 'Ok' : boolean } |
   { 'Err' : ErrorInfo };
-export interface CandidBlock {
-  'transaction' : CandidTransaction,
-  'timestamp' : bigint,
-  'parentHash' : Array<number>,
-}
-export type CandidOperation = {
+export interface ErrorInfo { 'code' : number, 'message' : string }
+export type Operation = {
     'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }
   } |
   {
@@ -24,7 +25,7 @@ export type CandidOperation = {
     }
   } |
   { 'RemoveMinter' : { 'minter' : Principal, 'caller' : Principal } } |
-  { 'FeeModify' : { 'newFee' : CandidTokenFee, 'caller' : Principal } } |
+  { 'FeeModify' : { 'newFee' : TokenFee, 'caller' : Principal } } |
   { 'AddMinter' : { 'minter' : Principal, 'caller' : Principal } } |
   {
     'Transfer' : {
@@ -36,16 +37,6 @@ export type CandidOperation = {
     }
   } |
   { 'OwnerModify' : { 'newOwner' : Principal, 'caller' : Principal } };
-export interface CandidTokenFee {
-  'rate' : number,
-  'minimum' : bigint,
-  'rateDecimals' : number,
-}
-export interface CandidTransaction {
-  'createdAt' : bigint,
-  'operation' : CandidOperation,
-}
-export interface ErrorInfo { 'code' : number, 'message' : string }
 export interface StorageInfo {
   'tokenId' : Principal,
   'totalBlocksCount' : bigint,
@@ -53,6 +44,12 @@ export interface StorageInfo {
   'totalBlockSizeBytes' : bigint,
   'blockHeightOffset' : bigint,
 }
+export interface TokenFee {
+  'rate' : number,
+  'minimum' : bigint,
+  'rateDecimals' : number,
+}
+export interface Transaction { 'createdAt' : bigint, 'operation' : Operation }
 export interface _SERVICE {
   'batchAppend' : (arg_0: Array<Array<number>>) => Promise<BooleanResult>,
   'blockByHeight' : (arg_0: bigint) => Promise<BlockResult>,

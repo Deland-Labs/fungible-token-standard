@@ -31,16 +31,16 @@ impl Blockchain {
     pub fn add_tx_to_block(
         &mut self,
         token_id: &Principal,
-        tx: Transaction,
+        tx: InnerTransaction,
         now: u64,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
-        let block = Block::new_from_transaction(token_id, self.last_hash, tx, now);
+        let block = InnerBlock::new_from_transaction(token_id, self.last_hash, tx, now);
         self.add_block(token_id, block)
     }
     fn add_block(
         &mut self,
         token_id: &Principal,
-        block: Block,
+        block: InnerBlock,
     ) -> CommonResult<(BlockHeight, BlockHash, TransactionHash)> {
         let tx_hash = block.transaction.hash_with_token_id(token_id);
         if self.tx_window.contains_transaction(tx_hash) {
@@ -63,7 +63,7 @@ impl Blockchain {
     fn add_block_with_encoded(
         &mut self,
         token_id: &Principal,
-        block: Block,
+        block: InnerBlock,
         encoded_block: EncodedBlock,
     ) -> CommonResult<BlockHeight> {
         if self.last_hash.is_some() && block.parent_hash != self.last_hash.unwrap() {
@@ -192,8 +192,8 @@ mod tests {
             .unwrap();
 
         let timestamp = now.clone();
-        let transaction = Transaction {
-            operation: Operation::OwnerModify {
+        let transaction = InnerTransaction {
+            operation: InnerOperation::OwnerModify {
                 caller: caller.clone(),
                 new_owner: new_owner.clone(),
             },
@@ -235,8 +235,8 @@ mod tests {
         // add 3000 txs to blockchain
         for i in 0..=3000u32 {
             let timestamp = now.clone() + i as u64;
-            let transaction = Transaction {
-                operation: Operation::OwnerModify {
+            let transaction = InnerTransaction {
+                operation: InnerOperation::OwnerModify {
                     caller: caller.clone(),
                     new_owner: new_owner.clone(),
                 },

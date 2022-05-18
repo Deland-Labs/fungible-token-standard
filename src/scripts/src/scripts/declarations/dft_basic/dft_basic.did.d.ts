@@ -17,56 +17,16 @@ export interface ArchivedBlocksRange {
   'start' : bigint,
   'length' : bigint,
 }
-export type BlockResult = { 'Ok' : CandidBlock } |
+export interface Block {
+  'transaction' : Transaction,
+  'timestamp' : bigint,
+  'parentHash' : Array<number>,
+}
+export type BlockResult = { 'Ok' : Block } |
   { 'Err' : ErrorInfo } |
   { 'Forward' : Principal };
 export type BooleanResult = { 'Ok' : boolean } |
   { 'Err' : ErrorInfo };
-export interface CandidBlock {
-  'transaction' : CandidTransaction,
-  'timestamp' : bigint,
-  'parentHash' : Array<number>,
-}
-export type CandidOperation = {
-    'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }
-  } |
-  {
-    'Approve' : {
-      'fee' : bigint,
-      'value' : bigint,
-      'owner' : string,
-      'caller' : Principal,
-      'spender' : string,
-    }
-  } |
-  { 'RemoveMinter' : { 'minter' : Principal, 'caller' : Principal } } |
-  { 'FeeModify' : { 'newFee' : CandidTokenFee, 'caller' : Principal } } |
-  { 'AddMinter' : { 'minter' : Principal, 'caller' : Principal } } |
-  {
-    'Transfer' : {
-      'to' : string,
-      'fee' : bigint,
-      'value' : bigint,
-      'from' : string,
-      'caller' : string,
-    }
-  } |
-  { 'OwnerModify' : { 'newOwner' : Principal, 'caller' : Principal } };
-export interface CandidTokenFee {
-  'rate' : number,
-  'minimum' : bigint,
-  'rateDecimals' : number,
-}
-export interface CandidTokenMetadata {
-  'fee' : CandidTokenFee,
-  'decimals' : number,
-  'name' : string,
-  'symbol' : string,
-}
-export interface CandidTransaction {
-  'createdAt' : bigint,
-  'operation' : CandidOperation,
-}
 export interface ErrorInfo { 'code' : number, 'message' : string }
 export interface HttpRequest {
   'url' : string,
@@ -80,6 +40,31 @@ export interface HttpResponse {
   'streaming_strategy' : [] | [StreamingStrategy],
   'status_code' : number,
 }
+export type Operation = {
+    'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }
+  } |
+  {
+    'Approve' : {
+      'fee' : bigint,
+      'value' : bigint,
+      'owner' : string,
+      'caller' : Principal,
+      'spender' : string,
+    }
+  } |
+  { 'RemoveMinter' : { 'minter' : Principal, 'caller' : Principal } } |
+  { 'FeeModify' : { 'newFee' : TokenFee, 'caller' : Principal } } |
+  { 'AddMinter' : { 'minter' : Principal, 'caller' : Principal } } |
+  {
+    'Transfer' : {
+      'to' : string,
+      'fee' : bigint,
+      'value' : bigint,
+      'from' : string,
+      'caller' : string,
+    }
+  } |
+  { 'OwnerModify' : { 'newOwner' : Principal, 'caller' : Principal } };
 export type OperationResult = {
     'Ok' : { 'txId' : string, 'blockHeight' : bigint }
   } |
@@ -88,14 +73,19 @@ export interface QueryBlocksResult {
   'chainLength' : bigint,
   'certificate' : [] | [Array<number>],
   'archivedBlocks' : Array<ArchivedBlocksRange>,
-  'blocks' : Array<CandidBlock>,
+  'blocks' : Array<Block>,
   'firstBlockIndex' : bigint,
 }
 export type StreamingStrategy = {
     'Callback' : { 'token' : {}, 'callback' : [Principal, string] }
   };
+export interface TokenFee {
+  'rate' : number,
+  'minimum' : bigint,
+  'rateDecimals' : number,
+}
 export interface TokenInfo {
-  'fee' : CandidTokenFee,
+  'fee' : TokenFee,
   'chainLength' : bigint,
   'certificate' : [] | [Array<number>],
   'owner' : Principal,
@@ -103,6 +93,12 @@ export interface TokenInfo {
   'holders' : bigint,
   'archiveCanisters' : Array<Principal>,
   'feeTo' : string,
+}
+export interface TokenMetadata {
+  'fee' : TokenFee,
+  'decimals' : number,
+  'name' : string,
+  'symbol' : string,
 }
 export interface TokenMetrics {
   'chainLength' : bigint,
@@ -112,6 +108,7 @@ export interface TokenMetrics {
   'holders' : bigint,
   'cyclesBalance' : bigint,
 }
+export interface Transaction { 'createdAt' : bigint, 'operation' : Operation }
 export interface _SERVICE {
   'allowance' : (arg_0: string, arg_1: string) => Promise<bigint>,
   'allowancesOf' : (arg_0: string) => Promise<Array<[string, bigint]>>,
@@ -129,16 +126,14 @@ export interface _SERVICE {
     >,
   'decimals' : () => Promise<number>,
   'desc' : () => Promise<Array<[string, string]>>,
-  'fee' : () => Promise<CandidTokenFee>,
+  'fee' : () => Promise<TokenFee>,
   'http_request' : (arg_0: HttpRequest) => Promise<HttpResponse>,
   'logo' : () => Promise<Array<number>>,
-  'meta' : () => Promise<CandidTokenMetadata>,
+  'meta' : () => Promise<TokenMetadata>,
   'name' : () => Promise<string>,
   'owner' : () => Promise<Principal>,
   'setDesc' : (arg_0: Array<[string, string]>) => Promise<BooleanResult>,
-  'setFee' : (arg_0: CandidTokenFee, arg_1: [] | [bigint]) => Promise<
-      BooleanResult
-    >,
+  'setFee' : (arg_0: TokenFee, arg_1: [] | [bigint]) => Promise<BooleanResult>,
   'setFeeTo' : (arg_0: string, arg_1: [] | [bigint]) => Promise<BooleanResult>,
   'setLogo' : (arg_0: [] | [Array<number>]) => Promise<BooleanResult>,
   'setOwner' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<

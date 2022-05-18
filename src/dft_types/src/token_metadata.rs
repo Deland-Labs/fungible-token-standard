@@ -1,6 +1,6 @@
-use crate::token_fee::CandidTokenFee;
+use crate::token_fee::TokenFee;
 
-use super::TokenFee;
+use super::InnerTokenFee;
 use candid::{CandidType, Deserialize};
 use getset::{Getters, Setters};
 use serde::Serialize;
@@ -8,17 +8,17 @@ use serde::Serialize;
 #[derive(Getters, Setters)]
 #[getset(get = "pub")]
 #[derive(Clone, Default, Debug, Deserialize, Serialize)]
-pub struct TokenMetadata {
+pub struct InnerTokenMetadata {
     name: String,
     symbol: String,
     decimals: u8,
     #[getset(set = "pub")]
-    fee: TokenFee,
+    fee: InnerTokenFee,
 }
 
-impl TokenMetadata {
+impl InnerTokenMetadata {
     // new
-    pub fn new(name: String, symbol: String, decimals: u8, fee: TokenFee) -> Self {
+    pub fn new(name: String, symbol: String, decimals: u8, fee: InnerTokenFee) -> Self {
         Self {
             name,
             symbol,
@@ -31,16 +31,16 @@ impl TokenMetadata {
 #[derive(Getters, Setters)]
 #[getset(get = "pub")]
 #[derive(CandidType, Clone, Default, Debug, Deserialize)]
-pub struct CandidTokenMetadata {
+pub struct TokenMetadata {
     name: String,
     symbol: String,
     decimals: u8,
     #[getset(set = "pub")]
-    fee: CandidTokenFee,
+    fee: TokenFee,
 }
 
-impl From<TokenMetadata> for CandidTokenMetadata {
-    fn from(token_metadata: TokenMetadata) -> Self {
+impl From<InnerTokenMetadata> for TokenMetadata {
+    fn from(token_metadata: InnerTokenMetadata) -> Self {
         Self {
             name: token_metadata.name,
             symbol: token_metadata.symbol,
@@ -57,11 +57,11 @@ mod tests {
 
     #[test]
     fn test_token_metadata_new() {
-        let token_metadata = TokenMetadata::new(
+        let token_metadata = InnerTokenMetadata::new(
             "name".to_string(),
             "symbol".to_string(),
             1,
-            TokenFee::new(1u32.into(), 2, 3),
+            InnerTokenFee::new(1u32.into(), 2, 3),
         );
         assert_eq!(token_metadata.name, "name");
         assert_eq!(token_metadata.symbol, "symbol");
@@ -73,14 +73,14 @@ mod tests {
 
     #[test]
     fn test_to_candid_type() {
-        let token_metadata = TokenMetadata::new(
+        let token_metadata = InnerTokenMetadata::new(
             "name".to_string(),
             "symbol".to_string(),
             1,
-            TokenFee::new(1u32.into(), 2, 3),
+            InnerTokenFee::new(1u32.into(), 2, 3),
         );
 
-        let candid_token_metadata: CandidTokenMetadata = token_metadata.clone().into();
+        let candid_token_metadata: TokenMetadata = token_metadata.clone().into();
 
         assert_eq!(candid_token_metadata.name, "name");
         assert_eq!(candid_token_metadata.symbol, "symbol");

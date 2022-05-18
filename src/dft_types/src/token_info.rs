@@ -1,4 +1,4 @@
-use super::{TokenHolder, CandidTokenFee};
+use super::{TokenHolder, TokenFee};
 use candid::{CandidType, Deserialize, Nat, Principal};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
@@ -11,7 +11,7 @@ pub struct TokenInfo {
     pub allowance_size: usize,
     #[serde(rename = "feeTo")]
     pub fee_to: TokenHolder,
-    pub fee: CandidTokenFee,
+    pub fee: TokenFee,
     #[serde(rename = "archiveCanisters")]
     pub archive_canisters: Vec<Principal>,
     pub certificate: Option<serde_bytes::ByteBuf>,
