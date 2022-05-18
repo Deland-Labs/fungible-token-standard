@@ -1,4 +1,4 @@
-use crate::{BlockHash, CandidTransaction, CommonResult, DFTError, Operation, Transaction};
+use crate::{BlockHash, CandidTransaction, CommonResult, DFTError, Transaction};
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use std::borrow::Cow;
@@ -30,25 +30,6 @@ impl From<Block> for CandidBlock {
 }
 
 impl Block {
-    pub fn new(
-        token_id: &Principal,
-        parent_hash: Option<BlockHash>,
-        operation: Operation,
-        created_at: u64, // transaction timestamp
-        timestamp: u64,  // block timestamp
-    ) -> Result<Self, String> {
-        let transaction = Transaction {
-            operation,
-            created_at,
-        };
-        Ok(Self::new_from_transaction(
-            token_id,
-            parent_hash,
-            transaction,
-            timestamp,
-        ))
-    }
-
     pub fn new_from_transaction(
         token_id: &Principal,
         parent_hash: Option<BlockHash>,
@@ -130,7 +111,7 @@ impl EncodedBlock {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{CandidOperation, TokenHolder};
+    use crate::{CandidOperation, TokenHolder, Operation};
     use dft_utils::sha256::compute_hash;
     use std::convert::TryInto;
 
@@ -138,11 +119,7 @@ mod tests {
     fn test_block_size() {
         let block_size = std::mem::size_of::<Block>();
         let should_be_size = 184;
-        assert_eq!(
-            should_be_size, block_size,
-            "Block size should be {} bytes, but is {} bytes",
-            should_be_size, block_size
-        );
+        assert_eq!(should_be_size, block_size);
     }
 
     #[test]
@@ -215,12 +192,11 @@ mod tests {
             Block::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
         let candidate_block: CandidBlock = block.into();
 
-        match candidate_block.transaction.operation {
-            CandidOperation::OwnerModify { caller, new_owner } => {
-                assert_eq!(caller, caller);
-                assert_eq!(new_owner, new_owner);
-            }
-            _ => {}
+        if let CandidOperation::OwnerModify { caller, new_owner } =
+        candidate_block.transaction.operation
+        {
+            assert_eq!(caller, caller);
+            assert_eq!(new_owner, new_owner);
         };
     }
 }
