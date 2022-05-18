@@ -96,10 +96,10 @@ export type StreamingStrategy = {
   };
 export interface TokenInfo {
   'fee' : CandidTokenFee,
+  'chainLength' : bigint,
   'certificate' : [] | [Array<number>],
   'owner' : Principal,
   'allowanceSize' : bigint,
-  'blockHeight' : bigint,
   'holders' : bigint,
   'archiveCanisters' : Array<Principal>,
   'feeTo' : string,

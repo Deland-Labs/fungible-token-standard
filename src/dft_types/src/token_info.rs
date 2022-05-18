@@ -4,7 +4,7 @@ use candid::{CandidType, Deserialize, Nat, Principal};
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct TokenInfo {
     pub owner: Principal,
-    #[serde(rename = "blockHeight")]
+    #[serde(rename = "chainLength")]
     pub chain_length: Nat,
     pub holders: usize,
     #[serde(rename = "allowanceSize")]
