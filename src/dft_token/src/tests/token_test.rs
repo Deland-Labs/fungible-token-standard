@@ -823,6 +823,8 @@ fn test_token_basic_mint_burn(
     assert_eq!(token_metrics.chain_length, 5);
     assert_eq!(token_metrics.local_block_count, 5);
     assert_eq!(token_metrics.holders, 2);
+    assert_eq!(token_metrics.cycles_balance, 0);
+    assert_eq!(token_metrics.certificate, None);
 }
 
 // test token approve/transfer_from/transfer anonymous call should fail

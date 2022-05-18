@@ -234,7 +234,7 @@ pub fn token_metrics() -> TokenMetrics {
             local_block_count: (blockchain.blocks.len() as u64).into(),
             allowance_size: allowances.allowance_size(),
             cycles_balance: Nat::from(0u64),
-            certificate: Default::default(),
+            certificate: None,
         }
     })
 }
