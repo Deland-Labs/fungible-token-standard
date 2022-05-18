@@ -64,7 +64,7 @@ export const idlFactory = ({ IDL }) => {
     'tokenId' : IDL.Principal,
     'totalBlocksCount' : IDL.Nat,
     'cycles' : IDL.Nat64,
-    'totalBlockSizeBytes' : IDL.Nat,
+    'totalBlockSizeBytes' : IDL.Nat64,
     'blockHeightOffset' : IDL.Nat,
   });
   return IDL.Service({

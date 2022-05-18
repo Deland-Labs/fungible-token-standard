@@ -95,14 +95,22 @@ export type StreamingStrategy = {
     'Callback' : { 'token' : {}, 'callback' : [Principal, string] }
   };
 export interface TokenInfo {
+  'fee' : CandidTokenFee,
   'certificate' : [] | [Array<number>],
   'owner' : Principal,
   'allowanceSize' : bigint,
-  'cycles' : bigint,
   'blockHeight' : bigint,
   'holders' : bigint,
-  'storages' : Array<Principal>,
+  'archiveCanisters' : Array<Principal>,
   'feeTo' : string,
+}
+export interface TokenMetrics {
+  'chainLength' : bigint,
+  'certificate' : [] | [Array<number>],
+  'allowanceSize' : bigint,
+  'localBlockCount' : bigint,
+  'holders' : bigint,
+  'cyclesBalance' : bigint,
 }
 export interface _SERVICE {
   'allowance' : (arg_0: string, arg_1: string) => Promise<bigint>,
@@ -138,6 +146,7 @@ export interface _SERVICE {
     >,
   'symbol' : () => Promise<string>,
   'tokenInfo' : () => Promise<TokenInfo>,
+  'tokenMetrics' : () => Promise<TokenMetrics>,
   'totalSupply' : () => Promise<bigint>,
   'transfer' : (
       arg_0: [] | [Array<number>],

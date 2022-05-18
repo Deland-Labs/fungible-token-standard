@@ -310,8 +310,17 @@ async fn transfer(
 fn get_token_info() -> TokenInfo {
     let mut token_info = basic_service::token_info();
     token_info.certificate = data_certificate().map(serde_bytes::ByteBuf::from);
-    token_info.cycles = api::canister_balance();
     token_info
+}
+
+#[cfg_attr(coverage_nightly, no_coverage)]
+#[query(name = "tokenMetrics")]
+#[candid_method(query, rename = "tokenMetrics")]
+fn get_token_metrics() -> TokenMetrics {
+    let mut metrics = basic_service::token_metrics();
+    metrics.certificate = data_certificate().map(serde_bytes::ByteBuf::from);
+    metrics.cycles_balance = api::canister_balance().into();
+    metrics
 }
 
 #[cfg_attr(coverage_nightly, no_coverage)]
