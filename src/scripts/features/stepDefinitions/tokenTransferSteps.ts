@@ -4,23 +4,26 @@ import logger from "node-color-log";
 import {parseToCommon, parseToOrigin} from "~/utils/uint";
 import {identityFactory} from "~/utils/identity";
 import {createDFTActor} from "./utils";
+import {get_id} from "~/utils/canister";
 
 When(/^(.*) transfer (.*) (.*) to (.*) immediate$/, async function (userA, diff, token, userB) {
     logger.debug(`Transfer from ${userA} to ${userB},${diff} ${token}`);
-    const userBPrincipal = identityFactory.getPrincipal(userB)!;
+    const canisterReceiver = "dft_receiver";
+    const userBPrincipal = userB === canisterReceiver ? get_id(canisterReceiver) : identityFactory.getPrincipal(userB)!.toText();
     const actor = createDFTActor(token, userA);
     const decimals = await actor!.decimals();
     const amountBN = parseToOrigin(diff, decimals);
-    const res = await actor!.transfer([], userBPrincipal.toText(), amountBN, []);
+    const res = await actor!.transfer([], userBPrincipal, amountBN, []);
     assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
 });
 
 Then(/^Check the (.*) balance of (.*) should be (.*)$/, async function (token, user, balance) {
-    const userPrincipal = identityFactory.getPrincipal(user)!;
+    const canisterReceiver = "dft_receiver";
+    const userBPrincipal = user === canisterReceiver ? get_id(canisterReceiver) : identityFactory.getPrincipal(user)!.toText();
     const actor = createDFTActor(token, user);
     const decimals = await actor!.decimals();
 
-    const balanceBN = await actor!.balanceOf(userPrincipal.toText());
+    const balanceBN = await actor!.balanceOf(userBPrincipal);
     const balanceRes = parseToCommon(balanceBN, decimals);
     expect(balanceRes.toNumber()).to.equal(Number(balance));
 });
@@ -104,7 +107,7 @@ When(/^"([^"]*)" transfer "([^"]*)" "([^"]*)" to "([^"]*)" passed "(\d+)" days w
     const res = await actor!.transfer([], toPrincipal, amountBN, [passedNanos]);
     assert.isTrue('Err' in res, `transfer succeed: ${JSON.stringify(res)}`);
 });
-When(/^"([^"]*)" transfer "([^"]*)" from "([^"]*)" to "([^"]*)" "([^"]*)" with timestamp passed "([^"]*)" day, will failed$/,async function (spender,token,owner,to,amount,passedDays) {
+When(/^"([^"]*)" transfer "([^"]*)" from "([^"]*)" to "([^"]*)" "([^"]*)" with timestamp passed "([^"]*)" day, will failed$/, async function (spender, token, owner, to, amount, passedDays) {
     const ownerPrincipal = identityFactory.getPrincipal(owner)!.toText();
     const toPrincipal = identityFactory.getPrincipal(to)!.toText();
     const actor = createDFTActor(token, spender);

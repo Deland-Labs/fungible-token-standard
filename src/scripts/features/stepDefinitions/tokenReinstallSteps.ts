@@ -50,7 +50,7 @@ Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
                     initOptions: dftMintAbleInitOptions
                 } : undefined,
                 dft_receiver: {reinstall: true},
-                dft_tx_storage: {reinstall: true},
+                dft_tx_storage: {reinstall: true}
             }
         }
     ;
