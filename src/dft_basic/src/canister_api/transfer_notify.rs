@@ -17,7 +17,7 @@ impl ITransferNotifyAPI for TransferNotifyAPI {
         debug!("TransferNotifyAPI::notify in");
         if let Ok(receiver_canister_id) = pid {
             if is_canister(&receiver_canister_id) {
-                info!("TransferNotifyAPI::notify:  will notify receiver: {:?}", receiver_canister_id.to_text());
+                info!("TransferNotifyAPI::notify:  will notify receiver: {:?},transfer_from is {},transfer_value is {}", receiver_canister_id.to_text(),transfer_from.clone().to_hex(),transfer_value.clone());
                 //notify receiver
                 let nat_transfer_value: Nat = transfer_value.clone().into();
                 ic_cdk::notify(
