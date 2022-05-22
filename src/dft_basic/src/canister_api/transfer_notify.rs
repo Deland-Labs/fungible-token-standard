@@ -23,7 +23,7 @@ impl ITransferNotifyAPI for TransferNotifyAPI {
                 ic_cdk::notify(
                     receiver_canister_id.clone(),
                     "onTokenReceived",
-                    ((transfer_from.clone(), nat_transfer_value),),
+                    (transfer_from.clone(), nat_transfer_value,),
                 )
                 .unwrap_or_else(|reject| {
                     warn!(
