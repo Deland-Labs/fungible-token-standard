@@ -1,3 +1,4 @@
+#![cfg_attr(coverage_nightly, feature(no_coverage))]
 use candid::{candid_method, Nat};
 use dft_types::*;
 use ic_cdk_macros::*;
