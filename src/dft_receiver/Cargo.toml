@@ -1,0 +1,19 @@
+[package]
+name = "dft_receiver"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies] 
+dft_types = { path = "../dft_types" }
+dft_utils = { path = "../dft_utils" }
+ic-cdk = "0.5.1"
+ic-cdk-macros = "0.5.1"
+candid = "0.7.14"
+log = "0.4"
+
+[features]
+default = ["logger"]
+logger = ["dft_utils/logger"]

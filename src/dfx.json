@@ -44,6 +44,15 @@
       ],
       "candid": "dft_token/src/token.did",
       "wasm": "target/wasm32-unknown-unknown/release/dft_all_features.wasm"
+    },
+    "dft_receiver": {
+      "type": "custom",
+      "build": [
+        "cargo build --target wasm32-unknown-unknown --package  dft_receiver --release  --no-default-features --features logger",
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_receiver.wasm -o target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
+      ],
+      "candid": "dft_receiver/src/receiver.did",
+      "wasm": "target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
     }
   },
   "defaults": {

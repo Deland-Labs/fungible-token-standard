@@ -1,4 +1,4 @@
-@dev
+@dft
 Feature: token transfer
 
   Background:
