@@ -244,7 +244,7 @@ async fn transfer_from(
                     Ok((block_height, block_hash, tx_hash)) => {
                         set_certified_data(&block_hash);
                         AutoScalingStorageService::new(token_id).exec_auto_scaling_strategy().await;
-                        TransferNotifyAPI::default().notify(&to, &from_token_holder, &value.0);
+                        TransferNotifyAPI::default().notify(&to, &block_height, &from_token_holder, &value.0);
                         OperationResult::Ok {
                             tx_id: hex::encode(tx_hash.as_ref()),
                             block_height: block_height.into(),
@@ -292,7 +292,7 @@ async fn transfer(
                 Ok((block_height, block_hash, tx_hash)) => {
                     set_certified_data(&block_hash);
                     AutoScalingStorageService::new(token_id).exec_auto_scaling_strategy().await;
-                    TransferNotifyAPI::default().notify(&to, &transfer_from, &value.0);
+                    TransferNotifyAPI::default().notify(&to, &block_height, &transfer_from, &value.0);
                     OperationResult::Ok {
                         tx_id: hex::encode(tx_hash.as_ref()),
                         block_height: block_height.into(),

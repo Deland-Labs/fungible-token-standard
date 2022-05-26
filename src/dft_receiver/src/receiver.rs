@@ -30,12 +30,12 @@ async fn canister_init() {
 #[cfg_attr(coverage_nightly, no_coverage)]
 #[update(name = "onTokenReceived")]
 #[candid_method(update, rename = "onTokenReceived")]
-async fn on_token_received(from: TokenHolder, value: Nat) {
+async fn on_token_received(block_height: Nat, from: TokenHolder, value: Nat) {
     debug!("on_token_received in");
     NOTIFICATIONS_RECEIVED.with(|cell| {
         *cell.borrow_mut() += 1u64;
     });
-    debug!("DFT is {:?},from is {:?},value is {}", api::caller().to_text() ,from.to_hex(),value);
+    debug!("Token(caller) is {:?},block height is {},from is {:?},value is {}", api::caller().to_text(), block_height,from.to_hex(),value);
 }
 
 
