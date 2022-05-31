@@ -1,3 +1,3 @@
 pwd
-npx ic update-did
-npx ic generate -o "scripts/src/scripts/declarations/"
+npx icdev update-did
+npx icdev generate -o "scripts/src/scripts/declarations/"

@@ -1,1 +1,1 @@
-npx ic build-all
+npx icdev build-all
