@@ -1,0 +1,45 @@
+type Block = record {
+  transaction : Transaction;
+  timestamp : nat64;
+  parentHash : vec nat8;
+};
+type BlockListResult = variant { Ok : vec Block; Err : ErrorInfo };
+type BlockResult = variant { Ok : Block; Err : ErrorInfo; Forward : principal };
+type BooleanResult = variant { Ok : bool; Err : ErrorInfo };
+type ErrorInfo = record { code : nat32; message : text };
+type Operation = variant {
+  FeeToModify : record { newFeeTo : text; caller : principal };
+  Approve : record {
+    fee : nat;
+    value : nat;
+    owner : text;
+    caller : principal;
+    spender : text;
+  };
+  RemoveMinter : record { minter : principal; caller : principal };
+  FeeModify : record { newFee : TokenFee; caller : principal };
+  AddMinter : record { minter : principal; caller : principal };
+  Transfer : record {
+    to : text;
+    fee : nat;
+    value : nat;
+    from : text;
+    caller : text;
+  };
+  OwnerModify : record { newOwner : principal; caller : principal };
+};
+type StorageInfo = record {
+  tokenId : principal;
+  totalBlocksCount : nat;
+  cycles : nat64;
+  totalBlockSizeBytes : nat64;
+  blockHeightOffset : nat;
+};
+type TokenFee = record { rate : nat32; minimum : nat; rateDecimals : nat8 };
+type Transaction = record { createdAt : nat64; operation : Operation };
+service : (principal, nat) -> {
+  batchAppend : (vec vec nat8) -> (BooleanResult);
+  blockByHeight : (nat) -> (BlockResult) query;
+  blocksByQuery : (nat, nat64) -> (BlockListResult) query;
+  storageInfo : () -> (StorageInfo) query;
+}

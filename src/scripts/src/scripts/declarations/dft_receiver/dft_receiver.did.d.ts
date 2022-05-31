@@ -1,5 +1,7 @@
 import type { Principal } from '@dfinity/principal';
+import type { ActorMethod } from '@dfinity/agent';
+
 export interface _SERVICE {
-  'notificationCount' : () => Promise<bigint>,
-  'onTokenReceived' : (arg_0: string, arg_1: bigint) => Promise<undefined>,
+  'notificationCount' : ActorMethod<[], bigint>,
+  'onTokenReceived' : ActorMethod<[bigint, string, bigint], undefined>,
 }

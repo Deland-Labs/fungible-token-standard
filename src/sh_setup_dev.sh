@@ -1,7 +1,5 @@
-npm install
-npm i typescript -g
-npm i ts-node -g
-npm i tsconfig-paths -g
-npm i jake -g
-ts-node -r tsconfig-paths/register scripts/createIdentities.ts
-ts-node -r tsconfig-paths/register scripts/updateLocalConfigs.ts
+npm config set @deland-labs:registry https://www.myget.org/F/ic-feed/npm/
+npm install -g yarn tsconfig-paths
+npm install 
+
+npx icdev init-identity

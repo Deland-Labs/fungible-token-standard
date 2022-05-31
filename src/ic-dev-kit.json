@@ -1,0 +1,6 @@
+{
+  "identity": {
+    "pem_source_dir": "./ic-dev-kit/pem/",
+    "default_identity": "dft_main"
+  }
+}

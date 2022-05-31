@@ -1,14 +1,14 @@
-import {When, Then} from "@cucumber/cucumber";
-import {parseRawTableToJsonArray} from "~/utils/convert";
-import {assert, expect} from "chai";
-import {createDFTActor, fileToByteArray} from "./utils";
-import {CandidTokenFee} from "~/declarations/dft_basic/dft_basic.did";
-import {parseToOrigin} from "~/utils/uint";
-import {identityFactory} from "~/utils/identity";
+import "./setup";
+import { When, Then, DataTable } from "@cucumber/cucumber";
+import { assert, expect } from "chai";
+import { createDFTActor, fileToByteArray } from "./utils";
+import { TokenFee } from "../../src/scripts/declarations/dft_basic/dft_basic.did";
+import { unit, identity, canister } from "@deland-labs/ic-dev-kit";
 
-When(/^I update token "([^"]*)"'s description with not owner "([^"]*)", will failed$/, async function (token, user, {rawTable}) {
+
+When(/^I update token "([^"]*)"'s description with not owner "([^"]*)", will failed$/, async function (token, user, dataTable: DataTable) {
     let actor = createDFTActor(token, user);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     let desc: Array<[string, string]> = [];
     //convert optionArray to desc
     for (let i = 0; i < optionArray.length; i++) {
@@ -21,9 +21,9 @@ When(/^I update token "([^"]*)"'s description with not owner "([^"]*)", will fai
         // should be here
     }
 });
-When(/^I update token "([^"]*)"'s description with owner "([^"]*)", will success$/, async function (token, user, {rawTable}) {
+When(/^I update token "([^"]*)"'s description with owner "([^"]*)", will success$/, async function (token, user, dataTable: DataTable) {
     const actor = createDFTActor(token, user);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     let desc: Array<[string, string]> = [];
     //convert optionArray to desc
     for (let i = 0; i < optionArray.length; i++) {
@@ -41,9 +41,9 @@ Then(/^Get token "([^"]*)"'s description will not contain "([^"]*)" and "([^"]*)
     assert.isTrue(!res.includes(key2));
 });
 
-Then(/^Get token "([^"]*)"'s description by "([^"]*)",will include blow fields and values$/, async function (token, user, {rawTable}) {
+Then(/^Get token "([^"]*)"'s description by "([^"]*)",will include blow fields and values$/, async function (token, user, dataTable: DataTable) {
     const actor = createDFTActor(token, user);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     let desc: Array<[string, string]> = [];
     //convert optionArray to desc
     for (let i = 0; i < optionArray.length; i++) {
@@ -90,29 +90,29 @@ When(/^I update token "([^"]*)"'s logo with not owner "([^"]*)", will failed$/, 
     }
 });
 
-When(/^I update token "([^"]*)"'s fee with owner "([^"]*)", will success$/, async function (token, owner, {rawTable}) {
+When(/^I update token "([^"]*)"'s fee with owner "([^"]*)", will success$/, async function (token, owner, dataTable: DataTable) {
     const actor = createDFTActor(token, owner);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to InnerTokenFee
-    const fee: CandidTokenFee = {
-        minimum: parseToOrigin(option.minimum, decimals),
-        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
+    const fee: TokenFee = {
+        minimum: unit.parseToOrigin(option.minimum, decimals),
+        rate: Number(unit.parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     const res = await actor!.setFee(fee, []);
     assert.isTrue("Ok" in res);
 });
-Then(/^Get token "([^"]*)"'s fee by "([^"]*)",will include blow fields and value$/, async function (token, user, {rawTable}) {
+Then(/^Get token "([^"]*)"'s fee by "([^"]*)",will include blow fields and value$/, async function (token, user, dataTable: DataTable) {
     const actor = createDFTActor(token, user);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     const fee = await actor!.fee();
-    const feeValid: CandidTokenFee = {
-        minimum: parseToOrigin(option.minimum, decimals),
-        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
+    const feeValid: TokenFee = {
+        minimum: unit.parseToOrigin(option.minimum, decimals),
+        rate: Number(unit.parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     // check fee is same with feeValid
@@ -120,15 +120,15 @@ Then(/^Get token "([^"]*)"'s fee by "([^"]*)",will include blow fields and value
     assert.equal(fee.rate, feeValid.rate);
     assert.equal(fee.rateDecimals, feeValid.rateDecimals);
 });
-When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, async function (token, owner, {rawTable}) {
+When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, async function (token, owner, dataTable: DataTable) {
     const actor = createDFTActor(token, owner);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to InnerTokenFee
-    const fee: CandidTokenFee = {
-        minimum: parseToOrigin(option.minimum, decimals),
-        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
+    const fee: TokenFee = {
+        minimum: unit.parseToOrigin(option.minimum, decimals),
+        rate: Number(unit.parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     try {
@@ -139,15 +139,15 @@ When(/^I update token "([^"]*)"'s fee with not owner "([^"]*)", will failed$/, a
     }
 });
 
-When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" twice, the second will fail$/, async function (token, owner, {rawTable}) {
+When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" twice, the second will fail$/, async function (token, owner, dataTable: DataTable) {
     const actor = createDFTActor(token, owner);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     // convert optionArray to InnerTokenFee
-    const fee: CandidTokenFee = {
-        minimum: parseToOrigin(option.minimum, decimals),
-        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
+    const fee: TokenFee = {
+        minimum: unit.parseToOrigin(option.minimum, decimals),
+        rate: Number(unit.parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
 
@@ -161,19 +161,19 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" twice, the second wil
 });
 When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with owner "([^"]*)", will success$/, async function (token, feeTo, owner) {
     const actor = createDFTActor(token, owner);
-    const feeToPrincipal = identityFactory.getPrincipal(feeTo)!.toText();
+    const feeToPrincipal = identity.identityFactory.getPrincipal(feeTo)!.toText();
     const res = await actor!.setFeeTo(feeToPrincipal, []);
     assert.isTrue("Ok" in res);
 });
 Then(/^Get token "([^"]*)"'s feeTo by "([^"]*)", should be "([^"]*)"$/, async function (token, owner, feeTo) {
     const actor = createDFTActor(token, owner);
-    const feeToAccountId = identityFactory.getAccountIdHex(feeTo);
+    const feeToAccountId = identity.identityFactory.getAccountIdHex(feeTo);
     const res = await actor!.tokenInfo();
     assert.equal(res.feeTo, feeToAccountId);
 });
 When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with not owner "([^"]*)", will failed$/, async function (token, feeTo, owner) {
     const actor = createDFTActor(token, owner);
-    const feeToPrincipal = identityFactory.getPrincipal(feeTo)!.toText();
+    const feeToPrincipal = identity.identityFactory.getPrincipal(feeTo)!.toText();
     try {
         const res = await actor!.setFeeTo(feeToPrincipal, []);
         expect.fail(`should not set success, but set success with ${res}`);
@@ -183,7 +183,7 @@ When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with not owner "([^"]*)", w
 });
 When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with owner "([^"]*)" twice, the second will fail$/, async function (token, feeTo, owner) {
     const actor = createDFTActor(token, owner);
-    const feeToPrincipal = identityFactory.getPrincipal(feeTo)!.toText();
+    const feeToPrincipal = identity.identityFactory.getPrincipal(feeTo)!.toText();
     //  set created_at as nanos timestamp
     const created_at = BigInt(new Date().getTime()) * 1000000n;
     const res = await actor!.setFeeTo(feeToPrincipal, [created_at]);
@@ -194,20 +194,20 @@ When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with owner "([^"]*)" twice,
 });
 When(/^I update token "([^"]*)"'s owner to "([^"]*)" with owner "([^"]*)", will success$/, async function (token, newOwner, owner) {
     const actor = createDFTActor(token, owner);
-    const newOwnerPrincipal = identityFactory.getPrincipal(newOwner)!;
+    const newOwnerPrincipal = identity.identityFactory.getPrincipal(newOwner)!;
     const res = await actor!.setOwner(newOwnerPrincipal, []);
     assert.isTrue("Ok" in res);
 });
 
 Then(/^Get token "([^"]*)"'s owner by "([^"]*)", should be "([^"]*)"$/, async function (token, caller, owner) {
     const actor = createDFTActor(token, caller);
-    const ownerPrincipal = identityFactory.getPrincipal(owner)!;
+    const ownerPrincipal = identity.identityFactory.getPrincipal(owner)!;
     const ownerRes = await actor!.owner();
     assert.equal(ownerRes.toText(), ownerPrincipal.toText());
 });
 When(/^I update token "([^"]*)"'s to "([^"]*)" owner with not owner "([^"]*)", will failed$/, async function (token, newOwner, notOwner) {
     const actor = createDFTActor(token, notOwner);
-    const newOwnerPrincipal = identityFactory.getPrincipal(newOwner)!;
+    const newOwnerPrincipal = identity.identityFactory.getPrincipal(newOwner)!;
     try {
         const res = await actor!.setOwner(newOwnerPrincipal, []);
         expect.fail(`should not set success, but set success with ${res}`);
@@ -216,17 +216,17 @@ When(/^I update token "([^"]*)"'s to "([^"]*)" owner with not owner "([^"]*)", w
     }
 });
 
-When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with passed "(\d+)" days, will failed$/, async function (token, owner, passedDays, {rawTable}) {
+When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with passed "(\d+)" days, will failed$/, async function (token, owner, passedDays, dataTable: DataTable) {
     const actor = createDFTActor(token, owner);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     const option = optionArray[0];
     const decimals = await actor!.decimals();
     const nowNanos = BigInt(new Date().getTime()) * 1000000n;
     const passedNanos = nowNanos - BigInt(passedDays) * 24n * 60n * 60n * 1000000000n;
     // convert optionArray to InnerTokenFee
-    const newFee: CandidTokenFee = {
-        minimum: parseToOrigin(option.minimum, decimals),
-        rate: Number(parseToOrigin(option.rate, option.rate_decimals)),
+    const newFee: TokenFee = {
+        minimum: unit.parseToOrigin(option.minimum, decimals),
+        rate: Number(unit.parseToOrigin(option.rate, option.rate_decimals)),
         rateDecimals: Number(option.rate_decimals)
     };
     const res = await actor!.setFee(newFee, [passedNanos]);
@@ -234,7 +234,7 @@ When(/^I update token "([^"]*)"'s fee with owner "([^"]*)" with passed "(\d+)" d
 });
 When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with owner "([^"]*)" with passed "([^"]*)" days, will failed$/, async function (token, newFeeTo, owner, passedDays) {
     const actor = createDFTActor(token, owner);
-    const newFeeToPrincipal = identityFactory.getPrincipal(newFeeTo)!.toText();
+    const newFeeToPrincipal = identity.identityFactory.getPrincipal(newFeeTo)!.toText();
     const nowNanos = BigInt(new Date().getTime()) * 1000000n;
     const passedNanos = nowNanos - BigInt(passedDays) * 24n * 60n * 60n * 1000000000n;
     const res = await actor!.setFeeTo(newFeeToPrincipal, [passedNanos]);
@@ -242,7 +242,7 @@ When(/^I update token "([^"]*)"'s feeTo as "([^"]*)" with owner "([^"]*)" with p
 });
 When(/^I update token "([^"]*)"'s owner to "([^"]*)" with owner "([^"]*)" with passed "([^"]*)" days, will failed$/, async function (token, newOwner, owner, passedDays) {
     const actor = createDFTActor(token, owner);
-    const newOwnerPrincipal = identityFactory.getPrincipal(newOwner)!;
+    const newOwnerPrincipal = identity.identityFactory.getPrincipal(newOwner)!;
     const nowNanos = BigInt(new Date().getTime()) * 1000000n;
     const passedNanos = nowNanos - BigInt(passedDays) * 24n * 60n * 60n * 1000000000n;
     const res = await actor!.setOwner(newOwnerPrincipal, [passedNanos]);

@@ -143,11 +143,45 @@ export const idlFactory = ({ IDL }) => {
       ),
     'archives' : IDL.Func([], [IDL.Vec(ArchiveInfo)], ['query']),
     'balanceOf' : IDL.Func([IDL.Text], [IDL.Nat], ['query']),
+    'batchMint' : IDL.Func(
+        [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat)), IDL.Opt(IDL.Nat64)],
+        [IDL.Vec(OperationResult)],
+        [],
+      ),
+    'batchTransfer' : IDL.Func(
+        [
+          IDL.Opt(IDL.Vec(IDL.Nat8)),
+          IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat)),
+          IDL.Opt(IDL.Nat64),
+        ],
+        [IDL.Vec(OperationResult)],
+        [],
+      ),
+    'batchTransferFrom' : IDL.Func(
+        [
+          IDL.Opt(IDL.Vec(IDL.Nat8)),
+          IDL.Text,
+          IDL.Vec(IDL.Tuple(IDL.Text, IDL.Nat)),
+          IDL.Opt(IDL.Nat64),
+        ],
+        [IDL.Vec(OperationResult)],
+        [],
+      ),
     'blockByHeight' : IDL.Func([IDL.Nat], [BlockResult], ['query']),
     'blocksByQuery' : IDL.Func(
         [IDL.Nat, IDL.Nat64],
         [QueryBlocksResult],
         ['query'],
+      ),
+    'burn' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Nat, IDL.Opt(IDL.Nat64)],
+        [OperationResult],
+        [],
+      ),
+    'burnFrom' : IDL.Func(
+        [IDL.Opt(IDL.Vec(IDL.Nat8)), IDL.Text, IDL.Nat, IDL.Opt(IDL.Nat64)],
+        [OperationResult],
+        [],
       ),
     'decimals' : IDL.Func([], [IDL.Nat8], ['query']),
     'desc' : IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Text, IDL.Text))], ['query']),

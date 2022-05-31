@@ -11,7 +11,7 @@ use std::sync::Arc;
 
 // Auto-scaling tx  storage canister wasm package bytes
 const AUTO_SCALING_STORAGE_CANISTER_WASM: &[u8] =
-    std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm");
+    std::include_bytes!("../../target/wasm32-unknown-unknown/release/dft_tx_storage.wasm");
 
 pub struct AutoScalingStorageService {
     pub token_id: Principal,

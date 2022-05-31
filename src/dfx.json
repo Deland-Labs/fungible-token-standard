@@ -4,10 +4,10 @@
       "type": "custom",
       "build": [
         "cargo build --target wasm32-unknown-unknown --package  dft_tx_storage --release  --no-default-features --features logger",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_tx_storage.wasm -o target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_tx_storage.wasm -o target/wasm32-unknown-unknown/release/dft_tx_storage.wasm"
       ],
       "candid": "dft_tx_storage/src/storage.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_tx_storage.wasm"
     },
     "dft_basic": {
       "type": "custom",
@@ -49,10 +49,10 @@
       "type": "custom",
       "build": [
         "cargo build --target wasm32-unknown-unknown --package  dft_receiver --release  --no-default-features --features logger",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_receiver.wasm -o target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
+        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_receiver.wasm -o target/wasm32-unknown-unknown/release/dft_receiver.wasm"
       ],
       "candid": "dft_receiver/src/receiver.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_receiver.wasm"
     }
   },
   "defaults": {
@@ -60,7 +60,7 @@
       "packtool": ""
     }
   },
-  "dfx": "0.9.3",
+  "dfx": "0.10.0",
   "networks": {
     "local": {
       "bind": "127.0.0.1:8000",

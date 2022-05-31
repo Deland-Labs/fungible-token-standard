@@ -1,4 +1,6 @@
 import type { Principal } from '@dfinity/principal';
+import type { ActorMethod } from '@dfinity/agent';
+
 export interface Block {
   'transaction' : Transaction,
   'timestamp' : bigint,
@@ -51,8 +53,8 @@ export interface TokenFee {
 }
 export interface Transaction { 'createdAt' : bigint, 'operation' : Operation }
 export interface _SERVICE {
-  'batchAppend' : (arg_0: Array<Array<number>>) => Promise<BooleanResult>,
-  'blockByHeight' : (arg_0: bigint) => Promise<BlockResult>,
-  'blocksByQuery' : (arg_0: bigint, arg_1: bigint) => Promise<BlockListResult>,
-  'storageInfo' : () => Promise<StorageInfo>,
+  'batchAppend' : ActorMethod<[Array<Array<number>>], BooleanResult>,
+  'blockByHeight' : ActorMethod<[bigint], BlockResult>,
+  'blocksByQuery' : ActorMethod<[bigint, bigint], BlockListResult>,
+  'storageInfo' : ActorMethod<[], StorageInfo>,
 }

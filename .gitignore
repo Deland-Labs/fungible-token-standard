@@ -11,6 +11,3 @@
 .dfx/
 package
 node_modules
-/src/identities.json
-
-/src/package_feature/*

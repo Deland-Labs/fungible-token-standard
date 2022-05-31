@@ -1,15 +1,14 @@
-import "~/setup";
-import {Given, Then, When} from "@cucumber/cucumber";
-import {reinstall_all} from "../../src/tasks";
-import {canister} from "~/utils";
+import { Given, Then, When } from "@cucumber/cucumber";
+import { reinstall_all } from "../../src/tasks";
+import { canister } from "@deland-labs/ic-dev-kit";
 import {
     createDFTWithAllFeatures,
     createDFTBasicActor,
     createDFTBurnableActor,
     createDFTMintableActor
-} from "~/declarations";
+} from "../../src/scripts/declarations";
 import path from "path";
-import {existsSync, readFileSync} from "fs";
+import { existsSync, readFileSync } from "fs";
 
 Then(/^Sleep for "([^"]*)" secs.$/, async function (sec: string) {
     // sleep for secs
