@@ -7,7 +7,6 @@
       "dom",
       "es2017"
     ],
-    "tsBuildInfoFile": "./build_info.json",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -20,10 +19,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "experimentalDecorators": true,
-    "baseUrl": "./",
-    "paths": {
-      "~/*": ["./scripts/src/scripts/*"]
-    }
+    "baseUrl": "./"
   },
   "include": [
     "scripts/src/scripts/**/*.ts",

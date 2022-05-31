@@ -1,12 +1,11 @@
-import {When, Then} from "@cucumber/cucumber";
-import {createDFTBasicActor, createStorageActor} from "~/declarations";
-import {identityFactory} from "~/utils/identity";
-import {parseToCommon, parseToOrigin} from "~/utils/uint";
-import {assert, expect} from "chai";
+import "./setup";
+import { When, Then, DataTable } from "@cucumber/cucumber";
+import { createDFTBasicActor, createStorageActor } from "../../src/scripts/declarations";
+import { identity, unit } from "@deland-labs/ic-dev-kit";
+import { assert, expect } from "chai";
 import logger from "node-color-log";
-import {createDFTActor} from "./utils";
-import {parseRawTableToJsonArray} from "~/utils/convert";
-import {OperationResult} from "~/declarations/dft_basic/dft_basic.did";
+import { createDFTActor } from "./utils";
+import { OperationResult } from "../../src/scripts/declarations/dft_basic/dft_basic.did";
 
 When(
     /^Check the storage canisters count is equal to "([^"]*)" ,by "([^"]*)"$/,
@@ -17,17 +16,17 @@ When(
     }
 );
 
-Then(/^Transfer token repeat "([^"]*)" times$/, {timeout: 10000 * 1000}, async function (repeatTimes, {rawTable}) {
-    const options = parseRawTableToJsonArray(rawTable);
+Then(/^Transfer token repeat "([^"]*)" times$/, { timeout: 10000 * 1000 }, async function (repeatTimes, dataTable: DataTable) {
+    const options = dataTable.hashes();
     for (let i = 0; i < repeatTimes; i++) {
         const transferJobs: Array<Promise<OperationResult>> = [];
         for (let j = 0; j < options.length; j++) {
             const amount = i + j;
             const option = options[j];
             const actor = createDFTBasicActor(option.from);
-            const toPrincipal = identityFactory.getPrincipal(option.to)!.toText();
+            const toPrincipal = identity.identityFactory.getPrincipal(option.to)!.toText();
             const decimals = await actor.decimals();
-            const amountBN = parseToOrigin(amount, decimals);
+            const amountBN = unit.parseToOrigin(amount, decimals);
             transferJobs.push(actor.transfer([], toPrincipal, amountBN, []));
         }
         i = i + options.length - 1;
@@ -48,7 +47,7 @@ Then(
     async function (blockHeight, token, amount) {
         const actor = createDFTActor(token);
         const decimals = await actor!.decimals();
-        const blockHeightBN = parseToOrigin(blockHeight, 0);
+        const blockHeightBN = unit.parseToOrigin(blockHeight, 0);
         const blockRes = await actor!.blockByHeight(blockHeightBN);
         if ("Ok" in blockRes) {
             const block = blockRes.Ok;
@@ -56,7 +55,7 @@ Then(
                 const tx = block.transaction;
                 if ("Transfer" in tx.operation) {
                     const transfer = tx.operation.Transfer;
-                    const amountBN = parseToOrigin(amount, decimals);
+                    const amountBN = unit.parseToOrigin(amount, decimals);
                     assert.equal(amountBN, transfer.value);
                 }
             }
@@ -71,7 +70,7 @@ Then(
     async function (blockHeight, token) {
         const actor = createDFTActor(token);
         const decimals = await actor!.decimals();
-        const blockHeightBN = parseToOrigin(blockHeight, 0);
+        const blockHeightBN = unit.parseToOrigin(blockHeight, 0);
         const blockRes = await actor!.blockByHeight(blockHeightBN);
         if ("Forward" in blockRes) {
             const canisterId = blockRes.Forward;
@@ -91,7 +90,7 @@ Then(
     /^Check the block height "([^"]*)" transfer transaction of "([^"]*)", the result should not be a forward result$/,
     async function (blockHeight, token) {
         const actor = createDFTActor(token);
-        const blockHeightBN = parseToOrigin(blockHeight, 0);
+        const blockHeightBN = unit.parseToOrigin(blockHeight, 0);
         const tx = await actor!.blockByHeight(blockHeightBN);
         assert.isFalse("Forward" in tx);
     }
@@ -99,12 +98,12 @@ Then(
 
 Then(
     /^Check the blocks query of "([^"]*)", start block height "([^"]*)",size "([^"]*)", check each transaction is correct$/,
-    async function (token, startBlockHeight, size, {rawTable}) {
+    async function (token, startBlockHeight, size, dataTable: DataTable) {
         const actor = createDFTActor(token);
         const decimals = await actor!.decimals();
-        const optionArray = parseRawTableToJsonArray(rawTable);
-        const startBlockHeightBN = parseToOrigin(startBlockHeight, 0);
-        const sizeBN = parseToOrigin(size, 0);
+        const optionArray = dataTable.hashes();
+        const startBlockHeightBN = unit.parseToOrigin(startBlockHeight, 0);
+        const sizeBN = unit.parseToOrigin(size, 0);
         const queryRes = await actor!.blocksByQuery(startBlockHeightBN, sizeBN);
 
         optionArray.forEach((option, index) => {
@@ -113,8 +112,8 @@ Then(
                 const tx = block.transaction;
                 if ("Transfer" in tx.operation) {
                     const transfer = tx.operation.Transfer;
-                    const amountBN = parseToOrigin(option.amount, decimals);
-                    const feeBN = parseToOrigin(option.fee, decimals);
+                    const amountBN = unit.parseToOrigin(option.amount, decimals);
+                    const feeBN = unit.parseToOrigin(option.fee, decimals);
                     assert.equal(amountBN, transfer.value);
                     assert.equal(feeBN, transfer.fee);
                 }
@@ -123,9 +122,9 @@ Then(
     }
 );
 
-Then(/^Check token "([^"]*)"'s archives ,should be$/, async function (token, {rawTable}) {
+Then(/^Check token "([^"]*)"'s archives ,should be$/, async function (token, dataTable: DataTable) {
     const actor = createDFTActor(token);
-    const optionArray = parseRawTableToJsonArray(rawTable);
+    const optionArray = dataTable.hashes();
     const archives = await actor!.archives();
 
     optionArray.forEach((option, index) => {
@@ -137,7 +136,7 @@ Then(/^Check token "([^"]*)"'s archives ,should be$/, async function (token, {ra
 Then(/^Get the block height "([^"]*)" transfer transaction of "([^"]*)" from archive canister, the amount should be "([^"]*)"$/, async function (blockHeight, token, amount) {
     const actor = createDFTActor(token);
     const decimals = await actor!.decimals();
-    const blockHeightBN = parseToOrigin(blockHeight, 0);
+    const blockHeightBN = unit.parseToOrigin(blockHeight, 0);
     const blockRes = await actor!.blockByHeight(blockHeightBN);
     if ("Forward" in blockRes) {
         const canisterId = blockRes.Forward;
@@ -149,7 +148,7 @@ Then(/^Get the block height "([^"]*)" transfer transaction of "([^"]*)" from arc
                 const tx = blockInside.transaction;
                 if ("Transfer" in tx.operation) {
                     const transfer = tx.operation.Transfer;
-                    const amountBN = parseToOrigin(amount, decimals);
+                    const amountBN = unit.parseToOrigin(amount, decimals);
                     assert.equal(amountBN, transfer.value);
                 }
             }

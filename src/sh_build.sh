@@ -1,1 +1,1 @@
-ts-node -r tsconfig-paths/register scripts/buildAll.ts
+npx ic build-all

@@ -1,8 +1,6 @@
-import "../setup"
-import {canister} from "../utils";
-import {ReInstallOptions} from "~/utils/canister";
-import {DFTInitOptions} from "../../tasks";
-import {parseToCommon} from "~/utils/uint";
+import { ReInstallOptions } from "../utils/canister";
+import { DFTInitOptions } from "../../tasks";
+import { unit, canister } from "@deland-labs/ic-dev-kit";
 import BigNumber from "bignumber.js";
 import logger from "node-color-log";
 
@@ -21,7 +19,7 @@ export const reinstall = async (options?: ReInstallOptions, initOption?: DFTInit
     const name = initOption?.name ?? "Burnable Token";
     const symbol = initOption?.symbol ?? "BNT";
     const decimals = initOption?.decimals ?? 17;
-    const supply = new BigNumber(parseToCommon(initOption?.totalSupply ?? 10000000000000000000000000n)).toFixed();
+    const supply = new BigNumber(unit.parseToCommon(initOption?.totalSupply ?? 10000000000000000000000000n)).toFixed();
 
     const fee = initOption?.fee ?? {
         rate: 0n,

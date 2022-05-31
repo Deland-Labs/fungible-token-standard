@@ -1,6 +1,5 @@
-import "../setup"
-import {canister} from "../utils";
-import {ReInstallOptions} from "~/utils/canister";
+import { canister } from "@deland-labs/ic-dev-kit";
+import { ReInstallOptions } from "../utils/canister";
 const build = () => {
     canister.build("dft_tx_storage");
 }

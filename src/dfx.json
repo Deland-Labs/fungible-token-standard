@@ -1,58 +1,49 @@
 {
   "canisters": {
     "dft_tx_storage": {
-      "type": "custom",
-      "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_tx_storage --release  --no-default-features --features logger",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_tx_storage.wasm -o target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
-      ],
-      "candid": "dft_tx_storage/src/storage.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_tx_storage_opt.wasm"
+      "type": "rust",
+      "package": "dft_tx_storage",
+      "candid": "dft_tx_storage/src/storage.did"
     },
     "dft_basic": {
-      "type": "custom",
-      "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_token --release --no-default-features --features logger,basic",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_basic.wasm"
-      ],
+      "type": "rust",
+      "package": "dft_token",
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_basic.wasm"
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_burnable": {
-      "type": "custom",
-      "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_token --release  --no-default-features --features logger,basic,burnable",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_burnable.wasm"
-      ],
+      "type": "rust",
+      "package": "dft_token",
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_burnable.wasm"
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_mintable": {
-      "type": "custom",
-      "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_token --release  --no-default-features --features logger,basic,mintable",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_mintable.wasm"
-      ],
+      "type": "rust",
+      "package": "dft_token",
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_mintable.wasm"
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_all_features": {
-      "type": "custom",
-      "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_token --release  --no-default-features --features logger,basic,burnable,mintable,batch_mint,batch_transfer",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_all_features.wasm"
-      ],
+      "type": "rust",
+      "package": "dft_token",
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_all_features.wasm"
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_receiver": {
-      "type": "custom",
-      "build": [
-        "cargo build --target wasm32-unknown-unknown --package  dft_receiver --release  --no-default-features --features logger",
-        "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_receiver.wasm -o target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
-      ],
+      "type": "rust",
+      "package": "dft_receiver",
       "candid": "dft_receiver/src/receiver.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_receiver_opt.wasm"
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     }
   },
   "defaults": {
@@ -60,7 +51,7 @@
       "packtool": ""
     }
   },
-  "dfx": "0.9.3",
+  "dfx": "0.10.0",
   "networks": {
     "local": {
       "bind": "127.0.0.1:8000",

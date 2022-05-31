@@ -1,4 +1,6 @@
 import type { Principal } from '@dfinity/principal';
+import type { ActorMethod } from '@dfinity/agent';
+
 export interface ArchiveInfo {
   'startBlockHeight' : bigint,
   'numBlocks' : bigint,
@@ -110,86 +112,63 @@ export interface TokenMetrics {
 }
 export interface Transaction { 'createdAt' : bigint, 'operation' : Operation }
 export interface _SERVICE {
-  'addMinter' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
-      BooleanResult
-    >,
-  'allowance' : (arg_0: string, arg_1: string) => Promise<bigint>,
-  'allowancesOf' : (arg_0: string) => Promise<Array<[string, bigint]>>,
-  'approve' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: bigint,
-      arg_3: [] | [bigint],
-    ) => Promise<OperationResult>,
-  'archives' : () => Promise<Array<ArchiveInfo>>,
-  'balanceOf' : (arg_0: string) => Promise<bigint>,
-  'batchMint' : (
-      arg_0: Array<[string, bigint]>,
-      arg_1: [] | [bigint],
-    ) => Promise<Array<OperationResult>>,
-  'batchTransfer' : (
-      arg_0: [] | [Array<number>],
-      arg_1: Array<[string, bigint]>,
-      arg_2: [] | [bigint],
-    ) => Promise<Array<OperationResult>>,
-  'batchTransferFrom' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: Array<[string, bigint]>,
-      arg_3: [] | [bigint],
-    ) => Promise<Array<OperationResult>>,
-  'blockByHeight' : (arg_0: bigint) => Promise<BlockResult>,
-  'blocksByQuery' : (arg_0: bigint, arg_1: bigint) => Promise<
-      QueryBlocksResult
-    >,
-  'burn' : (
-      arg_0: [] | [Array<number>],
-      arg_1: bigint,
-      arg_2: [] | [bigint],
-    ) => Promise<OperationResult>,
-  'burnFrom' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: bigint,
-      arg_3: [] | [bigint],
-    ) => Promise<OperationResult>,
-  'decimals' : () => Promise<number>,
-  'desc' : () => Promise<Array<[string, string]>>,
-  'fee' : () => Promise<TokenFee>,
-  'http_request' : (arg_0: HttpRequest) => Promise<HttpResponse>,
-  'logo' : () => Promise<Array<number>>,
-  'meta' : () => Promise<TokenMetadata>,
-  'mint' : (arg_0: string, arg_1: bigint, arg_2: [] | [bigint]) => Promise<
-      OperationResult
-    >,
-  'minters' : () => Promise<Array<Principal>>,
-  'name' : () => Promise<string>,
-  'owner' : () => Promise<Principal>,
-  'removeMinter' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
-      BooleanResult
-    >,
-  'setDesc' : (arg_0: Array<[string, string]>) => Promise<BooleanResult>,
-  'setFee' : (arg_0: TokenFee, arg_1: [] | [bigint]) => Promise<BooleanResult>,
-  'setFeeTo' : (arg_0: string, arg_1: [] | [bigint]) => Promise<BooleanResult>,
-  'setLogo' : (arg_0: [] | [Array<number>]) => Promise<BooleanResult>,
-  'setOwner' : (arg_0: Principal, arg_1: [] | [bigint]) => Promise<
-      BooleanResult
-    >,
-  'symbol' : () => Promise<string>,
-  'tokenInfo' : () => Promise<TokenInfo>,
-  'tokenMetrics' : () => Promise<TokenMetrics>,
-  'totalSupply' : () => Promise<bigint>,
-  'transfer' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: bigint,
-      arg_3: [] | [bigint],
-    ) => Promise<OperationResult>,
-  'transferFrom' : (
-      arg_0: [] | [Array<number>],
-      arg_1: string,
-      arg_2: string,
-      arg_3: bigint,
-      arg_4: [] | [bigint],
-    ) => Promise<OperationResult>,
+  'addMinter' : ActorMethod<[Principal, [] | [bigint]], BooleanResult>,
+  'allowance' : ActorMethod<[string, string], bigint>,
+  'allowancesOf' : ActorMethod<[string], Array<[string, bigint]>>,
+  'approve' : ActorMethod<
+    [[] | [Array<number>], string, bigint, [] | [bigint]],
+    OperationResult,
+  >,
+  'archives' : ActorMethod<[], Array<ArchiveInfo>>,
+  'balanceOf' : ActorMethod<[string], bigint>,
+  'batchMint' : ActorMethod<
+    [Array<[string, bigint]>, [] | [bigint]],
+    Array<OperationResult>,
+  >,
+  'batchTransfer' : ActorMethod<
+    [[] | [Array<number>], Array<[string, bigint]>, [] | [bigint]],
+    Array<OperationResult>,
+  >,
+  'batchTransferFrom' : ActorMethod<
+    [[] | [Array<number>], string, Array<[string, bigint]>, [] | [bigint]],
+    Array<OperationResult>,
+  >,
+  'blockByHeight' : ActorMethod<[bigint], BlockResult>,
+  'blocksByQuery' : ActorMethod<[bigint, bigint], QueryBlocksResult>,
+  'burn' : ActorMethod<
+    [[] | [Array<number>], bigint, [] | [bigint]],
+    OperationResult,
+  >,
+  'burnFrom' : ActorMethod<
+    [[] | [Array<number>], string, bigint, [] | [bigint]],
+    OperationResult,
+  >,
+  'decimals' : ActorMethod<[], number>,
+  'desc' : ActorMethod<[], Array<[string, string]>>,
+  'fee' : ActorMethod<[], TokenFee>,
+  'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
+  'logo' : ActorMethod<[], Array<number>>,
+  'meta' : ActorMethod<[], TokenMetadata>,
+  'mint' : ActorMethod<[string, bigint, [] | [bigint]], OperationResult>,
+  'minters' : ActorMethod<[], Array<Principal>>,
+  'name' : ActorMethod<[], string>,
+  'owner' : ActorMethod<[], Principal>,
+  'removeMinter' : ActorMethod<[Principal, [] | [bigint]], BooleanResult>,
+  'setDesc' : ActorMethod<[Array<[string, string]>], BooleanResult>,
+  'setFee' : ActorMethod<[TokenFee, [] | [bigint]], BooleanResult>,
+  'setFeeTo' : ActorMethod<[string, [] | [bigint]], BooleanResult>,
+  'setLogo' : ActorMethod<[[] | [Array<number>]], BooleanResult>,
+  'setOwner' : ActorMethod<[Principal, [] | [bigint]], BooleanResult>,
+  'symbol' : ActorMethod<[], string>,
+  'tokenInfo' : ActorMethod<[], TokenInfo>,
+  'tokenMetrics' : ActorMethod<[], TokenMetrics>,
+  'totalSupply' : ActorMethod<[], bigint>,
+  'transfer' : ActorMethod<
+    [[] | [Array<number>], string, bigint, [] | [bigint]],
+    OperationResult,
+  >,
+  'transferFrom' : ActorMethod<
+    [[] | [Array<number>], string, string, bigint, [] | [bigint]],
+    OperationResult,
+  >,
 }

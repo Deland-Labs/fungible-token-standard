@@ -1,7 +1,6 @@
-import {Actor, getDefaultAgent, HttpAgent, Identity} from "@dfinity/agent";
-import {Principal} from "@dfinity/principal";
-import {IdentityInfo} from "./identity";
-import {get_id} from "./canister";
+import { Actor, getDefaultAgent, HttpAgent, Identity } from "@dfinity/agent";
+import { Principal } from "@dfinity/principal";
+import { identity, canister } from "@deland-labs/ic-dev-kit";
 import logger from "node-color-log";
 // import dfxConfig from "../../dfx.json";
 export const IC_HOST = "https://ic0.app";
@@ -28,8 +27,8 @@ class ActorFactory {
 
     _isAuthenticated: boolean = false;
 
-    createActorByName<T>(canisterDid: any, canisterName: string, identity_info: IdentityInfo): T {
-        let canister_id = get_id(canisterName);
+    createActorByName<T>(canisterDid: any, canisterName: string, identity_info: identity.IdentityInfo): T {
+        let canister_id = canister.get_id(canisterName);
         return this.createActor(canisterDid, canister_id, identity_info.identity);
     }
 

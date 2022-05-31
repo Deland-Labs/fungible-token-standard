@@ -1,10 +1,9 @@
-import "./scripts/setup"
-import {reinstall as reinstallDFTBasic} from "~/canisters/dftBasic";
-import {reinstall as reinstallDFTBurnableMintale} from "~/canisters/dftAllFeatures";
-import {reinstall as reinstallDFTBurnable} from "~/canisters/dfBurnable";
-import {reinstall as reinstallDFTMintable} from "~/canisters/dftMintable";
-import {reinstall as reinstallDFTTxStorage} from "~/canisters/dftTxStorage";
-import {reinstall as reinstallDFTReceiver} from "~/canisters/dftReceiver";
+import { reinstall as reinstallDFTBasic } from "./scripts/canisters/dftBasic";
+import { reinstall as reinstallDFTBurnableMintale } from "./scripts/canisters/dftAllFeatures";
+import { reinstall as reinstallDFTBurnable } from "./scripts/canisters/dfBurnable";
+import { reinstall as reinstallDFTMintable } from "./scripts/canisters/dftMintable";
+import { reinstall as reinstallDFTTxStorage } from "./scripts/canisters/dftTxStorage";
+import { reinstall as reinstallDFTReceiver } from "./scripts/canisters/dftReceiver";
 
 
 export const reinstall_all = async (options?: CanisterReinstallOptions) => {
@@ -18,29 +17,29 @@ export const reinstall_all = async (options?: CanisterReinstallOptions) => {
         }, options.canisters.dft_basic.initOptions));
     }
     // dft basic 2
-    if (options && options.canisters?.dft_all_features) {
-        jobs.push(reinstallDFTBurnableMintale({...options,},
+    if (options && options.canisters?.dft_all_features?.reinstall) {
+        jobs.push(reinstallDFTBurnableMintale({ ...options, },
             options.canisters.dft_all_features.initOptions));
     }
     // dft burnable
-    if (options && options.canisters?.dft_burnable) {
-        jobs.push(reinstallDFTBurnable({...options,},
+    if (options && options.canisters?.dft_burnable?.reinstall) {
+        jobs.push(reinstallDFTBurnable({ ...options, },
             options.canisters.dft_burnable.initOptions));
     }
     // dft mintable
-    if (options && options.canisters?.dft_mintable) {
-        jobs.push(reinstallDFTMintable({...options,},
+    if (options && options.canisters?.dft_mintable?.reinstall) {
+        jobs.push(reinstallDFTMintable({ ...options, },
             options.canisters.dft_mintable.initOptions));
     }
 
     // dfx receiver
-    if (options && options.canisters?.dft_receiver) {
-        jobs.push(reinstallDFTReceiver({...options,}));
+    if (options && options.canisters?.dft_receiver?.reinstall) {
+        jobs.push(reinstallDFTReceiver({ ...options, }));
     }
 
     // dfx tx storage
-    if (options && options.canisters?.dft_tx_storage) {
-        jobs.push(reinstallDFTTxStorage({...options,}));
+    if (options && options.canisters?.dft_tx_storage?.reinstall) {
+        jobs.push(reinstallDFTTxStorage({ ...options, }));
     }
     if (options && options.one_by_one) {
         for (const task of jobs) {

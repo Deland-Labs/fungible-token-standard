@@ -1,10 +1,17 @@
 {
   "canisters": {
+    "dft_tx_storage": {
+      "exclude_in_package": true
+    }
   },
   "envs": [
     {
-      "name": "local",
-      "feature": "dev_canister"
+      "name": "dev",
+      "canister_env": "dev"
+    },
+    {
+      "name": "production",
+      "canister_env": "production"
     }
   ]
 }

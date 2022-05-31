@@ -1,1 +1,3 @@
-ts-node -r tsconfig-paths/register scripts/generate.ts
+pwd
+npx ic update-did
+npx ic generate -o "scripts/src/scripts/declarations/"

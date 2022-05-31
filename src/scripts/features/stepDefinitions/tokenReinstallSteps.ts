@@ -1,20 +1,20 @@
-import {Given} from "@cucumber/cucumber";
-import {assert} from "chai";
+import "./setup";
+import { DataTable, Given } from "@cucumber/cucumber";
+import { assert } from "chai";
 import logger from "node-color-log";
-import {CanisterReinstallOptions, DFTInitOptions, reinstall_all} from "../../src/tasks";
-import {parseToOrigin} from "~/utils/uint";
+import { CanisterReinstallOptions, DFTInitOptions, reinstall_all } from "../../src/tasks";
 import {
     createDFTWithAllFeatures,
     createDFTBasicActor,
     createDFTBurnableActor,
     createDFTMintableActor
-} from "~/declarations";
-import {parseRawTableToJsonArray} from "~/utils/convert";
-import {identityFactory} from "~/utils/identity";
-import {createDFTActor} from "./utils";
+} from "../../src/scripts/declarations";
+import { createDFTActor } from "./utils";
+import { unit, identity } from "@deland-labs/ic-dev-kit";
 
-Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
-    let optionArray: Array<any> = parseRawTableToJsonArray(rawTable);
+
+Given(/^Reinstall dft canisters$/, async (dataTable: DataTable) => {
+    let optionArray: Array<any> = dataTable.hashes();
     // dft basic option
     let dftBasicOption = optionArray.find(o => o.key === "dft_basic");
     let dftBasicInitOptions = parseToDFTInitOptions(dftBasicOption);
@@ -29,36 +29,36 @@ Given(/^Reinstall dft canisters$/, async ({rawTable}) => {
     let dftMintAbleInitOptions = parseToDFTInitOptions(dftMintAbleOption);
 
     let reinstallOptions: CanisterReinstallOptions = {
-            build: false,
-            init: false,
-            one_by_one: false,
-            canisters: {
-                dft_basic: dftBasicInitOptions ? {
-                    reinstall: true,
-                    initOptions: dftBasicInitOptions
-                } : undefined,
-                dft_all_features: dftBasic2InitOptions ? {
-                    reinstall: true,
-                    initOptions: dftBasic2InitOptions
-                } : undefined,
-                dft_burnable: dftBurnAbleInitOptions ? {
-                    reinstall: true,
-                    initOptions: dftBurnAbleInitOptions
-                } : undefined,
-                dft_mintable: dftMintAbleInitOptions ? {
-                    reinstall: true,
-                    initOptions: dftMintAbleInitOptions
-                } : undefined,
-                dft_receiver: {reinstall: true},
-                dft_tx_storage: {reinstall: true}
-            }
+        build: false,
+        init: false,
+        one_by_one: false,
+        canisters: {
+            dft_basic: dftBasicInitOptions ? {
+                reinstall: true,
+                initOptions: dftBasicInitOptions
+            } : undefined,
+            dft_all_features: dftBasic2InitOptions ? {
+                reinstall: true,
+                initOptions: dftBasic2InitOptions
+            } : undefined,
+            dft_burnable: dftBurnAbleInitOptions ? {
+                reinstall: true,
+                initOptions: dftBurnAbleInitOptions
+            } : undefined,
+            dft_mintable: dftMintAbleInitOptions ? {
+                reinstall: true,
+                initOptions: dftMintAbleInitOptions
+            } : undefined,
+            dft_receiver: { reinstall: true },
+            dft_tx_storage: { reinstall: false }
         }
-    ;
+    }
+        ;
     await reinstall_all(reinstallOptions);
     logger.debug(`option array: ${JSON.stringify(optionArray)}`);
 });
 
-Given(/^transfer tokens from "([^"]*)" to these users$/, async function (user, args) {
+Given(/^transfer tokens from "([^"]*)" to these users$/, async function (user, dataTable: DataTable) {
     const dftBasic = createDFTBasicActor(user);
     const dftBasic2 = createDFTWithAllFeatures(user);
     const dftBurnAble = createDFTBurnableActor(user);
@@ -66,15 +66,15 @@ Given(/^transfer tokens from "([^"]*)" to these users$/, async function (user, a
 
     const dftActors = [dftBasic, dftBasic2, dftBurnAble, dftMintAble];
 
-    const optionArray = parseRawTableToJsonArray(args.rawTable);
+    const optionArray = dataTable.hashes();
     for (let i = 0; i < optionArray.length; i++) {
         const option = optionArray[i];
         for (let j = 0; j < dftActors.length; j++) {
             const dftActor = dftActors[j];
             if (dftActor && option) {
                 const decimals = await dftActor.decimals();
-                const to = identityFactory.getPrincipal(option.user)!.toText();
-                const amountBN = parseToOrigin(option.amount, decimals);
+                const to = identity.identityFactory.getPrincipal(option.user)!.toText();
+                const amountBN = unit.parseToOrigin(option.amount, decimals);
                 const res = await dftActor.transfer([], to, amountBN, []);
                 assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
                 assert.equal(await dftActor.balanceOf(to), amountBN);
@@ -83,14 +83,14 @@ Given(/^transfer tokens from "([^"]*)" to these users$/, async function (user, a
     }
 });
 
-Given(/^transfer token from "([^"]*)" to these users$/, async function (user, args) {
-    const optionArray = parseRawTableToJsonArray(args.rawTable);
+Given(/^transfer token from "([^"]*)" to these users$/, async function (user, dataTable: DataTable) {
+    const optionArray = dataTable.hashes();
     for (let i = 0; i < optionArray.length; i++) {
         const option = optionArray[i];
         let dftActor = createDFTActor(option.token, user);
         const decimals = await dftActor!.decimals();
-        const to = identityFactory.getPrincipal(option.user)!.toText();
-        const amountBN = parseToOrigin(option.amount, decimals);
+        const to = identity.identityFactory.getPrincipal(option.user)!.toText();
+        const amountBN = unit.parseToOrigin(option.amount, decimals);
         const res = await dftActor!.transfer([], to, amountBN, []);
         assert.isTrue('Ok' in res, `transfer failed: ${JSON.stringify(res)}`);
         assert.equal(await dftActor!.balanceOf(to), amountBN);
@@ -103,8 +103,8 @@ Given(/^owner "([^"]*)" set "([^"]*)" as fee_to$/, async function (owner, feeTo)
     const dftBasic2 = createDFTWithAllFeatures(owner);
     const dftBurnAble = createDFTBurnableActor(owner);
     const dftMintAble = createDFTMintableActor(owner);
-    const feeToPrincipal = identityFactory.getPrincipal(feeTo)!.toText();
-    const feeToAccountId = identityFactory.getAccountIdHex(feeTo);
+    const feeToPrincipal = identity.identityFactory.getPrincipal(feeTo)!.toText();
+    const feeToAccountId = identity.identityFactory.getAccountIdHex(feeTo);
     logger.debug(`feeToPrincipal: ${feeToPrincipal}`);
     const dftActors = [dftBasic, dftBasic2, dftBurnAble, dftMintAble];
     for (let i = 0; i < dftActors.length; i++) {
@@ -132,13 +132,13 @@ const parseToDFTInitOptions = (option: any): DFTInitOptions | undefined => {
         name: String(option.name),
         symbol: String(option.symbol),
         decimals: BigInt(decimals),
-        totalSupply: parseToOrigin(option.total_supply, decimals),
+        totalSupply: unit.parseToOrigin(option.total_supply, decimals),
         fee: {
-            minimum: Number(parseToOrigin(option.fee_minimum, decimals)),
-            rate: Number(option.fee_rate != 0 ? parseToOrigin(option.fee_rate, feeDecimals) : 0n),
+            minimum: Number(unit.parseToOrigin(option.fee_minimum, decimals)),
+            rate: Number(option.fee_rate != 0 ? unit.parseToOrigin(option.fee_rate, feeDecimals) : 0n),
             rate_decimals: feeDecimals,
         },
         desc: [],
-        owner: identityFactory.getPrincipal(option.owner)!.toText(),
+        owner: identity.identityFactory.getPrincipal(option.owner)!.toText(),
     };
 }

@@ -1,5 +1,15 @@
+let fs = require('fs');
+let logger = require('node-color-log')
+
+// get content if feature_target.txt found
+let target = fs.existsSync('feature_target.txt')
+    ? fs.readFileSync('feature_target.txt', 'utf8')
+    : 'scripts/features/**/*.feature';
+
+logger.info('target: ' + target);
+
 let common = [
-    'scripts/features/**/*.feature',                // Specify our feature files
+    target,
     '--require-module ts-node/register',    // Load TypeScript module
     '--require-module tsconfig-paths/register',    // Load TypeScript module
     '--require scripts/features/stepDefinitions/**/*.ts',   // Load step definitions
@@ -22,5 +32,3 @@ module.exports = {
     dev: dev.join(' '),
     report: report.join(' ')
 };
-
-
