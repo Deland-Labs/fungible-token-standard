@@ -1,6 +1,7 @@
 # Fungible Token Standard
 ![build](https://github.com/Deland-Labs/fungible-token-standard/actions/workflows/build.yml/badge.svg)
 [![codecov](https://codecov.io/gh/Deland-Labs/fungible-token-standard/branch/main/graph/badge.svg?token=C0594RE316)](https://codecov.io/gh/Deland-Labs/fungible-token-standard)
+![integration test](https://github.com/Deland-Labs/fungible-token-standard/actions/workflows/run_integration_test.yml/badge.svg)
 [![license](https://img.shields.io/github/license/Deland-Labs/fungible-token-standard)](https://img.shields.io/github/license/Deland-Labs/fungible-token-standard)
 [![twitter](https://img.shields.io/twitter/url?label=twitter&style=social&url=https%3A%2F%2Ftwitter.com%2FDelandLabs)](https://twitter.com/DelandLabs)
 ## Tutorial
