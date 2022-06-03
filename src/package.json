@@ -10,7 +10,7 @@
   "dependencies": {
     "@cucumber/cucumber": "^7.1.0",
     "@cucumber/pretty-formatter": "^1.0.0-alpha.1",
-    "@deland-labs/ic-dev-kit": "^0.4.0",
+    "@deland-labs/ic-dev-kit": "0.5.7",
     "@dfinity/agent": "^0.10.2",
     "@dfinity/authentication": "^0.10.2",
     "@dfinity/candid": "^0.10.2",
@@ -46,6 +46,6 @@
     "@types/node": "^16.11.21",
     "@types/shelljs": "^0.8.11",
     "ts-node": "^10.4.0",
-    "typescript": "^4.5.4"
+    "typescript": "^4.7.2"
   }
 }
