@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container:
-      image: docker.io/kentsday/dfx_rust:bullseye-dfx-0.10.0-1
+      image: docker.io/kentsday/dfx_rust:bullseye-dfx-0.10.1-1
     steps:
       - uses: actions/checkout@v3
         with:

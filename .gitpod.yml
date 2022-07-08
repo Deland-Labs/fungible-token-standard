@@ -1,4 +1,4 @@
-image: docker.io/kentsday/dfx_rust:bullseye-dfx-0.10.0-gitpod-1
+image: docker.io/kentsday/dfx_rust:bullseye-dfx-0.10.1-gitpod-1
 tasks:
   - name: dfx dev
     init: |

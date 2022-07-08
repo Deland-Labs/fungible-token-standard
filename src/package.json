@@ -10,7 +10,7 @@
   "dependencies": {
     "@cucumber/cucumber": "^8.0.0",
     "@cucumber/pretty-formatter": "^1.0.0-alpha.2",
-    "@deland-labs/ic-dev-kit": "^0.6.5",
+    "@deland-labs/ic-dev-kit": "0.6.7",
     "@dfinity/agent": "^0.12.0",
     "@dfinity/authentication": "^0.12.0",
     "@dfinity/candid": "^0.12.0",
@@ -36,7 +36,7 @@
     "yargs": "^17.0.0"
   },
   "devDependencies": {
-    "@deland-labs/ic-bin-tools": "^0.1.1",
+    "@deland-labs/ic-bin-tools": "0.1.2",
     "@types/archiver": "^5.3.1",
     "@types/base64-js": "^1.2.5",
     "@types/chai": "^4.3.0",
