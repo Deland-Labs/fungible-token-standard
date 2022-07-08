@@ -16,7 +16,10 @@
         "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_basic.wasm"
       ],
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_basic.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_basic.wasm",
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_burnable": {
       "type": "custom",
@@ -25,7 +28,10 @@
         "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_burnable.wasm"
       ],
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_burnable.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_burnable.wasm",
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_mintable": {
       "type": "custom",
@@ -34,7 +40,10 @@
         "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_mintable.wasm"
       ],
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_mintable.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_mintable.wasm",
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_all_features": {
       "type": "custom",
@@ -43,7 +52,10 @@
         "ic-cdk-optimizer target/wasm32-unknown-unknown/release/dft_token.wasm -o target/wasm32-unknown-unknown/release/dft_all_features.wasm"
       ],
       "candid": "dft_token/src/token.did",
-      "wasm": "target/wasm32-unknown-unknown/release/dft_all_features.wasm"
+      "wasm": "target/wasm32-unknown-unknown/release/dft_all_features.wasm",
+      "dependencies": [
+        "dft_tx_storage"
+      ]
     },
     "dft_receiver": {
       "type": "custom",

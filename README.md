@@ -4,6 +4,8 @@
 ![integration test](https://github.com/Deland-Labs/fungible-token-standard/actions/workflows/run_integration_test.yml/badge.svg)
 [![license](https://img.shields.io/github/license/Deland-Labs/fungible-token-standard)](https://img.shields.io/github/license/Deland-Labs/fungible-token-standard)
 [![twitter](https://img.shields.io/twitter/url?label=twitter&style=social&url=https%3A%2F%2Ftwitter.com%2FDelandLabs)](https://twitter.com/DelandLabs)
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/Deland-Labs/fungible-token-standard)
 ## Tutorial
 
 [https://dft.delandlabs.com/](https://dft.delandlabs.com/)
