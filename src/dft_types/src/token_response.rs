@@ -51,7 +51,6 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
     }
 }
 
-#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(CandidType, Debug, Clone,PartialEq,   Eq)]
 pub enum BlockResult {
     // Return tx record if exist in the DFT cache txs
@@ -70,7 +69,6 @@ pub enum BlockListResult {
     Err(ErrorInfo),
 }
 
-#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(Debug, CandidType, Deserialize, Ord, PartialOrd, Eq, PartialEq)]
 pub struct ArchivedBlocksRange {
     pub start: Nat,
@@ -79,7 +77,6 @@ pub struct ArchivedBlocksRange {
     pub storage_canister_id: Principal,
 }
 
-#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(Debug, CandidType, Deserialize)]
 pub struct QueryBlocksResult {
     #[serde(rename = "chainLength")]
@@ -95,7 +92,6 @@ pub struct QueryBlocksResult {
 pub type TransactionList = Vec<InnerTransaction>;
 pub type CandidTransactionList = Vec<Transaction>;
 
-#[cfg_attr(coverage_nightly, no_coverage)]
 #[derive(CandidType, Debug, Clone)]
 pub enum TransactionResult {
     // Return tx if exist in the DFT cache txs
