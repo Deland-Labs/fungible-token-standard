@@ -37,7 +37,7 @@ pub struct TokenFee {
     pub minimum: Nat,
     pub rate: u32,
     #[serde(rename = "rateDecimals")]
-    pub rate_decimals: u8,
+    pub rate_decimals: u8
 }
 
 impl From<InnerTokenFee> for TokenFee {
