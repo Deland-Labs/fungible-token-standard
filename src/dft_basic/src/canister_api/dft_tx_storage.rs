@@ -30,8 +30,8 @@ impl IDFTTxStorageAPI for DFTTxStorageAPI {
             api::call::call(storage_canister_id, "batchAppend", (blocks, )).await;
         match res {
             Ok((res, )) => match res {
-                BooleanResult::Ok(sucess) => {
-                    if sucess {
+                BooleanResult::Ok(success) => {
+                    if success {
                         debug!("batchAppend success");
                         Ok(())
                     } else {
