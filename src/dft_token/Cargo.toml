@@ -13,7 +13,7 @@ dft_burnable = { path = "../dft_burnable" }
 dft_mintable = { path = "../dft_mintable" }
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
-ic-cdk = "0.5.1"
+ic-cdk = "0.5.6"
 ic-cdk-macros = "0.5.1"
 hex = {version = "0.4.3", features = ["serde"] }
 crc32fast = "1.3.2"

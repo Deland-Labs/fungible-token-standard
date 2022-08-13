@@ -4,7 +4,7 @@ version = "0.6.0"
 edition = "2018"
 
 [dependencies]
-ic-cdk = "0.5.1"
+ic-cdk = "0.5.6"
 ic-cdk-macros = "0.5.1"
 dft_basic = { path = "../dft_basic" }
 dft_types = { path = "../dft_types" }
