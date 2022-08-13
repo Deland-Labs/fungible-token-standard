@@ -10,7 +10,7 @@ dft_basic = { path = "../dft_basic" }
 dft_types = { path = "../dft_types" }
 dft_utils = { path = "../dft_utils" }
 
-candid = "0.7.14"
+candid = "0.7.16"
 serde = "1.0.143"
 serde_bytes = "0.11"
 getset = "0.1.2"
