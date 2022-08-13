@@ -21,7 +21,7 @@ async-trait = "0.1.53"
 
 [dev-dependencies]
 rstest = "0.15.0"
-async-std = { version = "1.11", features = ["attributes"] }
+async-std = { version = "1.12", features = ["attributes"] }
 mockall = "0.11.1"
 
 [features]
