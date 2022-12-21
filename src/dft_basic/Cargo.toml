@@ -22,7 +22,7 @@ async-trait = "0.1.58"
 [dev-dependencies]
 rstest = "0.15.0"
 async-std = { version = "1.12", features = ["attributes"] }
-mockall = "0.11.2"
+mockall = "0.11.3"
 
 [features]
 default = ["logger"]
