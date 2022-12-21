@@ -19,7 +19,7 @@ async fn batch_transfer(
     );
     let now = api::time();
     let caller = api::caller();
-    let token_id= api::id();
+    let token_id = api::id();
     let transfer_from = TokenHolder::new(caller, from_sub_account);
 
     let batch_res: Vec<OperationResult> = transfer_requests //

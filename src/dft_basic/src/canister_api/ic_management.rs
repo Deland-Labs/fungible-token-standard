@@ -3,7 +3,7 @@ use ic_cdk::api;
 use ic_cdk::export::candid::{CandidType, Nat, Principal};
 use serde::Deserialize;
 
-#[derive(CandidType, Clone, Deserialize, Debug,PartialEq, PartialOrd, Ord, Eq)]
+#[derive(CandidType, Clone, Deserialize, Debug, PartialEq, PartialOrd, Ord, Eq)]
 pub struct CanisterIdRecord {
     pub canister_id: Principal,
 }

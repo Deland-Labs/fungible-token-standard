@@ -1,4 +1,4 @@
-use crate::{TokenFee, TokenAmount, InnerTokenFee, TokenHolder, TokenReceiver, TransactionHash};
+use crate::{InnerTokenFee, TokenAmount, TokenFee, TokenHolder, TokenReceiver, TransactionHash};
 use candid::{CandidType, Deserialize, Nat, Principal};
 use serde::Serialize;
 
@@ -123,9 +123,7 @@ impl From<InnerOperation> for Operation {
             InnerOperation::FeeToModify { caller, new_fee_to } => {
                 Operation::FeeToModify { caller, new_fee_to }
             }
-            InnerOperation::AddMinter { caller, minter } => {
-                Operation::AddMinter { caller, minter }
-            }
+            InnerOperation::AddMinter { caller, minter } => Operation::AddMinter { caller, minter },
             InnerOperation::RemoveMinter { caller, minter } => {
                 Operation::RemoveMinter { caller, minter }
             }

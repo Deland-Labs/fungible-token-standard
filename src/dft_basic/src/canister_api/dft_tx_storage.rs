@@ -1,10 +1,10 @@
-use std::collections::VecDeque;
 use async_trait::async_trait;
 use candid::Principal;
 use dft_types::{BooleanResult, CommonResult, DFTError, EncodedBlock};
 use ic_cdk::api;
 use ic_cdk::api::call::RejectionCode;
 use log::{debug, error};
+use std::collections::VecDeque;
 
 #[async_trait]
 pub trait IDFTTxStorageAPI {
@@ -26,10 +26,10 @@ impl IDFTTxStorageAPI for DFTTxStorageAPI {
         blocks: VecDeque<EncodedBlock>,
     ) -> CommonResult<()> {
         //save the txs to auto-scaling storage
-        let res: Result<(BooleanResult, ), (RejectionCode, String)> =
-            api::call::call(storage_canister_id, "batchAppend", (blocks, )).await;
+        let res: Result<(BooleanResult,), (RejectionCode, String)> =
+            api::call::call(storage_canister_id, "batchAppend", (blocks,)).await;
         match res {
-            Ok((res, )) => match res {
+            Ok((res,)) => match res {
                 BooleanResult::Ok(success) => {
                     if success {
                         debug!("batchAppend success");

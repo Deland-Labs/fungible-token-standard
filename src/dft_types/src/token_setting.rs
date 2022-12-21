@@ -1,6 +1,7 @@
-use crate::*;
 use candid::{Deserialize, Principal};
 use serde::Serialize;
+
+use crate::*;
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct TokenSetting {
@@ -174,6 +175,8 @@ impl StableState for TokenSetting {
 
 #[cfg(test)]
 mod tests {
+    use serde::de;
+
     use super::*;
 
     #[test]
@@ -245,5 +248,28 @@ mod tests {
         assert_eq!(token_setting.minters(), Vec::new());
         assert_eq!(token_setting.fee(), InnerTokenFee::default());
         assert_eq!(token_setting.fee_to(), TokenHolder::empty());
+    }
+
+    #[test]
+    fn test_nat_serde() {
+        let nat = TestS { a: 1u32.into() };
+
+        let encoded = bincode::serialize(&nat).unwrap();
+        let decoded: TestS = bincode::deserialize(&encoded).unwrap();
+        assert_eq!(nat.a, decoded.a);
+    }
+
+    #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+    pub struct TestS {
+        #[serde(deserialize_with = "deserialize_nat")]
+        pub a: Nat,
+    }
+
+    fn deserialize_nat<'de, D>(deserializer: D) -> Result<Nat, D::Error>
+    where
+        D: de::Deserializer<'de>,
+    {
+        let s: BigUint = de::Deserialize::deserialize(deserializer)?;
+        Ok(Nat::from(s))
     }
 }

@@ -1,6 +1,6 @@
 use crate::{
-    ActorResult, BlockHash, BlockHeight, Block, Transaction, CommonResult, ErrorInfo,
-    InnerTransaction, TransactionHash, TransactionId,
+    ActorResult, Block, BlockHash, BlockHeight, CommonResult, ErrorInfo, InnerTransaction,
+    Transaction, TransactionHash, TransactionId,
 };
 use candid::{CandidType, Deserialize, Nat, Principal};
 
@@ -51,7 +51,7 @@ impl From<CommonResult<(BlockHeight, BlockHash, TransactionHash)>> for Operation
     }
 }
 
-#[derive(CandidType, Debug, Clone,PartialEq,   Eq)]
+#[derive(CandidType, Debug, Clone, PartialEq, Eq)]
 pub enum BlockResult {
     // Return tx record if exist in the DFT cache txs
     Ok(Block),
@@ -126,7 +126,7 @@ impl From<CommonResult<TransactionList>> for TransactionListResult {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Operation, TokenFee, InnerOperation, InnerTokenFee};
+    use crate::{InnerOperation, InnerTokenFee, Operation, TokenFee};
     use dft_utils::sha256::compute_hash;
     use num_bigint::BigUint;
 

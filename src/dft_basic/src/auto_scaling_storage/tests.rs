@@ -417,8 +417,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
                 },
                 module_hash: None,
                 controller: test_token_id(),
-                memory_size: (MAX_CANISTER_STORAGE_BYTES - 161000u32)
-                    .into(),
+                memory_size: (MAX_CANISTER_STORAGE_BYTES - 161000u32).into(),
                 cycles: 0u32.into(),
             })
         });
@@ -475,56 +474,77 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
             );
         }
     }
-    assert_eq!(blockchain_service::archived_blocks_num(), BigUint::from(2000u32));
+    assert_eq!(
+        blockchain_service::archived_blocks_num(),
+        BigUint::from(2000u32)
+    );
 
     let block_res = basic_service::block_by_height(999u32.into());
 
-    if let BlockResult::Forward(f) = block_res { assert_eq!(f, test_auto_scaling_storage_id()); }
+    if let BlockResult::Forward(f) = block_res {
+        assert_eq!(f, test_auto_scaling_storage_id());
+    }
 
     let block_res = basic_service::block_by_height(1000u32.into());
 
-    if let BlockResult::Forward(f) = block_res { assert_eq!(f, test_auto_scaling_storage_id2()); }
+    if let BlockResult::Forward(f) = block_res {
+        assert_eq!(f, test_auto_scaling_storage_id2());
+    }
 
     let block_res = basic_service::block_by_height(2000u32.into());
 
-    if let BlockResult::Ok(block) = block_res { assert_eq!(block.timestamp, now.clone() + 2000u64); }
+    if let BlockResult::Ok(block) = block_res {
+        assert_eq!(block.timestamp, now.clone() + 2000u64);
+    }
 
     let block_res = basic_service::block_by_height(3001u32.into());
 
-    assert_eq!(block_res, BlockResult::Err(DFTError::NonExistentBlockHeight.into()));
+    assert_eq!(
+        block_res,
+        BlockResult::Err(DFTError::NonExistentBlockHeight.into())
+    );
 
     let block_res = basic_service::blocks_by_query(0u32.into(), 100);
 
     assert_eq!(block_res.chain_length, Nat::from(3001u32));
     assert_eq!(block_res.blocks.len(), 0);
     assert_eq!(block_res.first_block_index, Nat::from(2000u32));
-    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
-        start: Nat::from(0u32),
-        length: 100,
-        storage_canister_id: test_auto_scaling_storage_id(),
-    }]);
+    assert_eq!(
+        block_res.archived_blocks,
+        vec![ArchivedBlocksRange {
+            start: Nat::from(0u32),
+            length: 100,
+            storage_canister_id: test_auto_scaling_storage_id(),
+        }]
+    );
 
     let block_res = basic_service::blocks_by_query(1000u32.into(), 100);
 
     assert_eq!(block_res.chain_length, Nat::from(3001u32));
     assert_eq!(block_res.blocks.len(), 0);
     assert_eq!(block_res.first_block_index, Nat::from(2000u32));
-    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
-        start: Nat::from(1000u32),
-        length: 100,
-        storage_canister_id: test_auto_scaling_storage_id2(),
-    }]);
+    assert_eq!(
+        block_res.archived_blocks,
+        vec![ArchivedBlocksRange {
+            start: Nat::from(1000u32),
+            length: 100,
+            storage_canister_id: test_auto_scaling_storage_id2(),
+        }]
+    );
 
     let block_res = basic_service::blocks_by_query(1990u32.into(), 100);
 
     assert_eq!(block_res.chain_length, Nat::from(3001u32));
     assert_eq!(block_res.blocks.len(), 90);
     assert_eq!(block_res.first_block_index, Nat::from(2000u32));
-    assert_eq!(block_res.archived_blocks, vec![ArchivedBlocksRange {
-        start: Nat::from(1990u32),
-        length: 10,
-        storage_canister_id: test_auto_scaling_storage_id2(),
-    }]);
+    assert_eq!(
+        block_res.archived_blocks,
+        vec![ArchivedBlocksRange {
+            start: Nat::from(1990u32),
+            length: 10,
+            storage_canister_id: test_auto_scaling_storage_id2(),
+        }]
+    );
 
     let block_res = basic_service::blocks_by_query(2000u32.into(), 100);
 
