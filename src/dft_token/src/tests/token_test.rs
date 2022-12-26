@@ -1,4 +1,4 @@
-use candid::{Principal};
+use candid::Principal;
 use dft_basic::service::{basic_service, management_service};
 use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
 use dft_types::*;
@@ -272,8 +272,8 @@ fn test_token_basic_set_desc(test_owner: Principal) {
         "TWITTER".to_owned(),
         "https://twitter.com/DelandLabs".to_owned(),
     )]
-        .into_iter()
-        .collect();
+    .into_iter()
+    .collect();
     // set desc by other caller will failed
     let res = management_service::set_desc(&other_caller(), new_desc.clone());
     assert!(res.is_err(), "set_desc should be err");
@@ -287,8 +287,8 @@ fn test_token_basic_set_desc(test_owner: Principal) {
         "TWITTER1".to_owned(),
         "https://twitter.com/DelandLabs1".to_owned(),
     )]
-        .into_iter()
-        .collect();
+    .into_iter()
+    .collect();
     let res = management_service::set_desc(&test_owner, new_desc1.clone());
     // the token's desc will not be changed
     assert!(res.is_ok(), "set_desc should be succeed");
@@ -794,7 +794,6 @@ fn test_token_basic_mint_burn(
     let total_supply = basic_service::total_supply();
     assert_eq!(total_supply, mint_val - burn_val - burn_from_val.clone());
 
-
     let burn_res = dft_burnable::burn_from(
         &other_caller,
         &minter_holder,
@@ -919,9 +918,9 @@ fn test_token_basic_minters_add_remove(test_owner: Principal, test_minter: Princ
 #[rstest]
 fn test_set_owner(test_owner: Principal, other_caller: Principal, now: u64) {
     test_token_with_0_fee_rate();
-    let res = management_service::set_owner(&test_owner, other_caller, None,now);
+    let res = management_service::set_owner(&test_owner, other_caller, None, now);
     assert!(res.is_ok());
     assert_eq!(basic_service::owner(), other_caller);
-    let res = management_service::set_owner(&test_owner, other_caller, None,now);
+    let res = management_service::set_owner(&test_owner, other_caller, None, now);
     assert_eq!(res, Err(DFTError::OnlyOwnerAllowCallIt));
 }

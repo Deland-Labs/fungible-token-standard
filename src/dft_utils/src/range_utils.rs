@@ -91,9 +91,27 @@ mod tests {
 
         let range1 = make_range(BigUint::from(0u32), 1000);
         let range2 = make_range(BigUint::from(2000u32), 1000);
-        assert_eq!(intersect(&range1, &range2), Range { start: BigUint::from(2000u32), end: BigUint::from(1000u32) });
+        assert_eq!(
+            intersect(&range1, &range2),
+            Range {
+                start: BigUint::from(2000u32),
+                end: BigUint::from(1000u32)
+            }
+        );
 
-        assert_eq!(head(&Range { start: BigUint::from(2000u32), end: BigUint::from(1000u32) }, 100), Range { start: BigUint::from(2000u32), end: BigUint::from(1000u32) });
+        assert_eq!(
+            head(
+                &Range {
+                    start: BigUint::from(2000u32),
+                    end: BigUint::from(1000u32)
+                },
+                100
+            ),
+            Range {
+                start: BigUint::from(2000u32),
+                end: BigUint::from(1000u32)
+            }
+        );
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use crate::{state::STATE, types::StorageInfo};
 use candid::Principal;
 use dft_types::constants::MAX_BLOCKS_PER_REQUEST;
-use dft_types::{BlockListResult, BlockResult, Block, CommonResult, DFTError, EncodedBlock};
+use dft_types::{Block, BlockListResult, BlockResult, CommonResult, DFTError, EncodedBlock};
 use num_bigint::BigUint;
 use std::convert::TryInto;
 
@@ -101,7 +101,9 @@ pub fn get_storage_info() -> StorageInfo {
 mod tests {
     use super::*;
     use candid::Nat;
-    use dft_types::{InnerBlock, Operation, ErrorInfo, InnerOperation, TokenHolder, InnerTransaction};
+    use dft_types::{
+        ErrorInfo, InnerBlock, InnerOperation, InnerTransaction, Operation, TokenHolder,
+    };
     use std::ops::Add;
 
     #[test]
