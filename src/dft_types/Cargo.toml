@@ -7,7 +7,7 @@ edition = "2018"
 ic-cdk = "0.6.8"
 hex = {version = "0.4.3", features = ["serde"] }
 crc32fast = "1.3.2"
-candid = "0.7.16"
+candid = "0.8.4"
 serde = "1.0.143"
 serde_bytes = "0.11"
 sha2 = "0.10.2"
