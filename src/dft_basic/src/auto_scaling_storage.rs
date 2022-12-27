@@ -53,7 +53,11 @@ impl AutoScalingStorageService {
             return;
         }
 
-        if (self.send_blocks_to_archive(blocks_to_archive, archive_size_bytes).await).is_ok() {
+        if (self
+            .send_blocks_to_archive(blocks_to_archive, archive_size_bytes)
+            .await)
+            .is_ok()
+        {
             info!(
                 "Archive size: {} bytes,max_msg_size: {} bytes,total blocks: {}",
                 archive_size_bytes, max_msg_size, num_blocks
@@ -95,8 +99,7 @@ impl AutoScalingStorageService {
                         res.memory_size, MAX_CANISTER_STORAGE_BYTES,MAX_CANISTER_STORAGE_BYTES - (res.memory_size.clone().0 +  archive_size_bytes),
                         archive_size_bytes.clone()
                     );
-                    if MAX_CANISTER_STORAGE_BYTES <= res.memory_size + archive_size_bytes
-                    {
+                    if MAX_CANISTER_STORAGE_BYTES <= res.memory_size + archive_size_bytes {
                         debug!("is_necessary_create_new_storage_canister");
                         is_necessary_create_new_storage_canister = true;
                     } else {
@@ -124,7 +127,7 @@ impl AutoScalingStorageService {
                     token_id,
                     block_height_offset,
                 )
-                    .await?;
+                .await?;
             } else {
                 let new_scaling_storage_canister_id = self
                     .create_new_scaling_storage_canister(token_id, block_height_offset)
@@ -165,7 +168,7 @@ impl AutoScalingStorageService {
                     token_id,
                     block_height_offset,
                 )
-                    .await?;
+                .await?;
                 Ok(cdr.canister_id)
             }
             Err(msg) => {

@@ -1,4 +1,4 @@
-use crate::{BlockHash, Transaction, CommonResult, DFTError, InnerTransaction};
+use crate::{BlockHash, BlockHeight, CommonResult, DFTError, InnerTransaction, Transaction};
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
 use std::borrow::Cow;
@@ -111,7 +111,7 @@ impl EncodedBlock {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{Operation, TokenHolder, InnerOperation};
+    use crate::{InnerOperation, Operation, TokenHolder};
     use dft_utils::sha256::compute_hash;
     use std::convert::TryInto;
 
@@ -146,8 +146,12 @@ mod tests {
             },
             created_at: now,
         };
-        let block =
-            InnerBlock::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
+        let block = InnerBlock::new_from_transaction(
+            &token_id,
+            Some(parent_hash),
+            transaction.clone(),
+            now,
+        );
         let encoded_block = block.clone().encode().unwrap();
         let decoded_block = encoded_block.clone().decode().unwrap();
         assert_eq!(block, decoded_block);
@@ -188,12 +192,15 @@ mod tests {
             },
             created_at: now,
         };
-        let block =
-            InnerBlock::new_from_transaction(&token_id, Some(parent_hash), transaction.clone(), now);
+        let block = InnerBlock::new_from_transaction(
+            &token_id,
+            Some(parent_hash),
+            transaction.clone(),
+            now,
+        );
         let candidate_block: Block = block.into();
 
-        if let Operation::OwnerModify { caller, new_owner } =
-        candidate_block.transaction.operation
+        if let Operation::OwnerModify { caller, new_owner } = candidate_block.transaction.operation
         {
             assert_eq!(caller, caller);
             assert_eq!(new_owner, new_owner);

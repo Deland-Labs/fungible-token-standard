@@ -1,11 +1,11 @@
 use candid::{candid_method, Nat};
 use dft_types::*;
+use dft_utils::ic_logger::ICLogger;
 use ic_cdk::api;
 use ic_cdk_macros::*;
-use std::sync::Once;
-use dft_utils::ic_logger::ICLogger;
 use log::debug;
 use std::cell::RefCell;
+use std::sync::Once;
 
 thread_local! {
     pub static NOTIFICATIONS_RECEIVED: RefCell<u64>  = RefCell::new(0u64);
@@ -35,9 +35,14 @@ async fn on_token_received(block_height: Nat, from: TokenHolder, value: Nat) {
     NOTIFICATIONS_RECEIVED.with(|cell| {
         *cell.borrow_mut() += 1u64;
     });
-    debug!("Token(caller) is {:?},block height is {},from is {:?},value is {}", api::caller().to_text(), block_height,from.to_hex(),value);
+    debug!(
+        "Token(caller) is {:?},block height is {},from is {:?},value is {}",
+        api::caller().to_text(),
+        block_height,
+        from.to_hex(),
+        value
+    );
 }
-
 
 #[cfg_attr(coverage_nightly, no_coverage)]
 #[query(name = "notificationCount")]

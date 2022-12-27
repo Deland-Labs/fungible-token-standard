@@ -4,7 +4,13 @@ use dft_utils::principal::is_canister;
 use log::{debug, info, warn};
 
 pub trait ITransferNotifyAPI {
-    fn notify(&self, receiver: &String, block_height: &BlockHeight, transfer_from: &TokenHolder, transfer_value: &TokenAmount);
+    fn notify(
+        &self,
+        receiver: &String,
+        block_height: &BlockHeight,
+        transfer_from: &TokenHolder,
+        transfer_value: &TokenAmount,
+    );
 }
 
 #[derive(Default)]
@@ -12,7 +18,13 @@ pub struct TransferNotifyAPI;
 
 #[cfg_attr(coverage_nightly, no_coverage)]
 impl ITransferNotifyAPI for TransferNotifyAPI {
-    fn notify(&self, receiver: &String, block_height: &BlockHeight, transfer_from: &TokenHolder, transfer_value: &TokenAmount) {
+    fn notify(
+        &self,
+        receiver: &String,
+        block_height: &BlockHeight,
+        transfer_from: &TokenHolder,
+        transfer_value: &TokenAmount,
+    ) {
         let pid = Principal::from_text(receiver);
         debug!("TransferNotifyAPI::notify in");
         if let Ok(receiver_canister_id) = pid {
@@ -25,14 +37,14 @@ impl ITransferNotifyAPI for TransferNotifyAPI {
                 ic_cdk::notify(
                     receiver_canister_id.clone(),
                     "onTokenReceived",
-                    (nat_block_height, transfer_from.clone(), nat_transfer_value, ),
+                    (nat_block_height, transfer_from.clone(), nat_transfer_value),
                 )
-                    .unwrap_or_else(|reject| {
-                        warn!(
+                .unwrap_or_else(|reject| {
+                    warn!(
                         "failed to notify (receiver_canister_id={}): {:?}",
                         receiver_canister_id, reject
                     )
-                    });
+                });
             }
         };
     }

@@ -1,4 +1,4 @@
-use super::{TokenHolder, TokenFee};
+use super::{TokenFee, TokenHolder};
 use candid::{CandidType, Deserialize, Nat, Principal};
 
 #[derive(CandidType, Debug, Clone, Deserialize)]
