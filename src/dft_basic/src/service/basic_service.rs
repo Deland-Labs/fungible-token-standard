@@ -133,7 +133,7 @@ pub fn approve(
         } else {
             let tx = InnerTransaction {
                 operation: InnerOperation::Approve {
-                    caller: *caller,
+                    caller: (*caller).into(),
                     owner: *owner,
                     spender: *spender,
                     value: value.clone(),

@@ -1,4 +1,4 @@
 service : () -> {
   notificationCount : () -> (nat64) query;
-  onTokenReceived : (nat,text, nat) -> ();
+  onTokenReceived : (nat, text, nat) -> ();
 }

@@ -1,7 +1,9 @@
-use crate::{BlockHash, BlockHeight, CommonResult, DFTError, InnerTransaction, Transaction};
+use std::borrow::Cow;
+
 use candid::{CandidType, Deserialize, Principal};
 use serde::Serialize;
-use std::borrow::Cow;
+
+use crate::{BlockHash, CommonResult, DFTError, InnerTransaction, Transaction};
 
 #[derive(Deserialize, Serialize, Clone, Debug, PartialEq, Eq)]
 pub struct InnerBlock {
@@ -110,10 +112,13 @@ impl EncodedBlock {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::{InnerOperation, Operation, TokenHolder};
-    use dft_utils::sha256::compute_hash;
     use std::convert::TryInto;
+
+    use dft_utils::sha256::compute_hash;
+
+    use crate::{InnerOperation, Operation, TokenHolder};
+
+    use super::*;
 
     #[test]
     fn test_block_size() {
@@ -141,7 +146,7 @@ mod tests {
             .unwrap();
         let transaction = InnerTransaction {
             operation: InnerOperation::FeeToModify {
-                caller: caller.clone(),
+                caller: caller.clone().into(),
                 new_fee_to: TokenHolder::new(new_fee_to.clone(), None),
             },
             created_at: now,
@@ -187,8 +192,8 @@ mod tests {
             .unwrap();
         let transaction = InnerTransaction {
             operation: InnerOperation::OwnerModify {
-                caller: caller.clone(),
-                new_owner: new_owner.clone(),
+                caller: caller.clone().into(),
+                new_owner: new_owner.clone().into(),
             },
             created_at: now,
         };

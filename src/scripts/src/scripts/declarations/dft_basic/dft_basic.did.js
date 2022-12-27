@@ -24,26 +24,17 @@ export const idlFactory = ({ IDL }) => {
     'endBlockHeight' : IDL.Nat,
   });
   const Operation = IDL.Variant({
-    'FeeToModify' : IDL.Record({
-      'newFeeTo' : IDL.Text,
-      'caller' : IDL.Principal,
-    }),
+    'FeeToModify' : IDL.Record({ 'newFeeTo' : IDL.Text, 'caller' : IDL.Text }),
     'Approve' : IDL.Record({
       'fee' : IDL.Nat,
       'value' : IDL.Nat,
       'owner' : IDL.Text,
-      'caller' : IDL.Principal,
+      'caller' : IDL.Text,
       'spender' : IDL.Text,
     }),
-    'RemoveMinter' : IDL.Record({
-      'minter' : IDL.Principal,
-      'caller' : IDL.Principal,
-    }),
-    'FeeModify' : IDL.Record({ 'newFee' : TokenFee, 'caller' : IDL.Principal }),
-    'AddMinter' : IDL.Record({
-      'minter' : IDL.Principal,
-      'caller' : IDL.Principal,
-    }),
+    'RemoveMinter' : IDL.Record({ 'minter' : IDL.Text, 'caller' : IDL.Text }),
+    'FeeModify' : IDL.Record({ 'newFee' : TokenFee, 'caller' : IDL.Text }),
+    'AddMinter' : IDL.Record({ 'minter' : IDL.Text, 'caller' : IDL.Text }),
     'Transfer' : IDL.Record({
       'to' : IDL.Text,
       'fee' : IDL.Nat,
@@ -51,10 +42,7 @@ export const idlFactory = ({ IDL }) => {
       'from' : IDL.Text,
       'caller' : IDL.Text,
     }),
-    'OwnerModify' : IDL.Record({
-      'newOwner' : IDL.Principal,
-      'caller' : IDL.Principal,
-    }),
+    'OwnerModify' : IDL.Record({ 'newOwner' : IDL.Text, 'caller' : IDL.Text }),
   });
   const Transaction = IDL.Record({
     'createdAt' : IDL.Nat64,

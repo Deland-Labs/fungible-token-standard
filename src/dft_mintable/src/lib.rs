@@ -1,4 +1,5 @@
 use candid::Principal;
+
 use dft_basic::service::basic_service::verified_created_at;
 use dft_basic::state::STATE;
 use dft_types::*;
@@ -62,8 +63,8 @@ pub fn add_minter(
         let created_at = created_at.unwrap_or(now);
         let tx = InnerTransaction {
             operation: InnerOperation::AddMinter {
-                caller: *caller,
-                minter,
+                caller: (*caller).into(),
+                minter: minter.into(),
             },
             created_at,
         };
@@ -89,8 +90,8 @@ pub fn remove_minter(
         let created_at = created_at.unwrap_or(now);
         let tx = InnerTransaction {
             operation: InnerOperation::RemoveMinter {
-                caller: *caller,
-                minter,
+                caller: (*caller).into(),
+                minter: minter.into(),
             },
             created_at,
         };

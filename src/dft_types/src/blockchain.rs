@@ -1,8 +1,10 @@
-use crate::*;
-use candid::{Deserialize, Principal};
-use serde::Serialize;
 use std::collections::VecDeque;
 use std::convert::TryInto;
+
+use candid::{Deserialize, Principal};
+use serde::Serialize;
+
+use crate::*;
 
 #[derive(Clone, Deserialize, Serialize, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Blockchain {
@@ -169,9 +171,11 @@ impl StableState for Blockchain {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use dft_utils::range_utils::make_range;
     use std::time::SystemTime;
+
+    use dft_utils::range_utils::make_range;
+
+    use super::*;
 
     #[test]
     fn test_blockchain_encode_decode() {
@@ -194,8 +198,8 @@ mod tests {
         let timestamp = now.clone();
         let transaction = InnerTransaction {
             operation: InnerOperation::OwnerModify {
-                caller: caller.clone(),
-                new_owner: new_owner.clone(),
+                caller: caller.clone().into(),
+                new_owner: new_owner.clone().into(),
             },
             created_at: timestamp.clone(),
         };
@@ -237,8 +241,8 @@ mod tests {
             let timestamp = now.clone() + i as u64;
             let transaction = InnerTransaction {
                 operation: InnerOperation::OwnerModify {
-                    caller: caller.clone(),
-                    new_owner: new_owner.clone(),
+                    caller: caller.clone().into(),
+                    new_owner: new_owner.clone().into(),
                 },
                 created_at: timestamp.clone(),
             };
