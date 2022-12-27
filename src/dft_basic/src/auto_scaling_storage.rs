@@ -1,13 +1,18 @@
-use crate::canister_api::*;
-use crate::service::blockchain_service;
-use candid::encode_args;
-use dft_types::constants::*;
-use dft_types::*;
-use ic_cdk::export::{candid::Nat, Principal};
-use log::{debug, error, info};
 use std::collections::VecDeque;
 use std::ops::{Add, Sub};
 use std::sync::Arc;
+
+use candid::encode_args;
+use ic_cdk::export::{candid::Nat, Principal};
+use log::{debug, error, info};
+use num_bigint::BigUint;
+use num_traits::ops::checked::CheckedSub;
+
+use dft_types::constants::*;
+use dft_types::*;
+
+use crate::canister_api::*;
+use crate::service::blockchain_service;
 
 // Auto-scaling tx  storage canister wasm package bytes
 const AUTO_SCALING_STORAGE_CANISTER_WASM: &[u8] =
@@ -96,8 +101,11 @@ impl AutoScalingStorageService {
                 Ok(res) => {
                     debug!(
                         "current scaling storage used memory_size is {},max is {},available memory_size is {},archive_size_bytes is {}",
-                        res.memory_size, MAX_CANISTER_STORAGE_BYTES,MAX_CANISTER_STORAGE_BYTES - (res.memory_size.clone().0 +  archive_size_bytes),
-                        archive_size_bytes.clone()
+                        res.memory_size, MAX_CANISTER_STORAGE_BYTES,
+                        BigUint::from(MAX_CANISTER_STORAGE_BYTES)
+                        .checked_sub(&res.memory_size.clone().0.add(archive_size_bytes))
+                        .map_or(BigUint::from(0u8), |x| x),
+                        archive_size_bytes
                     );
                     if MAX_CANISTER_STORAGE_BYTES <= res.memory_size + archive_size_bytes {
                         debug!("is_necessary_create_new_storage_canister");

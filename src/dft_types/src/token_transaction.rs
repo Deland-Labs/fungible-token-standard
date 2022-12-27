@@ -5,7 +5,7 @@ use serde::Serialize;
 #[derive(Deserialize, Serialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum InnerOperation {
     Approve {
-        caller: Principal,
+        caller: TokenHolder,
         owner: TokenHolder,
         spender: TokenHolder,
         value: TokenAmount,
@@ -19,34 +19,34 @@ pub enum InnerOperation {
         fee: TokenAmount,
     },
     FeeModify {
-        caller: Principal,
+        caller: TokenHolder,
         #[serde(rename = "newFee")]
         new_fee: InnerTokenFee,
     },
     OwnerModify {
-        caller: Principal,
+        caller: TokenHolder,
         #[serde(rename = "newOwner")]
-        new_owner: Principal,
+        new_owner: TokenHolder,
     },
     FeeToModify {
-        caller: Principal,
+        caller: TokenHolder,
         #[serde(rename = "newFeeTo")]
         new_fee_to: TokenHolder,
     },
     AddMinter {
-        caller: Principal,
-        minter: Principal,
+        caller: TokenHolder,
+        minter: TokenHolder,
     },
     RemoveMinter {
-        caller: Principal,
-        minter: Principal,
+        caller: TokenHolder,
+        minter: TokenHolder,
     },
 }
 
 #[derive(CandidType, Deserialize, Clone, Hash, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Operation {
     Approve {
-        caller: Principal,
+        caller: TokenHolder,
         owner: TokenHolder,
         spender: TokenHolder,
         value: Nat,
@@ -60,27 +60,27 @@ pub enum Operation {
         fee: Nat,
     },
     FeeModify {
-        caller: Principal,
+        caller: TokenHolder,
         #[serde(rename = "newFee")]
         new_fee: TokenFee,
     },
     OwnerModify {
-        caller: Principal,
+        caller: TokenHolder,
         #[serde(rename = "newOwner")]
-        new_owner: Principal,
+        new_owner: TokenHolder,
     },
     FeeToModify {
-        caller: Principal,
+        caller: TokenHolder,
         #[serde(rename = "newFeeTo")]
         new_fee_to: TokenHolder,
     },
     AddMinter {
-        caller: Principal,
-        minter: Principal,
+        caller: TokenHolder,
+        minter: TokenHolder,
     },
     RemoveMinter {
-        caller: Principal,
-        minter: Principal,
+        caller: TokenHolder,
+        minter: TokenHolder,
     },
 }
 
@@ -195,7 +195,7 @@ mod tests {
         let tx_hash = tx.hash_with_token_id(&token_id);
         assert_eq!(
             hex::encode(&tx_hash),
-            "2d90ad32cab94625bcde25ae30eb9c9ddd9a48b2041c32678144fec3aa15e0c6"
+            "7e425f934524396a468e1a4cfce98637d18103cebb5e90c1f9e6e4bba13354ae"
         );
     }
 

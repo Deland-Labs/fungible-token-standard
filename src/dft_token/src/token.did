@@ -37,17 +37,17 @@ type HttpResponse = record {
   status_code : nat16;
 };
 type Operation = variant {
-  FeeToModify : record { newFeeTo : text; caller : principal };
+  FeeToModify : record { newFeeTo : text; caller : text };
   Approve : record {
     fee : nat;
     value : nat;
     owner : text;
-    caller : principal;
+    caller : text;
     spender : text;
   };
-  RemoveMinter : record { minter : principal; caller : principal };
-  FeeModify : record { newFee : TokenFee; caller : principal };
-  AddMinter : record { minter : principal; caller : principal };
+  RemoveMinter : record { minter : text; caller : text };
+  FeeModify : record { newFee : TokenFee; caller : text };
+  AddMinter : record { minter : text; caller : text };
   Transfer : record {
     to : text;
     fee : nat;
@@ -55,7 +55,7 @@ type Operation = variant {
     from : text;
     caller : text;
   };
-  OwnerModify : record { newOwner : principal; caller : principal };
+  OwnerModify : record { newOwner : text; caller : text };
 };
 type OperationResult = variant {
   Ok : record { txId : text; blockHeight : nat };

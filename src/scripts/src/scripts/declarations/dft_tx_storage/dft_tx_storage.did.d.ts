@@ -4,7 +4,7 @@ import type { ActorMethod } from '@dfinity/agent';
 export interface Block {
   'transaction' : Transaction,
   'timestamp' : bigint,
-  'parentHash' : Array<number>,
+  'parentHash' : Uint8Array,
 }
 export type BlockListResult = { 'Ok' : Array<Block> } |
   { 'Err' : ErrorInfo };
@@ -53,7 +53,7 @@ export interface TokenFee {
 }
 export interface Transaction { 'createdAt' : bigint, 'operation' : Operation }
 export interface _SERVICE {
-  'batchAppend' : ActorMethod<[Array<Array<number>>], BooleanResult>,
+  'batchAppend' : ActorMethod<[Array<Uint8Array>], BooleanResult>,
   'blockByHeight' : ActorMethod<[bigint], BlockResult>,
   'blocksByQuery' : ActorMethod<[bigint, bigint], BlockListResult>,
   'storageInfo' : ActorMethod<[], StorageInfo>,

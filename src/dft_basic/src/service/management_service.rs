@@ -1,9 +1,13 @@
-use super::basic_service::verified_created_at;
-use crate::state::STATE;
+use std::collections::HashMap;
+
 use candid::Principal;
+
 use dft_types::*;
 use dft_utils::*;
-use std::collections::HashMap;
+
+use crate::state::STATE;
+
+use super::basic_service::verified_created_at;
 
 pub fn set_owner(
     caller: &Principal,
@@ -29,8 +33,8 @@ pub fn set_owner(
         let created_at = created_at.unwrap_or(now);
         let tx = InnerTransaction {
             operation: InnerOperation::OwnerModify {
-                caller: *caller,
-                new_owner,
+                caller: (*caller).into(),
+                new_owner: new_owner.into(),
             },
             created_at,
         };
@@ -62,7 +66,7 @@ pub fn set_fee(
         let created_at = created_at.unwrap_or(now);
         let tx = InnerTransaction {
             operation: InnerOperation::FeeModify {
-                caller: *caller,
+                caller: (*caller).into(),
                 new_fee: new_fee.clone(),
             },
             created_at,
@@ -95,7 +99,7 @@ pub fn set_fee_to(
         let created_at = created_at.unwrap_or(now);
         let tx = InnerTransaction {
             operation: InnerOperation::FeeToModify {
-                caller: *caller,
+                caller: (*caller).into(),
                 new_fee_to,
             },
             created_at,

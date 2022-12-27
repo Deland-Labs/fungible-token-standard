@@ -22,7 +22,7 @@ export interface ArchivedBlocksRange {
 export interface Block {
   'transaction' : Transaction,
   'timestamp' : bigint,
-  'parentHash' : Array<number>,
+  'parentHash' : Uint8Array,
 }
 export type BlockResult = { 'Ok' : Block } |
   { 'Err' : ErrorInfo } |
@@ -33,30 +33,30 @@ export interface ErrorInfo { 'code' : number, 'message' : string }
 export interface HttpRequest {
   'url' : string,
   'method' : string,
-  'body' : Array<number>,
+  'body' : Uint8Array,
   'headers' : Array<[string, string]>,
 }
 export interface HttpResponse {
-  'body' : Array<number>,
+  'body' : Uint8Array,
   'headers' : Array<[string, string]>,
   'streaming_strategy' : [] | [StreamingStrategy],
   'status_code' : number,
 }
 export type Operation = {
-    'FeeToModify' : { 'newFeeTo' : string, 'caller' : Principal }
+    'FeeToModify' : { 'newFeeTo' : string, 'caller' : string }
   } |
   {
     'Approve' : {
       'fee' : bigint,
       'value' : bigint,
       'owner' : string,
-      'caller' : Principal,
+      'caller' : string,
       'spender' : string,
     }
   } |
-  { 'RemoveMinter' : { 'minter' : Principal, 'caller' : Principal } } |
-  { 'FeeModify' : { 'newFee' : TokenFee, 'caller' : Principal } } |
-  { 'AddMinter' : { 'minter' : Principal, 'caller' : Principal } } |
+  { 'RemoveMinter' : { 'minter' : string, 'caller' : string } } |
+  { 'FeeModify' : { 'newFee' : TokenFee, 'caller' : string } } |
+  { 'AddMinter' : { 'minter' : string, 'caller' : string } } |
   {
     'Transfer' : {
       'to' : string,
@@ -66,14 +66,14 @@ export type Operation = {
       'caller' : string,
     }
   } |
-  { 'OwnerModify' : { 'newOwner' : Principal, 'caller' : Principal } };
+  { 'OwnerModify' : { 'newOwner' : string, 'caller' : string } };
 export type OperationResult = {
     'Ok' : { 'txId' : string, 'blockHeight' : bigint }
   } |
   { 'Err' : ErrorInfo };
 export interface QueryBlocksResult {
   'chainLength' : bigint,
-  'certificate' : [] | [Array<number>],
+  'certificate' : [] | [Uint8Array],
   'archivedBlocks' : Array<ArchivedBlocksRange>,
   'blocks' : Array<Block>,
   'firstBlockIndex' : bigint,
@@ -89,7 +89,7 @@ export interface TokenFee {
 export interface TokenInfo {
   'fee' : TokenFee,
   'chainLength' : bigint,
-  'certificate' : [] | [Array<number>],
+  'certificate' : [] | [Uint8Array],
   'owner' : Principal,
   'allowanceSize' : bigint,
   'holders' : bigint,
@@ -104,7 +104,7 @@ export interface TokenMetadata {
 }
 export interface TokenMetrics {
   'chainLength' : bigint,
-  'certificate' : [] | [Array<number>],
+  'certificate' : [] | [Uint8Array],
   'allowanceSize' : bigint,
   'localBlockCount' : bigint,
   'holders' : bigint,
@@ -116,38 +116,38 @@ export interface _SERVICE {
   'allowance' : ActorMethod<[string, string], bigint>,
   'allowancesOf' : ActorMethod<[string], Array<[string, bigint]>>,
   'approve' : ActorMethod<
-    [[] | [Array<number>], string, bigint, [] | [bigint]],
-    OperationResult,
+    [[] | [Uint8Array], string, bigint, [] | [bigint]],
+    OperationResult
   >,
   'archives' : ActorMethod<[], Array<ArchiveInfo>>,
   'balanceOf' : ActorMethod<[string], bigint>,
   'batchMint' : ActorMethod<
     [Array<[string, bigint]>, [] | [bigint]],
-    Array<OperationResult>,
+    Array<OperationResult>
   >,
   'batchTransfer' : ActorMethod<
-    [[] | [Array<number>], Array<[string, bigint]>, [] | [bigint]],
-    Array<OperationResult>,
+    [[] | [Uint8Array], Array<[string, bigint]>, [] | [bigint]],
+    Array<OperationResult>
   >,
   'batchTransferFrom' : ActorMethod<
-    [[] | [Array<number>], string, Array<[string, bigint]>, [] | [bigint]],
-    Array<OperationResult>,
+    [[] | [Uint8Array], string, Array<[string, bigint]>, [] | [bigint]],
+    Array<OperationResult>
   >,
   'blockByHeight' : ActorMethod<[bigint], BlockResult>,
   'blocksByQuery' : ActorMethod<[bigint, bigint], QueryBlocksResult>,
   'burn' : ActorMethod<
-    [[] | [Array<number>], bigint, [] | [bigint]],
-    OperationResult,
+    [[] | [Uint8Array], bigint, [] | [bigint]],
+    OperationResult
   >,
   'burnFrom' : ActorMethod<
-    [[] | [Array<number>], string, bigint, [] | [bigint]],
-    OperationResult,
+    [[] | [Uint8Array], string, bigint, [] | [bigint]],
+    OperationResult
   >,
   'decimals' : ActorMethod<[], number>,
   'desc' : ActorMethod<[], Array<[string, string]>>,
   'fee' : ActorMethod<[], TokenFee>,
   'http_request' : ActorMethod<[HttpRequest], HttpResponse>,
-  'logo' : ActorMethod<[], Array<number>>,
+  'logo' : ActorMethod<[], Uint8Array>,
   'meta' : ActorMethod<[], TokenMetadata>,
   'mint' : ActorMethod<[string, bigint, [] | [bigint]], OperationResult>,
   'minters' : ActorMethod<[], Array<Principal>>,
@@ -157,18 +157,18 @@ export interface _SERVICE {
   'setDesc' : ActorMethod<[Array<[string, string]>], BooleanResult>,
   'setFee' : ActorMethod<[TokenFee, [] | [bigint]], BooleanResult>,
   'setFeeTo' : ActorMethod<[string, [] | [bigint]], BooleanResult>,
-  'setLogo' : ActorMethod<[[] | [Array<number>]], BooleanResult>,
+  'setLogo' : ActorMethod<[[] | [Uint8Array]], BooleanResult>,
   'setOwner' : ActorMethod<[Principal, [] | [bigint]], BooleanResult>,
   'symbol' : ActorMethod<[], string>,
   'tokenInfo' : ActorMethod<[], TokenInfo>,
   'tokenMetrics' : ActorMethod<[], TokenMetrics>,
   'totalSupply' : ActorMethod<[], bigint>,
   'transfer' : ActorMethod<
-    [[] | [Array<number>], string, bigint, [] | [bigint]],
-    OperationResult,
+    [[] | [Uint8Array], string, bigint, [] | [bigint]],
+    OperationResult
   >,
   'transferFrom' : ActorMethod<
-    [[] | [Array<number>], string, string, bigint, [] | [bigint]],
-    OperationResult,
+    [[] | [Uint8Array], string, string, bigint, [] | [bigint]],
+    OperationResult
   >,
 }
