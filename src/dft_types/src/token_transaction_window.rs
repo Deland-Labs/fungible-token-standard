@@ -1,11 +1,13 @@
+use std::collections::{BTreeMap, VecDeque};
+use std::convert::TryFrom;
+
+use candid::Deserialize;
+use serde::Serialize;
+
 use crate::{
     constants::{DEFAULT_MAX_TRANSACTIONS_IN_WINDOW, DEFAULT_TRANSACTION_WINDOW},
     *,
 };
-use candid::Deserialize;
-use serde::Serialize;
-use std::collections::{BTreeMap, VecDeque};
-use std::convert::TryFrom;
 
 #[derive(Default, Debug, Clone, Deserialize, Serialize, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TokenTransactionWindow {
@@ -197,7 +199,13 @@ mod tests {
             .as_nanos()
             .try_into()
             .unwrap();
-        let block_timestamp = now - window.transaction_window - constants::PERMITTED_DRIFT - 1000;
+        let block_timestamp = now
+            .checked_sub(window.transaction_window)
+            .unwrap()
+            .checked_sub(constants::PERMITTED_DRIFT)
+            .unwrap()
+            .checked_sub(1000)
+            .unwrap();
         let tx_info: TransactionInfo = TransactionInfo {
             block_timestamp: block_timestamp.clone(),
             tx_hash: compute_hash("test".as_bytes()),
@@ -233,7 +241,7 @@ mod tests {
         let mut window = TokenTransactionWindow::new();
         let max_txs_in_window = window.max_transactions_in_window();
 
-        let push_txs_count = max_txs_in_window / 2 - 1;
+        let push_txs_count = (max_txs_in_window / 2).checked_sub(1).unwrap();
 
         // get now timestamp
         let now: u64 = std::time::SystemTime::now()
@@ -245,7 +253,11 @@ mod tests {
 
         for i in 0..push_txs_count {
             let block_height = BigUint::from(i as u32);
-            let block_timestamp = now - push_txs_count as u64 + 1;
+            let block_timestamp = now
+                .checked_sub(push_txs_count as u64)
+                .unwrap()
+                .checked_add(1)
+                .unwrap();
             let tx_info: TransactionInfo = TransactionInfo {
                 block_timestamp: block_timestamp.clone(),
                 tx_hash: compute_hash(format!("test{}", i).as_bytes()),
@@ -290,13 +302,17 @@ mod tests {
 
         for i in 0..push_txs_count {
             let block_height = BigUint::from(i as u32);
-            let block_timestamp = now - push_txs_count as u64 + 1;
+            let block_timestamp = now
+                .checked_sub(push_txs_count)
+                .unwrap()
+                .checked_add(1)
+                .unwrap();
             let tx_info: TransactionInfo = TransactionInfo {
                 block_timestamp: block_timestamp.clone(),
                 tx_hash: compute_hash(format!("test{}", i).as_bytes()),
             };
             window.push_transaction(block_height.clone(), tx_info.clone());
-            assert_eq!(window.transactions_count_in_window(), i + 1);
+            assert_eq!(window.transactions_count_in_window(), (i + 1) as usize);
         }
 
         let encoded = window.encode();

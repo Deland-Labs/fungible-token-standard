@@ -1,7 +1,10 @@
-use crate::{CommonResult, DFTError, StableState, TokenAmount, TokenHolder};
-use candid::Deserialize;
-use serde::Serialize;
 use std::collections::HashMap;
+
+use candid::Deserialize;
+use num_traits::CheckedSub;
+use serde::Serialize;
+
+use crate::{CommonResult, DFTError, StableState, TokenAmount, TokenHolder};
 
 #[derive(Clone, Default, Debug, Deserialize, Serialize)]
 pub struct TokenAllowances(HashMap<TokenHolder, HashMap<TokenHolder, TokenAmount>>);
@@ -50,7 +53,7 @@ impl TokenAllowances {
         if spender_allowance < value {
             return Err(DFTError::InsufficientAllowance);
         }
-        let new_spender_allowance = spender_allowance - value;
+        let new_spender_allowance = spender_allowance.checked_sub(&value).unwrap();
         if let Some(inner) = self.0.get(owner) {
             let mut temp = inner.clone();
             if new_spender_allowance == TokenAmount::from(0u32) {
@@ -138,8 +141,9 @@ impl StableState for TokenAllowances {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{TokenAmount, TokenHolder};
+
+    use super::*;
 
     #[test]
     fn test_token_allowances() {

@@ -1,11 +1,14 @@
-use candid::Principal;
-use dft_basic::service::{basic_service, management_service};
-use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
-use dft_types::*;
-use rstest::*;
 use std::collections::HashMap;
 use std::io::Read;
 use std::ops::Mul;
+
+use candid::Principal;
+use num_traits::CheckedSub;
+use rstest::*;
+
+use dft_basic::service::{basic_service, management_service};
+use dft_types::constants::DEFAULT_FEE_RATE_DECIMALS;
+use dft_types::*;
 
 #[fixture]
 fn test_logo() -> Vec<u8> {
@@ -338,7 +341,7 @@ fn test_token_basic_fee_calculation(
     let minter_holder_balance = basic_service::balance_of(&minter_holder);
     assert_eq!(
         minter_holder_balance,
-        mint_val.clone() - approve_fee_charged
+        mint_val.clone().checked_sub(&approve_fee_charged).unwrap()
     );
 
     let approve_val = TokenAmount::from(1020u32);
@@ -360,7 +363,10 @@ fn test_token_basic_fee_calculation(
     let minter_holder_balance = basic_service::balance_of(&minter_holder);
     assert_eq!(
         minter_holder_balance,
-        mint_val.clone() - fee.minimum.clone() * 2u32
+        mint_val
+            .clone()
+            .checked_sub(&(fee.minimum.clone() * 2u32).into())
+            .unwrap()
     );
 
     // check spender_holder balance

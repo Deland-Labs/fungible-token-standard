@@ -22,6 +22,7 @@ serde = "1.0.143"
 serde_bytes = "0.11"
 sha2 = "0.10.2"
 num-bigint = "0.4.3"
+num-traits = "0.2.14"
 json_pretty = "0.1.2"
 log = "0.4"
 

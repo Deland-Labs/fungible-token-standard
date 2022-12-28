@@ -1,9 +1,13 @@
-use crate::{state::STATE, types::StorageInfo};
+use std::convert::TryInto;
+
 use candid::Principal;
+use num_bigint::BigUint;
+use num_traits::{CheckedSub, ToPrimitive};
+
 use dft_types::constants::MAX_BLOCKS_PER_REQUEST;
 use dft_types::{Block, BlockListResult, BlockResult, CommonResult, DFTError, EncodedBlock};
-use num_bigint::BigUint;
-use std::convert::TryInto;
+
+use crate::{state::STATE, types::StorageInfo};
 
 pub fn init(dft_id: Principal, dft_tx_start_index: BigUint, now: u64) {
     STATE.with(|s| {
@@ -34,8 +38,10 @@ pub fn get_block_by_height(block_height: BigUint) -> BlockResult {
         {
             BlockResult::Err(DFTError::NonExistentBlockHeight.into())
         } else {
-            let inner_index: usize = (block_height - setting.block_height_offset())
-                .try_into()
+            let inner_index: usize = block_height
+                .checked_sub(setting.block_height_offset())
+                .unwrap()
+                .to_usize()
                 .unwrap();
 
             match block_archive.blocks().get(inner_index) {
@@ -61,8 +67,10 @@ pub fn get_blocks_by_query(start_block_height: BigUint, size: usize) -> BlockLis
         {
             BlockListResult::Err(DFTError::NonExistentBlockHeight.into())
         } else {
-            let inner_index_start: u64 = (start_block_height - setting.block_height_offset())
-                .try_into()
+            let inner_index_start: u64 = start_block_height
+                .checked_sub(&setting.block_height_offset())
+                .unwrap()
+                .to_u64()
                 .unwrap();
 
             let inner_index_end = inner_index_start + size as u64;
@@ -99,12 +107,15 @@ pub fn get_storage_info() -> StorageInfo {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use std::ops::Add;
+
     use candid::Nat;
+
     use dft_types::{
         ErrorInfo, InnerBlock, InnerOperation, InnerTransaction, Operation, TokenHolder,
     };
-    use std::ops::Add;
+
+    use super::*;
 
     #[test]
     fn test_init() {

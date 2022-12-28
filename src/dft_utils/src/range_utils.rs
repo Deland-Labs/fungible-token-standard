@@ -1,5 +1,7 @@
+use std::ops::{Add, Range};
+
 use num_bigint::BigUint;
-use std::ops::Range;
+use num_traits::CheckedSub;
 
 /// Constructs a range starting at `start` and spanning `len` integers.
 /// If `start` + `len` overflows BigUint, the len is truncated to the largest value that doesn't overflow
@@ -26,7 +28,7 @@ pub fn is_subrange(l: &Range<BigUint>, r: &Range<BigUint>) -> bool {
 
 /// Returns the total number of elements in range `r`.
 pub fn range_len(r: &Range<BigUint>) -> BigUint {
-    r.end.clone() - r.start.clone()
+    r.end.clone().checked_sub(&r.start).unwrap()
 }
 
 /// Returns the prefix of the range `r` that contains at most `n` elements.
@@ -49,7 +51,12 @@ pub fn behead(r: &Range<BigUint>, n: usize) -> Range<BigUint> {
 pub fn curtail(r: &Range<BigUint>, n: usize) -> Range<BigUint> {
     Range {
         start: r.start.clone(),
-        end: r.start.clone() + range_len(r) - (n as u64),
+        end: r
+            .start
+            .clone()
+            .add(&range_len(r))
+            .checked_sub(&n.into())
+            .unwrap(),
     }
 }
 

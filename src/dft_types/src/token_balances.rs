@@ -1,7 +1,10 @@
-use crate::{CommonResult, DFTError, StableState, TokenAmount, TokenHolder};
-use candid::Deserialize;
-use serde::Serialize;
 use std::collections::HashMap;
+
+use candid::Deserialize;
+use num_traits::CheckedSub;
+use serde::Serialize;
+
+use crate::{CommonResult, DFTError, StableState, TokenAmount, TokenHolder};
 
 #[derive(Clone, Default, Debug, Deserialize, Serialize)]
 pub struct TokenBalances {
@@ -41,14 +44,14 @@ impl TokenBalances {
             Err(DFTError::InsufficientBalance)
         } else {
             // calc new balance
-            let new_balance = self.balance_of(holder) - value.clone();
+            let new_balance = self.balance_of(holder).checked_sub(&value).unwrap();
 
             if new_balance > TokenAmount::from(0u32) {
                 self.balances.insert(*holder, new_balance);
             } else {
                 self.balances.remove(holder);
             }
-            self.total_supply = self.total_supply.clone() - value;
+            self.total_supply = self.total_supply.clone().checked_sub(&value).unwrap();
 
             Ok(())
         }
@@ -89,8 +92,9 @@ impl StableState for TokenBalances {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::{TokenAmount, TokenHolder};
+
+    use super::*;
 
     #[test]
     fn test_token_balances() {
