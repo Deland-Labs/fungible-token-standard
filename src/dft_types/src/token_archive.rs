@@ -1,4 +1,7 @@
+use std::ops::Add;
+
 use candid::{CandidType, Nat, Principal};
+use num_traits::CheckedSub;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -92,7 +95,7 @@ impl Archive {
     }
 
     pub fn last_storage_canister_index(&self) -> usize {
-        self.storage_canisters.len() - 1
+        self.storage_canisters.len().checked_sub(1).unwrap()
     }
 
     pub fn last_storage_canister_range(&self) -> Option<(BlockHeight, BlockHeight)> {
@@ -116,7 +119,7 @@ impl Archive {
                 canister_id: id,
                 start_block_height: start.clone().into(),
                 end_block_height: end.clone().into(),
-                num_blocks: (end - start + 1u32).into(),
+                num_blocks: (end.checked_sub(&start).unwrap().add(1u32)).into(),
             })
             .collect()
     }
@@ -209,9 +212,12 @@ impl Archive {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::constants::MAX_MESSAGE_SIZE_BYTES;
     use num_bigint::BigUint;
+    use num_traits::CheckedSub;
+
+    use crate::constants::MAX_MESSAGE_SIZE_BYTES;
+
+    use super::*;
 
     #[test]
     #[should_panic]
@@ -396,7 +402,11 @@ mod tests {
         );
         assert_eq!(
             archives[1].num_blocks,
-            Nat::from(new_archived_end_block_height - archived_end_block_height)
+            Nat::from(
+                new_archived_end_block_height
+                    .checked_sub(&archived_end_block_height)
+                    .unwrap()
+            )
         );
     }
 }

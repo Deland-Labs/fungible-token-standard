@@ -1,18 +1,21 @@
-use super::AutoScalingStorageService;
-use crate::canister_api::*;
-use crate::service::{basic_service, blockchain_service, management_service};
+use std::collections::VecDeque;
+use std::sync::Arc;
+
 use async_trait::async_trait;
 use candid::{Nat, Principal};
+use mockall::mock;
+use num_bigint::BigUint;
+use rstest::*;
 
 use dft_types::constants::{
     DEFAULT_FEE_RATE_DECIMALS, MAX_CANISTER_STORAGE_BYTES, MIN_CANISTER_STORAGE_BYTES,
 };
 use dft_types::*;
-use mockall::mock;
-use num_bigint::BigUint;
-use rstest::*;
-use std::collections::VecDeque;
-use std::sync::Arc;
+
+use crate::canister_api::*;
+use crate::service::{basic_service, blockchain_service, management_service};
+
+use super::AutoScalingStorageService;
 
 #[fixture]
 fn test_owner() -> Principal {
@@ -434,7 +437,7 @@ async fn test_auto_scaling_storage_with_create_storage_success_and_install_succe
                 },
                 module_hash: None,
                 controller: test_token_id(),
-                memory_size: (MAX_CANISTER_STORAGE_BYTES - 100).into(),
+                memory_size: MAX_CANISTER_STORAGE_BYTES.checked_sub(100).unwrap().into(),
                 cycles: 0u32.into(),
             })
         });

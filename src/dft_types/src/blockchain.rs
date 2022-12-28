@@ -1,7 +1,9 @@
 use std::collections::VecDeque;
 use std::convert::TryInto;
+use std::ops::Sub;
 
 use candid::{Deserialize, Principal};
+use num_traits::CheckedSub;
 use serde::Serialize;
 
 use crate::*;
@@ -77,7 +79,7 @@ impl Blockchain {
         self.last_hash = Some(encoded_block.hash_with_token_id(token_id));
         self.last_timestamp = block.timestamp;
         self.blocks.push(encoded_block);
-        Ok(self.chain_length() - 1u32)
+        Ok(self.chain_length().checked_sub(&1u32.into()).unwrap())
     }
 
     pub fn get(&self, height: BlockHeight) -> Option<&EncodedBlock> {
@@ -172,6 +174,8 @@ impl StableState for Blockchain {
 #[cfg(test)]
 mod tests {
     use std::time::SystemTime;
+
+    use num_traits::ToPrimitive;
 
     use dft_utils::range_utils::make_range;
 
@@ -279,7 +283,8 @@ mod tests {
                 );
                 assert_eq!(
                     blockchain.num_unarchived_blocks(),
-                    i as u64 - (blocks.len() - 1) as u64
+                    i.checked_sub(blocks.len().checked_sub(1usize).unwrap().to_u32().unwrap())
+                        .unwrap() as u64
                 );
                 assert_eq!(blockchain.chain_length(), BigUint::from((i + 1) as u64));
                 assert_eq!(

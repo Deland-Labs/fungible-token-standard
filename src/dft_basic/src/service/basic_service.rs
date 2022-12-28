@@ -1,10 +1,14 @@
-use crate::state::STATE;
+use std::collections::HashMap;
+use std::convert::TryInto;
+
 use candid::{Nat, Principal};
+use num_traits::{CheckedSub, ToPrimitive};
+
 use dft_types::constants::MAX_BLOCKS_PER_REQUEST;
 use dft_types::*;
 use dft_utils::*;
-use std::collections::HashMap;
-use std::convert::TryInto;
+
+use crate::state::STATE;
 
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::clone_on_copy)]
@@ -263,8 +267,10 @@ pub fn block_by_height(block_height: BlockHeight) -> BlockResult {
             };
         }
 
-        let inner_index: usize = (block_height - blockchain.num_archived_blocks())
-            .try_into()
+        let inner_index: usize = block_height
+            .checked_sub(&blockchain.num_archived_blocks())
+            .unwrap()
+            .to_usize()
             .unwrap();
 
         match blockchain.blocks.get(inner_index) {
@@ -288,11 +294,15 @@ pub fn blocks_by_query(start: BlockHeight, count: usize) -> QueryBlocksResult {
         );
 
         let local_blocks: Vec<Block> = if !effective_local_range.is_empty() {
-            let local_start: usize = (effective_local_range.start.clone() - local_range.start)
-                .try_into()
+            let local_start: usize = effective_local_range
+                .start
+                .clone()
+                .checked_sub(&local_range.start)
+                .unwrap()
+                .to_usize()
                 .unwrap();
             let range_len: usize = range_utils::range_len(&effective_local_range)
-                .try_into()
+                .to_usize()
                 .unwrap();
             let local_end = local_start + range_len;
 
