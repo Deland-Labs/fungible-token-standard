@@ -1,7 +1,12 @@
 [package]
 name = "dft_receiver"
-version = "0.1.0"
-edition = "2018"
+version = "0.6.0"
+license = "Apache-2.0"
+authors = ["Deland Labs Core Dev <delandlabs@gmail.com>"]
+edition = "2021"
+description = "Dfinity fungible token standard: test environment receiver cansiter."
+homepage = "https://github.com/Deland-Labs/core-canister"
+repository = "https://github.com/Deland-Labs/core-canister"
 
 [lib]
 crate-type = ["cdylib"]
