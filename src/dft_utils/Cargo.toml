@@ -1,7 +1,12 @@
 [package]
 name = "dft_utils"
 version = "0.6.0"
-edition = "2018"
+license = "Apache-2.0"
+authors = ["Deland Labs Core Dev <delandlabs@gmail.com>"]
+edition = "2021"
+description = "Dfinity fungible token standard: utils."
+homepage = "https://github.com/Deland-Labs/core-canister"
+repository = "https://github.com/Deland-Labs/core-canister"
 
 [dependencies]
 ic-cdk = "0.6.8"
