@@ -32,7 +32,7 @@ json_pretty = "0.1.2"
 log = "0.4"
 
 [dev-dependencies]
-rstest = "0.15.0"
+rstest = "0.16.0"
 
 [features]
 default = ["basic","logger"]
