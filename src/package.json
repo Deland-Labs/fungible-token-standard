@@ -13,7 +13,7 @@
     "@deland-labs/ic-dev-kit": "^0.6.0",
     "@dfinity/agent": "^0.10.2",
     "@dfinity/authentication": "^0.10.2",
-    "@dfinity/candid": "^0.10.2",
+    "@dfinity/candid": "^0.21.0",
     "@dfinity/identity": "^0.10.2",
     "@dfinity/principal": "^0.10.2",
     "@trust/webcrypto": "^0.9.2",
