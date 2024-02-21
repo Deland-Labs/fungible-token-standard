@@ -14,7 +14,7 @@
     "@dfinity/agent": "^0.10.2",
     "@dfinity/authentication": "^0.10.2",
     "@dfinity/candid": "^0.10.2",
-    "@dfinity/identity": "^0.10.2",
+    "@dfinity/identity": "^0.19.0",
     "@dfinity/principal": "^0.10.2",
     "@trust/webcrypto": "^0.9.2",
     "archiver": "^5.3.0",
